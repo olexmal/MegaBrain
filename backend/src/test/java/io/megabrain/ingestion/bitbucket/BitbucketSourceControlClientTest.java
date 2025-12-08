@@ -5,21 +5,25 @@
 
 package io.megabrain.ingestion.bitbucket;
 
+import io.megabrain.ingestion.IngestionException;
 import io.megabrain.ingestion.ProgressEvent;
 import io.quarkus.test.junit.QuarkusTest;
+import jakarta.enterprise.inject.Vetoed;
+import jakarta.ws.rs.WebApplicationException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 @QuarkusTest
 class BitbucketSourceControlClientTest {
@@ -196,6 +200,135 @@ class BitbucketSourceControlClientTest {
     }
 
     @Test
+    void buildCloneUrl_shouldFailWhenServerBaseUrlMissing() throws Exception {
+        BitbucketSourceControlClient client = new BitbucketSourceControlClient();
+
+        // Ensure Optional is present but empty instead of null to avoid NPE
+        Field baseField = BitbucketSourceControlClient.class.getDeclaredField("serverBaseUrl");
+        baseField.setAccessible(true);
+        baseField.set(client, Optional.empty());
+
+        Method parse = BitbucketSourceControlClient.class.getDeclaredMethod("parseRepositoryUrl", String.class);
+        parse.setAccessible(true);
+        Object urlParts = parse.invoke(client, "https://bitbucket.company.com/projects/PROJ/repos/repo");
+
+        Method build = BitbucketSourceControlClient.class.getDeclaredMethod("buildCloneUrl", urlParts.getClass());
+        build.setAccessible(true);
+
+        Throwable thrown = catchThrowable(() -> build.invoke(client, urlParts));
+        assertThat(thrown).hasCauseInstanceOf(IllegalStateException.class);
+        assertThat(thrown.getCause().getMessage()).contains("bitbucket-server-api/mp-rest/url");
+    }
+
+    @Test
+    void fetchMetadata_shouldMapServerAuthFailure() throws Exception {
+        BitbucketSourceControlClient client = new BitbucketSourceControlClient();
+        injectServerClient(client, new ThrowingServerApiClient(401));
+
+        assertThatThrownBy(() -> client.fetchMetadata("https://company.bitbucket.com/projects/PROJ/repos/repo")
+                .await().indefinitely())
+                .isInstanceOf(IngestionException.class)
+                .hasMessageContaining("authentication failed");
+    }
+
+    @Test
+    void fetchMetadata_shouldMapServerRateLimit() throws Exception {
+        BitbucketSourceControlClient client = new BitbucketSourceControlClient();
+        injectServerClient(client, new ThrowingServerApiClient(429));
+
+        assertThatThrownBy(() -> client.fetchMetadata("https://company.bitbucket.com/projects/PROJ/repos/repo")
+                .await().indefinitely())
+                .isInstanceOf(IngestionException.class)
+                .hasMessageContaining("rate limited");
+    }
+
+    @Test
+    void fetchMetadata_shouldMapCloudAuthFailure() throws Exception {
+        BitbucketSourceControlClient client = new BitbucketSourceControlClient();
+        injectCloudClient(client, new ThrowingCloudApiClient(401));
+
+        assertThatThrownBy(() -> client.fetchMetadata("https://bitbucket.org/workspace/repo")
+                .await().indefinitely())
+                .isInstanceOf(IngestionException.class)
+                .hasMessageContaining("authentication failed");
+    }
+
+    private void injectServerClient(BitbucketSourceControlClient client, BitbucketServerApiClient api) throws Exception {
+        Field serverField = BitbucketSourceControlClient.class.getDeclaredField("bitbucketServerApiClient");
+        serverField.setAccessible(true);
+        serverField.set(client, api);
+    }
+
+    private void injectCloudClient(BitbucketSourceControlClient client, BitbucketCloudApiClient api) throws Exception {
+        Field cloudField = BitbucketSourceControlClient.class.getDeclaredField("bitbucketCloudApiClient");
+        cloudField.setAccessible(true);
+        cloudField.set(client, api);
+    }
+
+    @Vetoed
+    private static class ThrowingServerApiClient implements BitbucketServerApiClient {
+        private final int status;
+        ThrowingServerApiClient(int status) { this.status = status; }
+        @Override
+        public BitbucketServerRepositoryInfo getRepository(String project, String repo) {
+            throw new WebApplicationException(status);
+        }
+        @Override
+        public BitbucketServerCommitInfo getCommit(String project, String repo, String branch) {
+            throw new WebApplicationException(status);
+        }
+    }
+
+    @Vetoed
+    private static class ThrowingCloudApiClient implements BitbucketCloudApiClient {
+        private final int status;
+        ThrowingCloudApiClient(int status) { this.status = status; }
+        @Override
+        public BitbucketCloudRepositoryInfo getRepository(String workspace, String repo) {
+            throw new WebApplicationException(status);
+        }
+        @Override
+        public BitbucketCloudCommitInfo getCommit(String workspace, String repo, String branch) {
+            throw new WebApplicationException(status);
+        }
+    }
+
+    @Test
+    void mapBitbucketException_shouldProvideAuthMessage() throws Exception {
+        BitbucketSourceControlClient client = new BitbucketSourceControlClient();
+        Method mapper = BitbucketSourceControlClient.class.getDeclaredMethod("mapBitbucketException", Throwable.class);
+        mapper.setAccessible(true);
+
+        IngestionException result = (IngestionException) mapper.invoke(client, new WebApplicationException(401));
+        assertThat(result).isNotNull();
+        assertThat(result.getMessage()).contains("authentication failed");
+    }
+
+    @Test
+    void mapBitbucketException_shouldProvideRateLimitMessage() throws Exception {
+        BitbucketSourceControlClient client = new BitbucketSourceControlClient();
+        Method mapper = BitbucketSourceControlClient.class.getDeclaredMethod("mapBitbucketException", Throwable.class);
+        mapper.setAccessible(true);
+
+        IngestionException result = (IngestionException) mapper.invoke(client, new WebApplicationException(429));
+        assertThat(result).isNotNull();
+        assertThat(result.getMessage()).contains("rate limited");
+    }
+
+    @Test
+    void isRateLimit_shouldDetect429() throws Exception {
+        BitbucketSourceControlClient client = new BitbucketSourceControlClient();
+        Method rate = BitbucketSourceControlClient.class.getDeclaredMethod("isRateLimit", Throwable.class);
+        rate.setAccessible(true);
+
+        boolean is429 = (boolean) rate.invoke(client, new WebApplicationException(429));
+        boolean not429 = (boolean) rate.invoke(client, new WebApplicationException(500));
+
+        assertThat(is429).isTrue();
+        assertThat(not429).isFalse();
+    }
+
+    @Test
     void parseRepositoryUrl_shouldThrowException_forInvalidUrl() {
         // Given
         BitbucketSourceControlClient client = new BitbucketSourceControlClient();
@@ -235,5 +368,21 @@ class BitbucketSourceControlClientTest {
 
         // Then
         assertThat(events).anyMatch(e -> e.message().contains("Main.java"));
+    }
+
+    @Test
+    void shouldIncludeFile_shouldRespectRootGitignore(@TempDir Path tempDir) throws IOException {
+        BitbucketSourceControlClient client = new BitbucketSourceControlClient();
+        Files.writeString(tempDir.resolve(".gitignore"), "*.md");
+
+        Path readme = tempDir.resolve("README.md");
+        Files.writeString(readme, "# ignore me");
+        Path javaFile = tempDir.resolve("Main.java");
+        Files.writeString(javaFile, "public class Main {}");
+
+        var events = client.extractFiles(tempDir).collect().asList().await().indefinitely();
+
+        assertThat(events).anyMatch(e -> e.message().contains("Main.java"));
+        assertThat(events).noneMatch(e -> e.message().contains("README.md"));
     }
 }

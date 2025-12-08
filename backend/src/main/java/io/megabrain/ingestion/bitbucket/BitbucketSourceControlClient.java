@@ -16,15 +16,18 @@ import jakarta.inject.Inject;
 import org.eclipse.jgit.api.CloneCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.ignore.IgnoreNode;
 import org.eclipse.jgit.lib.ProgressMonitor;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import org.jboss.logging.Logger;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import jakarta.ws.rs.WebApplicationException;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
@@ -154,11 +157,13 @@ public class BitbucketSourceControlClient implements SourceControlClient {
 
             } catch (Exception e) {
                 LOG.errorf(e, "Failed to fetch metadata for repository: %s", repositoryUrl);
-                throw new IngestionException("Failed to fetch repository metadata: " + e.getMessage(), e);
+                throw mapBitbucketException(e);
             }
         })
-        .onFailure().retry().withBackOff(java.time.Duration.ofSeconds(1), java.time.Duration.ofSeconds(5))
-        .atMost(3);
+        .onFailure(this::isRateLimit)
+            .retry().withBackOff(java.time.Duration.ofSeconds(1), java.time.Duration.ofSeconds(5)).atMost(3)
+        .onFailure(WebApplicationException.class)
+            .transform(this::mapBitbucketException);
     }
 
     @Override
@@ -272,11 +277,14 @@ public class BitbucketSourceControlClient implements SourceControlClient {
                 final int[] totalFiles = {0};
                 final AtomicInteger processedFiles = new AtomicInteger(0);
 
+                // Load .gitignore rules (root only for now)
+                IgnoreNode ignoreNode = loadIgnoreNode(repositoryPath);
+
                 // First pass: count files
                 try (var paths = Files.walk(repositoryPath)) {
                     totalFiles[0] = (int) paths
                             .filter(Files::isRegularFile)
-                            .filter(this::shouldIncludeFile)
+                            .filter(path -> shouldIncludeFile(path, repositoryPath, ignoreNode))
                             .count();
                 }
 
@@ -285,7 +293,7 @@ public class BitbucketSourceControlClient implements SourceControlClient {
                 // Second pass: process files
                 try (var paths = Files.walk(repositoryPath)) {
                     paths.filter(Files::isRegularFile)
-                            .filter(this::shouldIncludeFile)
+                            .filter(path -> shouldIncludeFile(path, repositoryPath, ignoreNode))
                             .forEach(file -> {
                                 int currentProcessed = processedFiles.incrementAndGet();
                                 int percentage = totalFiles[0] > 0 ? (currentProcessed * 90 / totalFiles[0]) + 10 : 50;
@@ -374,6 +382,29 @@ public class BitbucketSourceControlClient implements SourceControlClient {
         throw new IllegalArgumentException("Invalid Bitbucket repository URL: " + repositoryUrl);
     }
 
+    private boolean isRateLimit(Throwable throwable) {
+        if (throwable instanceof WebApplicationException webEx && webEx.getResponse() != null) {
+            return webEx.getResponse().getStatus() == 429;
+        }
+        return false;
+    }
+
+    private IngestionException mapBitbucketException(Throwable throwable) {
+        if (throwable instanceof IngestionException ie) {
+            return ie;
+        }
+        if (throwable instanceof WebApplicationException webEx && webEx.getResponse() != null) {
+            int status = webEx.getResponse().getStatus();
+            if (status == 401 || status == 403) {
+                return new IngestionException("Bitbucket authentication failed: check app password or PAT", webEx);
+            }
+            if (status == 429) {
+                return new IngestionException("Bitbucket API rate limited: retry later", webEx);
+            }
+        }
+        return new IngestionException("Failed to fetch repository metadata: " + throwable.getMessage(), throwable);
+    }
+
     /**
      * Builds the clone URL for the repository.
      */
@@ -404,7 +435,7 @@ public class BitbucketSourceControlClient implements SourceControlClient {
      * Checks if a file should be included in extraction.
      * Filters out binary files and ignored patterns.
      */
-    private boolean shouldIncludeFile(Path file) {
+    private boolean shouldIncludeFile(Path file, Path repositoryRoot, IgnoreNode ignoreNode) {
         String fileName = file.getFileName().toString();
 
         // Skip hidden files and directories
@@ -430,15 +461,32 @@ public class BitbucketSourceControlClient implements SourceControlClient {
             return false;
         }
 
-        // TODO: Implement .gitignore pattern support (EPIC-01, US-01-02)
-        // Currently only filters by file extension. Future enhancement should:
-        // - Parse .gitignore files from repository root
-        // - Implement glob pattern matching for ignored files
-        // - Support nested .gitignore files
-        // - Handle negation patterns (!)
-        // For now, include all non-binary text files
+        // Apply root .gitignore rules if present
+        if (ignoreNode != null) {
+            String relative = repositoryRoot.relativize(file).toString().replace("\\", "/");
+            var result = ignoreNode.isIgnored(relative, false);
+            if (result == IgnoreNode.MatchResult.IGNORED) {
+                return false;
+            }
+        }
 
         return true;
+    }
+
+    private IgnoreNode loadIgnoreNode(Path repositoryRoot) {
+        Path ignoreFile = repositoryRoot.resolve(".gitignore");
+        if (Files.exists(ignoreFile)) {
+            try {
+                IgnoreNode node = new IgnoreNode();
+                try (var is = Files.newInputStream(ignoreFile)) {
+                    node.parse(is);
+                }
+                return node;
+            } catch (IOException e) {
+                LOG.warnf(e, "Failed to read .gitignore at %s, continuing without it", ignoreFile);
+            }
+        }
+        return null;
     }
 
     /**
