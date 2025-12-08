@@ -13,11 +13,12 @@
 4. [Installation & Setup](#installation--setup)
 5. [Configuration](#configuration)
 6. [Development Guide](#development-guide)
-7. [API Documentation](#api-documentation)
-8. [Deployment](#deployment)
-9. [Troubleshooting](#troubleshooting)
-10. [Contributing](#contributing)
-11. [References](#references)
+7. [API & CLI Usage](#api--cli-usage)
+8. [Frontend Development](#frontend-development)
+9. [Deployment & Operations](#deployment--operations)
+10. [Troubleshooting](#troubleshooting)
+11. [Contributing](#contributing)
+12. [References](#references)
 
 ---
 
@@ -660,7 +661,44 @@ describe('DashboardComponent', () => {
 
 ---
 
-## API Documentation
+## API & CLI Usage
+
+### REST API
+- Base URL: `http://localhost:8080`
+- Health: `GET /q/health`
+- Ingestion (example):
+  - `POST /api/v1/ingestion` — trigger ingestion for a repository
+  - Body (example):
+    ```json
+    {
+      "url": "https://bitbucket.org/workspace/repo",
+      "branch": "main",
+      "provider": "bitbucket"
+    }
+    ```
+- Search (example):
+  - `POST /api/v1/search`
+  - Body (example):
+    ```json
+    {
+      "query": "how is Bitbucket auth handled",
+      "limit": 5
+    }
+    ```
+- SSE streaming: responses stream via Server-Sent Events where noted (e.g., RAG answers).
+- Auth: configure tokens via `application.properties` / env; do not embed in URLs.
+
+### CLI (Picocli / Quarkus)
+- Run via `mvn -pl backend quarkus:dev` then `java -jar target/quarkus-app/quarkus-run.jar <command>` or via packaged CLI if available.
+- Common commands (examples, may vary by module):
+  - `megabrain ingest --url https://bitbucket.org/workspace/repo --branch main`
+  - `megabrain search --query "dependency graph builder" --limit 5`
+- Use `--help` on any command for options and flags.
+
+### MCP Server
+- Transport: stdio (primary), SSE (optional).
+- Purpose: expose tools (search, ingestion triggers) to LLM clients.
+- See EPIC-08 docs for detailed protocol and tool schema.
 
 ### Base URL
 
@@ -793,7 +831,21 @@ All errors follow this format:
 
 ---
 
-## Deployment
+## Frontend Development
+- Prereqs: Node 18+, npm, Angular CLI 20 (`npm install -g @angular/cli@20`).
+- Install deps: `cd frontend && npm install`
+- Dev server: `npm start` or `ng serve` (runs at `http://localhost:4200`, proxies API to `http://localhost:8080`)
+- Build: `npm run build` (production bundle)
+- Env config: edit `frontend/src/environments/environment.ts` (dev) or `environment.prod.ts` (prod) for API base URL and feature flags.
+
+## Deployment & Operations
+- Backend port: `8080` (configurable via `quarkus.http.port`).
+- Bitbucket Server: ensure `bitbucket-server-api/mp-rest/url` points to the server root (no `/rest`), PAT set via `megabrain.bitbucket.server.*`; clone URL derived as `<base>/scm/<project>/<repo>.git`.
+- Health: `GET /q/health`
+- Logging: controlled via `quarkus.log.level` and category configs.
+- Datastores: configure PostgreSQL, Neo4j, Lucene path, and optional vector store (pgvector/Milvus) before production use.
+- LLM providers: prefer Ollama for on-prem; set base URL and model; cloud providers require API keys.
+- Security: never log tokens; ensure HTTPS in production; limit exposure of `/q/*` endpoints.
 
 ### Production Build
 

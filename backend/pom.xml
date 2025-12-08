@@ -13,23 +13,25 @@
     <description>Scalable, self-hosted, intelligent code knowledge platform</description>
 
     <properties>
-        <maven.compiler.source>21</maven.compiler.source>
-        <maven.compiler.target>21</maven.compiler.target>
+        <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         
         <java.version>21</java.version>
-        <quarkus.version>3.15.0</quarkus.version>
+        <quarkus.version>3.30.2</quarkus.version>
         
         <!-- Dependency versions -->
-        <javaparser.version>3.25.9</javaparser.version>
-        <lucene.version>9.11.0</lucene.version>
-        <neo4j.driver.version>5.20.0</neo4j.driver.version>
-        <jgit.version>6.9.0.202403050737-r</jgit.version>
-        <postgresql.version>42.7.4</postgresql.version>
-        <junit.version>5.10.2</junit.version>
-        <mockito.version>5.12.0</mockito.version>
-        <testcontainers.version>1.19.8</testcontainers.version>
+        <javaparser.version>3.27.1</javaparser.version>
+        <lucene.version>10.3.2</lucene.version>
+        <neo4j.driver.version>6.0.2</neo4j.driver.version>
+        <jgit.version>7.4.0.202509020913-r</jgit.version>
+        <postgresql.version>42.7.5</postgresql.version>
+        <junit.version>5.11.1</junit.version>
+        <mockito.version>5.14.2</mockito.version>
+        <assertj.version>3.26.3</assertj.version>
+        <testcontainers.version>1.20.3</testcontainers.version>
+        <langchain4j.version>1.9.1</langchain4j.version>
+        <j-tree-sitter.version>0.25.6</j-tree-sitter.version>
     </properties>
 
     <dependencyManagement>
@@ -41,6 +43,41 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-bom</artifactId>
+                <version>${langchain4j.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.neo4j.driver</groupId>
+                <artifactId>neo4j-java-driver-bom</artifactId>
+                <version>${neo4j.driver.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.junit</groupId>
+                <artifactId>junit-bom</artifactId>
+                <version>${junit.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-bom</artifactId>
+                <version>${mockito.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>testcontainers-bom</artifactId>
+                <version>${testcontainers.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -48,11 +85,11 @@
         <!-- Quarkus Core -->
         <dependency>
             <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-resteasy-reactive</artifactId>
+            <artifactId>quarkus-rest</artifactId>
         </dependency>
         <dependency>
             <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-resteasy-reactive-jackson</artifactId>
+            <artifactId>quarkus-rest-jackson</artifactId>
         </dependency>
         <dependency>
             <groupId>io.quarkus</groupId>
@@ -61,8 +98,8 @@
         
         <!-- LangChain4j for LLM Integration -->
         <dependency>
-            <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-langchain4j</artifactId>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j</artifactId>
         </dependency>
         <dependency>
             <groupId>dev.langchain4j</groupId>
@@ -92,7 +129,17 @@
         <!-- SmallRye Reactive Messaging for SSE -->
         <dependency>
             <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-smallrye-reactive-messaging</artifactId>
+            <artifactId>quarkus-messaging</artifactId>
+        </dependency>
+        
+        <!-- REST Client for external API calls -->
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-rest-client</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-rest-client-jackson</artifactId>
         </dependency>
         
         <!-- JavaParser for Java code parsing -->
@@ -101,17 +148,12 @@
             <artifactId>javaparser-core</artifactId>
             <version>${javaparser.version}</version>
         </dependency>
-        <dependency>
-            <groupId>com.github.javaparser</groupId>
-            <artifactId>javaparser-symbol-solver-core</artifactId>
-            <version>${javaparser.version}</version>
-        </dependency>
-        
+
         <!-- Tree-sitter for multi-language parsing -->
         <dependency>
-            <groupId>io.github.fastily</groupId>
-            <artifactId>j-tree-sitter</artifactId>
-            <version>0.20.2</version>
+            <groupId>io.github.tree-sitter</groupId>
+            <artifactId>jtreesitter</artifactId>
+            <version>${j-tree-sitter.version}</version>
         </dependency>
         
         <!-- Apache Lucene for search -->
@@ -122,7 +164,7 @@
         </dependency>
         <dependency>
             <groupId>org.apache.lucene</groupId>
-            <artifactId>lucene-analyzers-common</artifactId>
+            <artifactId>lucene-analysis-common</artifactId>
             <version>${lucene.version}</version>
         </dependency>
         <dependency>
@@ -135,7 +177,6 @@
         <dependency>
             <groupId>org.neo4j.driver</groupId>
             <artifactId>neo4j-java-driver</artifactId>
-            <version>${neo4j.driver.version}</version>
         </dependency>
         
         <!-- JGit for Git operations -->
@@ -149,7 +190,6 @@
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
-            <version>${postgresql.version}</version>
         </dependency>
         
         <!-- Testing -->
@@ -164,96 +204,147 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-api</artifactId>
-            <version>${junit.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-engine</artifactId>
-            <version>${junit.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>${mockito.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-junit-jupiter</artifactId>
-            <version>${mockito.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers</artifactId>
-            <version>${testcontainers.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>junit-jupiter</artifactId>
-            <version>${testcontainers.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>postgresql</artifactId>
-            <version>${testcontainers.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>neo4j</artifactId>
-            <version>${testcontainers.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <version>${assertj.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
 
     <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.13.0</version>
-                <configuration>
-                    <source>${java.version}</source>
-                    <target>${java.version}</target>
-                    <encoding>${project.build.sourceEncoding}</encoding>
-                </configuration>
-            </plugin>
-            
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.5.1</version>
-                <configuration>
-                    <systemPropertyVariables>
-                        <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
-                    </systemPropertyVariables>
-                </configuration>
-            </plugin>
-            
-            <plugin>
-                <groupId>io.quarkus</groupId>
-                <artifactId>quarkus-maven-plugin</artifactId>
-                <version>${quarkus.version}</version>
-                <extensions>true</extensions>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>build</goal>
-                            <goal>generate-code</goal>
-                            <goal>generate-code-tests</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-        </plugins>
-    </build>
+         <pluginManagement>
+             <plugins>
+                 <plugin>
+                     <groupId>org.apache.maven.plugins</groupId>
+                     <artifactId>maven-compiler-plugin</artifactId>
+                     <version>3.13.0</version>
+                     <executions>
+                         <execution>
+                             <id>default-testCompile</id>
+                             <phase>test-compile</phase>
+                             <goals>
+                                 <goal>testCompile</goal>
+                             </goals>
+                         </execution>
+                         <execution>
+                             <id>integration-test-compile</id>
+                             <phase>pre-integration-test</phase>
+                             <goals>
+                                 <goal>testCompile</goal>
+                             </goals>
+                             <configuration>
+                                 <testSourceDirectory>src/it/java</testSourceDirectory>
+                                 <testOutputDirectory>target/test-classes-it</testOutputDirectory>
+                             </configuration>
+                         </execution>
+                     </executions>
+                 </plugin>
+                 <plugin>
+                     <groupId>org.apache.maven.plugins</groupId>
+                     <artifactId>maven-surefire-plugin</artifactId>
+                     <version>3.5.1</version>
+                     <configuration>
+                         <systemPropertyVariables>
+                             <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
+                         </systemPropertyVariables>
+                     </configuration>
+                 </plugin>
+                 <plugin>
+                     <groupId>org.apache.maven.plugins</groupId>
+                     <artifactId>maven-failsafe-plugin</artifactId>
+                     <version>3.5.1</version>
+                     <executions>
+                         <execution>
+                             <goals>
+                                 <goal>integration-test</goal>
+                                 <goal>verify</goal>
+                             </goals>
+                         </execution>
+                     </executions>
+                     <configuration>
+                         <classesDirectory>target/classes</classesDirectory>
+                         <testClassesDirectory>target/test-classes-it</testClassesDirectory>
+                         <systemPropertyVariables>
+                             <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
+                         </systemPropertyVariables>
+                     </configuration>
+                 </plugin>
+                 <plugin>
+                     <groupId>io.quarkus</groupId>
+                     <artifactId>quarkus-maven-plugin</artifactId>
+                     <version>${quarkus.version}</version>
+                     <extensions>true</extensions>
+                     <executions>
+                         <execution>
+                             <goals>
+                                 <goal>build</goal>
+                                 <goal>generate-code</goal>
+                                 <goal>generate-code-tests</goal>
+                             </goals>
+                         </execution>
+                         <execution>
+                             <id>generate-code-it</id>
+                             <phase>pre-integration-test</phase>
+                             <goals>
+                                 <goal>generate-code</goal>
+                             </goals>
+                             <configuration>
+                                 <testProfile>it</testProfile>
+                             </configuration>
+                         </execution>
+                     </executions>
+                 </plugin>
+             </plugins>
+         </pluginManagement>
+         <plugins>
+             <plugin>
+                 <groupId>org.apache.maven.plugins</groupId>
+                 <artifactId>maven-compiler-plugin</artifactId>
+             </plugin>
+             <plugin>
+                 <groupId>org.apache.maven.plugins</groupId>
+                 <artifactId>maven-surefire-plugin</artifactId>
+             </plugin>
+             <plugin>
+                 <groupId>org.apache.maven.plugins</groupId>
+                 <artifactId>maven-failsafe-plugin</artifactId>
+             </plugin>
+             <plugin>
+                 <groupId>io.quarkus</groupId>
+                 <artifactId>quarkus-maven-plugin</artifactId>
+             </plugin>
+         </plugins>
+     </build>
 
     <profiles>
         <profile>

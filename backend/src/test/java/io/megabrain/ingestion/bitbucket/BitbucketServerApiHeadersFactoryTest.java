@@ -10,6 +10,7 @@ import jakarta.ws.rs.core.MultivaluedHashMap;
 import jakarta.ws.rs.core.MultivaluedMap;
 import org.junit.jupiter.api.Test;
 
+import java.util.Base64;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -33,7 +34,8 @@ class BitbucketServerApiHeadersFactoryTest {
         MultivaluedMap<String, String> result = factory.update(new MultivaluedHashMap<>(), headers);
 
         // then
-        assertThat(result.getFirst("Authorization")).isEqualTo("Bearer pat-123");
+        String expectedBasic = "Basic " + Base64.getEncoder().encodeToString("alice:pat-123".getBytes());
+        assertThat(result.getFirst("Authorization")).isEqualTo(expectedBasic);
         assertThat(result.getFirst("User-Agent")).isEqualTo("MegaBrain/1.0");
         assertThat(result.getFirst("Accept")).isEqualTo("application/json");
     }

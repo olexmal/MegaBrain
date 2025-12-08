@@ -1,0 +1,28 @@
+# Reduce Docker build context
+.git
+.idea
+.vscode
+.DS_Store
+Thumbs.db
+
+# Maven/Java
+target
+backend/target
+
+# Node/Angular
+frontend/node_modules
+frontend/dist
+frontend/tmp
+frontend/out-tsc
+frontend/bazel-out
+frontend/.angular/cache
+frontend/coverage
+frontend/.history
+
+# Logs and temp
+*.log
+*.tmp
+tmp
+dist
+out
+

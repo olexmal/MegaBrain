@@ -13,7 +13,10 @@ import org.junit.jupiter.api.io.TempDir;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -160,6 +163,36 @@ class BitbucketSourceControlClientTest {
 
         // Then
         assertThat(canHandle).isTrue();
+    }
+
+    @Test
+    void canHandle_shouldAcceptServerScmAndSshUrls() {
+        BitbucketSourceControlClient client = new BitbucketSourceControlClient();
+
+        assertThat(client.canHandle("https://bitbucket.company.com/scm/PROJ/repo.git")).isTrue();
+        assertThat(client.canHandle("git@bitbucket.company.com:PROJ/repo.git")).isTrue();
+    }
+
+    @Test
+    void buildCloneUrl_shouldUseConfiguredBaseUrlForServer() throws Exception {
+        BitbucketSourceControlClient client = new BitbucketSourceControlClient();
+
+        // Inject server base URL
+        Field baseField = BitbucketSourceControlClient.class.getDeclaredField("serverBaseUrl");
+        baseField.setAccessible(true);
+        baseField.set(client, Optional.of("https://bitbucket.company.com/rest/api/1.0"));
+
+        // Parse server URL via reflection
+        Method parse = BitbucketSourceControlClient.class.getDeclaredMethod("parseRepositoryUrl", String.class);
+        parse.setAccessible(true);
+        Object urlParts = parse.invoke(client, "https://bitbucket.company.com/projects/PROJ/repos/repo");
+
+        // Build clone URL via reflection
+        Method build = BitbucketSourceControlClient.class.getDeclaredMethod("buildCloneUrl", urlParts.getClass());
+        build.setAccessible(true);
+        String cloneUrl = (String) build.invoke(client, urlParts);
+
+        assertThat(cloneUrl).isEqualTo("https://bitbucket.company.com/scm/PROJ/repo.git");
     }
 
     @Test

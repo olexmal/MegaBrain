@@ -2,6 +2,10 @@
 
 Scalable, self-hosted, intelligent code knowledge platform that indexes multi-language source code from various repositories and provides precise semantic search and natural language Q&A through a modern, reactive architecture.
 
+## Documentation
+- [Complete documentation](DOCUMENTATION.md)
+- [Deployment & user setup](USER_SETUP.md)
+
 ## Technology Stack
 
 - **Backend Framework:** Quarkus 3.15+ (RESTEasy Reactive)
