@@ -1,0 +1,45 @@
+{
+  "name": "megabrain-frontend",
+  "version": "1.0.0",
+  "description": "MegaBrain RAG Pipeline - Angular Dashboard",
+  "scripts": {
+    "ng": "ng",
+    "start": "ng serve",
+    "build": "ng build",
+    "watch": "ng build --watch --configuration development",
+    "test": "ng test",
+    "lint": "ng lint"
+  },
+  "private": true,
+  "dependencies": {
+    "@angular/animations": "^20.0.0",
+    "@angular/common": "^20.0.0",
+    "@angular/compiler": "^20.0.0",
+    "@angular/core": "^20.0.0",
+    "@angular/forms": "^20.0.0",
+    "@angular/material": "^20.0.0",
+    "@angular/platform-browser": "^20.0.0",
+    "@angular/platform-browser-dynamic": "^20.0.0",
+    "@angular/router": "^20.0.0",
+    "rxjs": "~7.8.1",
+    "tslib": "^2.3.0",
+    "zone.js": "~0.15.0",
+    "prismjs": "^1.29.0",
+    "@types/prismjs": "^1.26.3",
+    "@angular/cdk": "^20.0.0"
+  },
+  "devDependencies": {
+    "@angular-devkit/build-angular": "^20.0.0",
+    "@angular/cli": "^20.0.0",
+    "@angular/compiler-cli": "^20.0.0",
+    "@types/node": "^20.0.0",
+    "typescript": "~5.6.0",
+    "@angular-eslint/builder": "^18.0.0",
+    "@angular-eslint/eslint-plugin": "^18.0.0",
+    "@angular-eslint/template-parser": "^18.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint": "^9.0.0"
+  }
+}
+

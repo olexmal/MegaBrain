@@ -13,13 +13,16 @@
 
 ## Acceptance Criteria
 
-- [ ] **AC1:** Maven project structure created (pom.xml, src/main/java, src/test/java, src/main/resources, src/test/resources)
-- [ ] **AC2:** Quarkus 3.15+ configured with BOM and required extensions (RESTEasy Reactive, LangChain4j, Picocli, Quartz, SSE)
-- [ ] **AC3:** All core dependencies added and resolved (JavaParser, java-tree-sitter, Apache Lucene, Neo4j Driver, JGit, PostgreSQL JDBC)
-- [ ] **AC4:** Base package structure created (io.megabrain.core, io.megabrain.ingestion, io.megabrain.search, io.megabrain.rag, io.megabrain.api, io.megabrain.cli, io.megabrain.config)
-- [ ] **AC5:** Application configuration file (application.properties) created with basic Quarkus settings
-- [ ] **AC6:** Build and test infrastructure working (Maven compiler plugin, surefire plugin, Quarkus dev mode)
-- [ ] **AC7:** Project compiles, runs, and health endpoint responds at `/q/health`
+- [x] **AC1:** Maven project structure created (pom.xml, src/main/java, src/test/java, src/main/resources, src/test/resources)
+- [x] **AC2:** Quarkus 3.15+ configured with BOM and required extensions (RESTEasy Reactive, LangChain4j, Picocli, Quartz, SSE)
+- [x] **AC3:** All core dependencies added and resolved (JavaParser, java-tree-sitter, Apache Lucene, Neo4j Driver, JGit, PostgreSQL JDBC)
+- [x] **AC4:** Base package structure created (io.megabrain.core, io.megabrain.ingestion, io.megabrain.search, io.megabrain.rag, io.megabrain.api, io.megabrain.cli, io.megabrain.config)
+- [x] **AC5:** Application configuration file (application.properties) created with basic Quarkus settings
+- [x] **AC6:** Build and test infrastructure working (Maven compiler plugin, surefire plugin, Quarkus dev mode)
+- [x] **AC7:** Project compiles, runs, and health endpoint responds at `/q/health`
+- [x] **AC8:** Angular 20 project initialized with standalone components architecture
+- [x] **AC9:** Angular dependencies configured (Angular Material/PrimeNG, RxJS, syntax highlighting)
+- [x] **AC10:** Angular build and development server configured with API proxy
 
 ---
 
@@ -28,7 +31,9 @@
 ### Setup
 1. Ensure Java 21+ is installed and configured
 2. Ensure Maven 3.8+ is installed
-3. Have a terminal ready for Maven commands
+3. Ensure Node.js 18+ and npm are installed (for Angular)
+4. Ensure Angular CLI is installed globally (`npm install -g @angular/cli@20`)
+5. Have a terminal ready for Maven and npm commands
 
 ### Demo Steps
 1. **Show Project Structure:** Display the Maven project directory structure
@@ -61,32 +66,53 @@
    curl http://localhost:8080/q/health
    ```
 
+7. **Show Angular Project:** Display Angular frontend structure
+   ```bash
+   ls -la frontend/
+   tree -L 2 frontend/src
+   ```
+
+8. **Verify Angular Setup:** Check Angular dependencies and configuration
+   ```bash
+   cd frontend && npm list --depth=0
+   ```
+
+9. **Start Angular Dev Server (Optional):** Demonstrate Angular dev server
+   ```bash
+   cd frontend && ng serve
+   ```
+
 ### Expected Outcome
-- Project structure visible and organized
-- All dependencies resolve without conflicts
+- Project structure visible and organized (backend and frontend)
+- All dependencies resolve without conflicts (Maven and npm)
 - Project compiles successfully
 - Test infrastructure works
 - Application starts in dev mode
 - Health endpoint returns 200 OK
-- Demo completes in <2 minutes
+- Angular project structure created
+- Angular dependencies installed
+- Demo completes in <3 minutes
 
 ---
 
 ## Technical Tasks
 
-- [ ] **T1:** Create Maven project structure (pom.xml, directories)
-- [ ] **T2:** Configure Quarkus BOM and core extensions
-- [ ] **T3:** Add JavaParser dependency
-- [ ] **T4:** Add Tree-sitter (java-tree-sitter) dependency
-- [ ] **T5:** Add Apache Lucene dependency
-- [ ] **T6:** Add Neo4j Java Driver dependency
-- [ ] **T7:** Add LangChain4j and LLM provider dependencies
-- [ ] **T8:** Add JGit, Picocli, Quartz dependencies
-- [ ] **T9:** Add PostgreSQL driver and testing dependencies
-- [ ] **T10:** Create base package structure (io.megabrain.*)
-- [ ] **T11:** Create application.properties with basic config
-- [ ] **T12:** Create simple health check endpoint
-- [ ] **T13:** Verify build and test infrastructure
+- [x] **T1:** Create Maven project structure (pom.xml, directories)
+- [x] **T2:** Configure Quarkus BOM and core extensions
+- [x] **T3:** Add JavaParser dependency
+- [x] **T4:** Add Tree-sitter (java-tree-sitter) dependency
+- [x] **T5:** Add Apache Lucene dependency
+- [x] **T6:** Add Neo4j Java Driver dependency
+- [x] **T7:** Add LangChain4j and LLM provider dependencies
+- [x] **T8:** Add JGit, Picocli, Quartz dependencies
+- [x] **T9:** Add PostgreSQL driver and testing dependencies
+- [x] **T10:** Create base package structure (io.megabrain.*)
+- [x] **T11:** Create application.properties with basic config
+- [x] **T12:** Create simple health check endpoint
+- [x] **T13:** Verify build and test infrastructure
+- [x] **T14:** Create Angular project structure
+- [x] **T15:** Configure Angular dependencies
+- [x] **T16:** Configure Angular build and development
 
 ---
 
@@ -99,6 +125,9 @@
 | Test execution | Empty test directory | Run `mvn test` | Test phase completes successfully |
 | Application startup | Quarkus application | Run `mvn quarkus:dev` | Application starts and health endpoint responds |
 | Health check | Running application | GET `/q/health` | Returns 200 OK with health status |
+| Angular project setup | Angular CLI installed | Run `ng new` or create manually | Angular 20 project created with standalone components |
+| Angular dependencies | Angular project created | Run `npm install` | All Angular dependencies resolve correctly |
+| Angular dev server | Angular project configured | Run `ng serve` | Development server starts and serves application |
 
 ---
 
@@ -138,4 +167,6 @@
 - Focus on getting dependencies right - easier to add than remove later
 - Consider creating a dependency matrix document for reference
 - Verify compatibility between Quarkus version and all dependencies
+- Angular frontend can be developed in parallel with backend, but infrastructure setup should be done first
+- Angular build output should be configured to integrate with Quarkus static resources for production deployment
 
