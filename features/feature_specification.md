@@ -61,7 +61,11 @@ flowchart TD
     I & J --> M
     GB --> M
     M --> N[Retrieve Top-K Chunks]
-    N --> O[LLM for Augmented Generation<br>Ollama or Cloud API]
+    N --> O{LLM Provider Selection}
+    O --> O1[Ollama<br>Free/Local]
+    O --> O2[OpenAI<br>Paid Cloud]
+    O --> O3[Anthropic Claude<br>Paid Cloud]
+    O1 & O2 & O3 --> P[Stream Answer]
     O --> P[Stream Answer]
     P --> L
     
@@ -83,7 +87,7 @@ flowchart TD
 | **Primary Retrieval** | **Apache Lucene** (Embedded) | Powerful, mature, embeddable search library. Enables fast keyword and hybrid search without external services. |
 | **Optional Vector Search** | pgvector (PostgreSQL) or Milvus | Adds semantic similarity search. pgvector integrates easily with existing DBs. |
 | **Graph Database** | **Neo4j Embedded** or JanusGraph | Native graph queries for dependency analysis, path traversal, cycle detection, and impact analysis. |
-| **LLM Integration** | Quarkus LangChain4j Extension | Unified client for local (Ollama) and cloud (OpenAI, Anthropic) LLMs. |
+| **LLM Integration** | Quarkus LangChain4j Extension | Unified client supporting **paid cloud models** (OpenAI GPT-4, GPT-3.5-turbo; Anthropic Claude Sonnet, Opus) and **free/open-source local models** via Ollama (Codellama, Mistral, Llama2, Phi, etc.). Users can choose between paid (higher quality) and free (privacy/offline) options. |
 | **Polyglot Parsing** | **Tree-sitter** (via `java-tree-sitter` binding) + **JavaParser** | Tree-sitter provides robust, incremental parsing for C, C++, Python, JS, TS, Go, Rust, Kotlin, Ruby, Scala, Swift, PHP, C#. JavaParser is superior for Java-specific analysis. |
 | **Grammar Management** | Dynamic Grammar Registry | On-demand downloading, caching, and version management of Tree-sitter language grammars. |
 | **Documentation Parsing** | Custom Doc Comment Parsers | Multi-format extraction (Javadoc, JSDoc, Docstrings, Doxygen, Rust/Go docs) with AST correlation. |
@@ -157,6 +161,22 @@ flowchart TD
     *   **Description:** Stream the LLM's answer token-by-token to the client via SSE for a responsive experience.
 *   **FR-RAG-03: Source Attribution**
     *   **Description:** All generated answers must explicitly reference the source code files and specific entities used as context.
+*   **FR-RAG-04: Flexible LLM Provider Selection**
+    *   **Description:** Support multiple LLM providers with configurable selection based on quality, cost, and privacy requirements.
+    *   **Paid Cloud Providers:**
+        *   **OpenAI:** GPT-4, GPT-3.5-turbo (high quality, requires API key, usage-based pricing)
+        *   **Anthropic:** Claude Sonnet, Claude Opus (high quality, requires API key, usage-based pricing)
+    *   **Free/Open-Source Providers:**
+        *   **Ollama:** Codellama, Mistral, Llama2, Phi, and other open-source models (fully local, no API costs, privacy-preserving)
+    *   **Configuration:**
+        *   Global default provider selection via configuration
+        *   Per-request model selection via API parameters
+        *   Runtime switching between providers without restart
+        *   Model selection based on quality vs cost trade-offs
+    *   **Use Cases:**
+        *   Production environments may prefer paid models for higher quality
+        *   Privacy-sensitive deployments use Ollama for fully offline operation
+        *   Development/testing can use free Ollama models to reduce costs
 
 ### 4.4 System Interfaces (FR-IFC)
 *   **FR-IFC-01: Reactive REST API (Quarkus)**
@@ -321,8 +341,16 @@ flowchart TD
     *   Graph database supports up to 50M entity relationships across indexed codebase.
 *   **Privacy & Security:**
     *   All code data remains within the organization's infrastructure.
-    *   No code is sent to external LLM APIs unless explicitly configured by the user.
+    *   **Ollama models run fully local/offline** - no code data leaves the organization.
+    *   No code is sent to external LLM APIs (OpenAI, Anthropic) unless explicitly configured by the user.
     *   All source control credentials are securely managed via environment variables or vault.
+    *   API keys for paid providers stored securely and never logged.
+*   **LLM Provider Flexibility:**
+    *   Support for multiple LLM providers simultaneously (Ollama, OpenAI, Anthropic).
+    *   Runtime model switching capability without service restart.
+    *   Per-request model selection for cost/quality optimization.
+    *   Optional cost tracking for paid models (usage monitoring, budget alerts).
+    *   Fallback mechanism: automatic fallback to local Ollama if cloud provider unavailable.
 *   **Maintainability:**
     *   Clean separation between business logic, framework code, and external service clients.
     *   Comprehensive logging and metrics (via Micrometer) for monitoring.
@@ -364,7 +392,23 @@ flowchart TD
 *   **Runtime:** Java 21+ or GraalVM Native Image.
 *   **Configuration:** Externalized via `application.properties`/`yaml` and environment variables.
 *   **Database:** PostgreSQL (with pgvector extension) for persistent storage of vectors and metadata.
-*   **LLM Runtime:** Optional local LLM via **Ollama** (e.g., running Codellama, Mistral) for fully offline operation.
+*   **LLM Runtime Configuration:**
+    *   **Free/Open-Source (Ollama):**
+        *   Local LLM via **Ollama** (e.g., Codellama, Mistral, Llama2, Phi) for fully offline operation.
+        *   No API costs, complete privacy, runs entirely on-premises.
+        *   Configuration: `megabrain.llm.provider=ollama`, `megabrain.llm.ollama.endpoint=http://localhost:11434`, `megabrain.llm.ollama.model=codellama`
+    *   **Paid Cloud (OpenAI):**
+        *   OpenAI API integration for GPT-4, GPT-3.5-turbo models.
+        *   Higher quality responses, requires internet connectivity and API key.
+        *   Configuration: `megabrain.llm.provider=openai`, `megabrain.llm.openai.api-key=${OPENAI_API_KEY}`, `megabrain.llm.openai.model=gpt-4`
+    *   **Paid Cloud (Anthropic/Claude):**
+        *   Anthropic API integration for Claude Sonnet, Claude Opus models.
+        *   High quality responses, requires internet connectivity and API key.
+        *   Configuration: `megabrain.llm.provider=anthropic`, `megabrain.llm.anthropic.api-key=${ANTHROPIC_API_KEY}`, `megabrain.llm.anthropic.model=claude-sonnet-3-5`
+    *   **Model Selection:**
+        *   Default provider configured globally via `application.properties`.
+        *   Per-request override via API parameter: `POST /api/v1/rag?model=gpt-4` or `?model=codellama`.
+        *   Quality vs cost trade-off: Use paid models for production, Ollama for development/testing.
 *   **Native Libraries:** Tree-sitter language grammars (.so/.dylib files) must be bundled and made available on the library path.
 
 ---
