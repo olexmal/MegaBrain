@@ -15,10 +15,10 @@
 - **Status:** Completed
 - **Dependencies:** US-01-01 (reuses SourceControlClient interface pattern)
 - **Acceptance Criteria:**
-  - [ ] Class implements `SourceControlClient` interface
-  - [ ] Class handles Bitbucket Cloud URLs (bitbucket.org/workspace/repo)
-  - [ ] Class handles Bitbucket Server URLs (custom domain)
-  - [ ] Error handling for invalid URLs and network failures
+  - [x] Class implements `SourceControlClient` interface
+  - [x] Class handles Bitbucket Cloud URLs (bitbucket.org/workspace/repo)
+  - [x] Class handles Bitbucket Server URLs (custom domain)
+  - [x] Error handling for invalid URLs and network failures
 - **Technical Notes:** Use JGit for cloning operations. Abstract Cloud vs Server differences behind common interface.
 
 ### T2: Create Bitbucket Cloud API integration
@@ -28,10 +28,10 @@
 - **Status:** Completed
 - **Dependencies:** T1 (needs BitbucketSourceControlClient structure)
 - **Acceptance Criteria:**
-  - [ ] Fetches repository name, workspace, branch information
-  - [ ] Retrieves latest commit SHA
-  - [ ] Handles Bitbucket Cloud API rate limiting
-  - [ ] Works with app password authentication
+  - [x] Fetches repository name, workspace, branch information
+  - [x] Retrieves latest commit SHA
+  - [x] Handles Bitbucket Cloud API rate limiting
+  - [x] Works with app password authentication
 - **Technical Notes:** Use Bitbucket REST API v2. Support app password authentication (username:app-password format). Handle rate limiting with appropriate backoff.
 
 ### T3: Create Bitbucket Server API integration
@@ -41,10 +41,10 @@
 - **Status:** Completed
 - **Dependencies:** T1 (needs BitbucketSourceControlClient structure)
 - **Acceptance Criteria:**
-  - [ ] Fetches repository name, project, branch information
-  - [ ] Retrieves latest commit SHA
-  - [ ] Works with personal access token authentication
-  - [ ] Supports custom Server base URL
+  - [x] Fetches repository name, project, branch information
+  - [x] Retrieves latest commit SHA
+  - [x] Works with personal access token authentication
+  - [x] Supports custom Server base URL
 - **Technical Notes:** Use Bitbucket Server REST API. Support both API v1 and v2. Handle authentication via Bearer token or basic auth with PAT.
 
 ### T4: Implement authentication for both platforms
@@ -54,11 +54,11 @@
 - **Status:** Completed
 - **Dependencies:** T1, T2, T3 (needs client structure and API integrations)
 - **Acceptance Criteria:**
-  - [ ] Supports app password authentication (Cloud)
-  - [ ] Supports personal access token authentication (Server)
-  - [ ] Tokens stored securely (environment variables, vault)
-  - [ ] Tokens never logged or exposed in error messages
-  - [ ] Clear error messages for invalid/expired tokens
+  - [x] Supports app password authentication (Cloud)
+  - [x] Supports personal access token authentication (Server)
+  - [x] Tokens stored securely (environment variables, vault)
+  - [x] Tokens never logged or exposed in error messages
+  - [x] Clear error messages for invalid/expired tokens
 - **Technical Notes:** Use different authentication headers for Cloud vs Server. Cloud uses Basic Auth with app password, Server uses Bearer token or Basic Auth with PAT.
 
 ### T5: Write unit tests for BitbucketSourceControlClient
@@ -68,11 +68,11 @@
 - **Status:** Completed
 - **Dependencies:** T1-T4 (needs implementation to test)
 - **Acceptance Criteria:**
-  - [ ] Unit tests cover all public methods
-  - [ ] Tests use mocks for external dependencies
-  - [ ] Test coverage >80%
-  - [ ] Tests include error scenarios
-  - [ ] Tests cover both Cloud and Server scenarios
+  - [x] Unit tests cover all public methods
+  - [x] Tests use mocks for external dependencies
+  - [x] Test coverage >80%
+  - [x] Tests include error scenarios
+  - [x] Tests cover both Cloud and Server scenarios
 - **Technical Notes:** Use JUnit 5 and Mockito for testing. Test both success and failure paths. Include tests for Cloud vs Server API differences.
 
 ---

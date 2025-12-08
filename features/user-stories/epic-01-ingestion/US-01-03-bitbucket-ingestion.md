@@ -13,13 +13,13 @@
 
 ## Acceptance Criteria
 
-- [ ] **AC1:** User can provide Bitbucket Cloud repository URL
-- [ ] **AC2:** User can provide Bitbucket Server/Data Center URL
-- [ ] **AC3:** System clones repository to temporary storage
-- [ ] **AC4:** System extracts all source files from the repository
-- [ ] **AC5:** Repository metadata captured (name, project, branch, commit SHA)
-- [ ] **AC6:** App password authentication supported (Cloud)
-- [ ] **AC7:** Personal access token authentication supported (Server)
+- [x] **AC1:** User can provide Bitbucket Cloud repository URL
+- [x] **AC2:** User can provide Bitbucket Server/Data Center URL
+- [x] **AC3:** System clones repository to temporary storage
+- [ ] **AC4:** System extracts all source files from the repository *(pending .gitignore support; hidden/binary filtered)*
+- [x] **AC5:** Repository metadata captured (name, project, branch, commit SHA)
+- [x] **AC6:** App password authentication supported (Cloud)
+- [x] **AC7:** Personal access token authentication supported (Server)
 
 ---
 
@@ -49,11 +49,11 @@
 
 ## Technical Tasks
 
-- [ ] **T1:** Implement `BitbucketSourceControlClient` class (backend)
-- [ ] **T2:** Create Bitbucket Cloud API integration (backend)
-- [ ] **T3:** Create Bitbucket Server API integration (backend)
-- [ ] **T4:** Implement authentication for both platforms (backend)
-- [ ] **T5:** Write unit tests for BitbucketSourceControlClient (test)
+- [x] **T1:** Implement `BitbucketSourceControlClient` class (backend)
+- [x] **T2:** Create Bitbucket Cloud API integration (backend)
+- [x] **T3:** Create Bitbucket Server API integration (backend)
+- [x] **T4:** Implement authentication for both platforms (backend)
+- [x] **T5:** Write unit tests for BitbucketSourceControlClient (test)
 
 ---
 
