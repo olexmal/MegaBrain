@@ -4,7 +4,7 @@
 
 **Project Name:** MegaBrain RAG Pipeline  
 **Version:** 1.0  
-**Specification Date:** October 2023
+**Specification Date:** December 2025
 
 **Vision:** To build a scalable, self-hosted, and intelligent code knowledge platform. MegaBrain indexes multi-language source code from various repositories and provides precise semantic search and natural language Q&A through a modern, reactive architecture—all without mandatory external AI services for its core retrieval.
 

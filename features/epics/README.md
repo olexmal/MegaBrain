@@ -89,6 +89,6 @@ flowchart TD
 
 ---
 
-**Last Updated:** December 2024  
+**Last Updated:** December 2025  
 **Source Document:** [Feature Specification](../feature_specification.md)
 

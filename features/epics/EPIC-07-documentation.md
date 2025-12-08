@@ -256,6 +256,6 @@ Field: doc_coverage_score (DoubleField, stored)
 ---
 
 **Epic Owner:** TBD  
-**Created:** December 2024  
-**Last Updated:** December 2024
+**Created:** December 2025  
+**Last Updated:** December 2025
 

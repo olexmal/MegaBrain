@@ -192,7 +192,7 @@ A story is done when:
 
 ---
 
-**Last Updated:** December 2024  
+**Last Updated:** December 2025  
 **Product Owner:** TBD  
 **Scrum Master:** TBD
 
