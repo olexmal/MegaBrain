@@ -1,0 +1,160 @@
+---
+description: Code parsing patterns for Tree-sitter and JavaParser
+globs:
+  - "**/parser/**"
+  - "**/*Parser*.java"
+  - "**/*TreeSitter*.java"
+  - "**/*JavaParser*.java"
+---
+
+# Parsing Patterns
+
+## Parser Architecture
+
+### Parser Registry
+- Use `ParserRegistry` to get parser instances
+- Dynamic grammar loading based on file extension
+- Support multiple parsers per language if needed
+- Cache parser instances for performance
+
+### Grammar Management
+- Use `GrammarManager` for Tree-sitter grammar lifecycle
+- On-demand grammar downloading and caching
+- Version pinning for reproducible builds
+- Automatic grammar updates with rollback capability
+
+## Tree-sitter Patterns
+
+### Parser Usage
+- Load grammars via `GrammarManager`
+- Get parser from `ParserRegistry` based on file extension
+- Cache parsed results when possible
+- Handle grammar loading errors gracefully
+
+### Query Patterns
+- Use Tree-sitter queries for relationship extraction
+- Query specific node types: `import_statement`, `class_declaration`, `function_definition`, etc.
+- Track entity IDs for relationships
+- Handle language-specific constructs (decorators, type hints)
+
+### Example Tree-sitter Query
+```java
+String query = """
+    (import_statement 
+        (scoped_identifier) @import)
+    (class_declaration
+        name: (identifier) @class_name
+        superclasses: (class_list) @superclasses)
+    """;
+    
+TreeCursor cursor = tree.rootNode().walk();
+cursor.gotoFirstChild();
+// Process query results
+```
+
+### Language-Specific Handling
+- **Python:** Handle decorators, type hints, docstrings
+- **JavaScript/TypeScript:** Handle ES6 modules, TypeScript types
+- **Go:** Handle package declarations, method receivers
+- **Rust:** Handle module declarations, trait implementations
+
+## JavaParser Patterns
+
+### AST Traversal
+- Use AST visitors for Java code analysis
+- Visit specific node types: `ClassOrInterfaceDeclaration`, `MethodCallExpr`, etc.
+- Extract relationships during traversal
+- Handle inner classes and nested types
+
+### Visitor Pattern Example
+```java
+public class RelationshipExtractor extends VoidVisitorAdapter<Void> {
+    @Override
+    public void visit(ClassOrInterfaceDeclaration n, Void arg) {
+        // Extract class relationships
+        n.getExtendedTypes().forEach(type -> {
+            extractExtends(n.getNameAsString(), type.getNameAsString());
+        });
+        n.getImplementedTypes().forEach(type -> {
+            extractImplements(n.getNameAsString(), type.getNameAsString());
+        });
+        super.visit(n, arg);
+    }
+}
+```
+
+### Relationship Extraction
+- Extract: `imports`, `extends`, `implements`, `calls`, `instantiates`, `references`
+- Track entity IDs for relationships
+- Store relationships with source/target entity IDs
+- Include file paths and line numbers for context
+
+## Chunking Strategy
+
+### Structure-Aware Chunking
+- Parse source files into logical chunks (functions, classes, methods)
+- Not arbitrary text splits
+- Preserve code structure and context
+- Include metadata: `language`, `entity_type`, `entity_name`, `source_file`, `byte_range`
+
+### Chunk Metadata
+```java
+public record TextChunk(
+    String content,
+    String language,
+    String entityType,  // "class", "method", "function"
+    String entityName,
+    String sourceFile,
+    int startLine,
+    int endLine
+) {}
+```
+
+## Documentation Extraction
+
+### Multi-Format Support
+- **Javadoc:** Java, Kotlin - `/** ... */` with `@param`, `@return`
+- **JSDoc:** JavaScript, TypeScript - `/** ... */` with `@param`, `@returns`
+- **Python Docstrings:** Triple-quoted strings (`"""..."""`)
+- **Rust Doc Comments:** `///` and `//!` with markdown
+- **Go Doc Comments:** `//` comments preceding declarations
+- **Doxygen:** C, C++ - `/** ... */`, `///`, `//!` with commands
+
+### AST Correlation
+- Link extracted documentation to corresponding code entities
+- Associate doc comments with AST nodes
+- Extract parameter descriptions, return values, examples
+- Track documentation coverage per entity
+
+## Performance
+
+### Grammar Loading
+- **Target:** <500ms cold start per language grammar
+- Cache grammars after first load
+- Preload common language grammars on startup
+- Handle grammar loading failures gracefully
+
+### Parsing Performance
+- **Target:** >10,000 LOC per minute
+- Use incremental parsing when possible
+- Batch process files for efficiency
+- Cache parsed ASTs when appropriate
+
+### Documentation Extraction
+- **Target:** Adds <10% overhead to parsing time
+- Extract documentation during AST traversal
+- Avoid separate passes when possible
+- Cache documentation extraction results
+
+## Error Handling
+
+### Grammar Errors
+- Handle missing grammar files gracefully
+- Provide clear error messages for unsupported languages
+- Support fallback parsing strategies
+
+### Parsing Errors
+- Handle syntax errors in source files
+- Continue parsing other files when one fails
+- Log parsing errors for debugging
+- Report parsing failures in ingestion progress

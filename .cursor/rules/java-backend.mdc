@@ -1,0 +1,125 @@
+---
+description: Java backend coding standards, Quarkus patterns, and reactive programming guidelines
+globs:
+  - "**/*.java"
+---
+
+# Java Backend Rules
+
+## Coding Standards
+
+### Naming Conventions
+- **Classes:** PascalCase (e.g., `GitHubSourceControlClient`, `MCPToolRegistry`)
+- **Methods:** camelCase (e.g., `extractRelationships()`, `searchCode()`)
+- **Constants:** UPPER_SNAKE_CASE
+- **Packages:** lowercase with dots (e.g., `io.megabrain.ingestion`, `io.megabrain.mcp`)
+
+### File Organization
+- One public class per file
+- Package structure mirrors feature/epic organization
+- Use Java records for immutable data (e.g., `Relationship`, `StreamEvent`)
+
+### Code Style
+- Prefer immutability where possible
+- Use `Optional<T>` for nullable return values
+- Use `@Nullable` and `@Nonnull` annotations for clarity
+- Prefer constructor injection over field injection for testability
+
+## Quarkus Patterns
+
+### Dependency Injection
+- Annotate services with `@ApplicationScoped` or `@Singleton`
+- Use `@Inject` for field or constructor injection
+- Prefer constructor injection: `@Inject public MyService(OtherService other) { ... }`
+- Use `@ConfigProperty` for configuration injection
+
+### Reactive REST Endpoints
+- Return `Uni<Response>` or `Multi<Response>` for async operations
+- Use `@Produces(MediaType.SERVER_SENT_EVENTS)` for SSE endpoints
+- Example:
+```java
+@GET
+@Path("/progress/{jobId}")
+@Produces(MediaType.SERVER_SENT_EVENTS)
+public Multi<ServerSentEvent<StreamEvent>> getProgress(@PathParam String jobId) {
+    return progressService.getProgress(jobId)
+        .map(event -> ServerSentEvent.<StreamEvent>builder()
+            .data(event)
+            .build());
+}
+```
+
+### Health Checks
+- Implement health checks at `/q/health`
+- Create custom health checks for external services (Ollama, databases)
+- Use `@Liveness` and `@Readiness` annotations
+- Report status: UP, DOWN, UNKNOWN
+
+### Configuration
+- Externalize all configuration via `application.properties` or `application.yaml`
+- Use environment variables for sensitive data
+- Support configuration profiles (dev, prod, test)
+- Example: `megabrain.llm.ollama.endpoint=http://localhost:11434`
+
+## Mutiny Reactive Patterns
+
+### Use Mutiny for All Async Operations
+- `Uni<T>` for single-value async operations
+- `Multi<T>` for reactive streams (SSE, progress updates, token streaming)
+
+### Common Patterns
+```java
+// Single async operation
+public Uni<SearchResult> search(String query) {
+    return searchService.search(query)
+        .onFailure().recoverWithItem(SearchResult.empty());
+}
+
+// Reactive stream
+public Multi<StreamEvent> ingestRepository(String repoUrl) {
+    return Multi.createFrom()
+        .items("Cloning", "Parsing", "Indexing", "Complete")
+        .onItem().transform(stage -> new StreamEvent(stage, getProgress(stage)))
+        .onFailure().recoverWithItem(new StreamEvent("Error", "Failed"));
+}
+```
+
+### Error Handling
+- Use `.onFailure().recoverWithItem()` for fallbacks
+- Use `.onFailure().retry()` for retry logic
+- Always log errors appropriately (but never log sensitive data)
+
+## Service Layer Pattern
+
+### Core Services
+- `RepositoryIngestionService` - orchestrates ingestion
+- `SourceControlClientFactory` - factory for SCM clients
+- `MegaBrainOrchestrator` - central service for search and RAG
+- `RagService` - manages LLM interaction
+- `GraphQueryService` - abstraction over graph database
+- `ParserRegistry` - dynamic grammar loading and parser instantiation
+- `GrammarManager` - Tree-sitter grammar lifecycle management
+- `DocCommentParser` - multi-format documentation extraction
+- `MCPServer` - MCP protocol handler
+- `MCPToolRegistry` - MCP tool registration and dispatch
+
+### Service Guidelines
+- Keep services focused - single responsibility principle
+- Use interfaces for abstraction - enable testing and flexibility
+- Inject dependencies via constructor
+- Handle errors gracefully - never expose internals in error messages
+
+## Error Handling
+
+- Use checked exceptions for recoverable errors
+- Use unchecked exceptions for programming errors
+- Always handle external API failures gracefully
+- **Never log sensitive data** (tokens, credentials, API keys)
+- Provide clear error messages without exposing internals
+
+## Performance Requirements
+
+- **Search Latency:** <500ms for 95th percentile searches
+- **RAG Response:** First token streamed in <2s
+- **Graph Queries:** <200ms for dependency traversals up to depth 3
+- **MCP Tool Response:** <1s for search operations, <3s for complex graph traversals

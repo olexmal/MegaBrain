@@ -1,0 +1,114 @@
+---
+description: Security guidelines for credential management, data privacy, and API security
+alwaysApply: true
+---
+
+# Security Guidelines
+
+## Credential Management
+
+### Never Log Sensitive Data
+- **API keys, tokens, passwords must never appear in logs**
+- Use secure storage (environment variables, vault)
+- Mask credentials in error messages
+- Use Quarkus configuration for credential injection
+
+### Token Handling
+- Support personal access tokens (PAT) and app tokens
+- Store tokens securely (environment variables, vault)
+- Use `Authorization: token` or `Authorization: Bearer` headers
+- **Never expose tokens in error messages or responses**
+
+### Configuration Example
+```java
+@ConfigProperty(name = "megabrain.github.token")
+String githubToken; // Loaded from environment or vault
+
+// Never do this:
+log.error("Failed with token: " + githubToken); // WRONG!
+```
+
+## Data Privacy
+
+### Code Data Stays In-House
+- All code data stays within organization infrastructure
+- **Ollama models run fully local/offline** - no code data leaves organization
+- No code sent to external LLM APIs unless explicitly configured
+- Support fully offline operation with Ollama
+
+### LLM Provider Selection
+- Default to Ollama for privacy-sensitive deployments
+- Allow explicit opt-in for cloud providers (OpenAI, Anthropic)
+- Document privacy implications in configuration
+- Support runtime switching between providers
+
+## API Security
+
+### Input Validation
+- Validate all input parameters
+- Sanitize file paths to prevent directory traversal
+- Validate repository URLs and identifiers
+- Check file size limits for uploads
+
+### Path Sanitization Example
+```java
+public String sanitizePath(String path) {
+    // Prevent directory traversal
+    if (path.contains("..") || path.contains("~")) {
+        throw new IllegalArgumentException("Invalid path");
+    }
+    return Paths.get(path).normalize().toString();
+}
+```
+
+### Rate Limiting
+- Rate limit API endpoints to prevent abuse
+- Implement per-user or per-IP rate limits
+- Return appropriate HTTP status codes (429 Too Many Requests)
+
+### HTTPS
+- Use HTTPS in production
+- Never send credentials over HTTP
+- Validate SSL certificates
+
+## Error Handling Security
+
+### Error Messages
+- Provide clear error messages without exposing internals
+- Never include stack traces in production error responses
+- Never include file system paths in error messages
+- Never include database connection strings or credentials
+
+### Example
+```java
+// WRONG:
+throw new RuntimeException("Failed to connect to " + dbUrl + " with user " + username);
+
+// CORRECT:
+throw new ServiceException("Database connection failed. Please check configuration.");
+```
+
+## Secure Storage
+
+### Environment Variables
+- Use environment variables for sensitive configuration
+- Support Quarkus configuration property substitution
+- Example: `megabrain.github.token=${GITHUB_TOKEN}`
+
+### Vault Integration
+- Support integration with vault systems (HashiCorp Vault, etc.)
+- Never store credentials in code or configuration files
+- Rotate credentials regularly
+
+## Authentication
+
+### Source Control Authentication
+- Support multiple authentication methods (PAT, OAuth, App tokens)
+- Store credentials securely
+- Handle token expiration gracefully
+- Provide clear error messages for authentication failures
+
+### API Authentication
+- Implement authentication for REST API endpoints
+- Use JWT or API keys for API authentication
+- Support role-based access control (RBAC) if needed

@@ -1,0 +1,152 @@
+---
+description: Search, RAG, and LLM integration patterns and best practices
+---
+
+# Search & RAG Patterns
+
+## Hybrid Search
+
+### Combining Search Methods
+- **Primary:** Apache Lucene for keyword search (excellent for exact matches, identifiers)
+- **Optional:** Vector search (pgvector/Milvus) for semantic similarity
+- **Ranking:** Weighted combination of both relevance scores
+
+### Search Implementation
+```java
+public Uni<List<SearchResult>> hybridSearch(String query, SearchFilters filters) {
+    Uni<List<SearchResult>> keywordResults = luceneService.search(query, filters);
+    Uni<List<SearchResult>> vectorResults = vectorService.search(query, filters);
+    
+    return Uni.combine().all()
+        .unis(keywordResults, vectorResults)
+        .combinedWith((keyword, vector) -> {
+            // Combine and rank results
+            return rankResults(keyword, vector);
+        });
+}
+```
+
+### Metadata Filtering
+- Support filters: `language`, `repository`, `file_path`, `entity_type`
+- Apply filters efficiently in Lucene queries
+- Use facets for filtering in vector search
+
+### Relevance Tuning
+- Boost scores for matches in important fields (e.g., `entity_name` > comments)
+- Configure boost weights via application properties
+- Support per-field boosting
+
+## RAG (Retrieval-Augmented Generation)
+
+### Prompt Construction
+- Format retrieved chunks into clear prompts
+- Include source citations in prompts
+- Provide clear instructions to LLM
+- Limit context to top-k chunks (typically 5-10)
+
+### RAG Flow
+1. User submits natural language question
+2. System performs hybrid search to find top-k relevant code chunks
+3. Chunks are formatted into prompt with clear instructions
+4. LLM generates answer, citing source chunks
+5. Stream answer token-by-token via SSE
+
+### Prompt Template Example
+```
+You are a code assistant helping developers understand their codebase.
+
+Context from codebase:
+{chunk1}
+Source: {file1}:{line1}
+
+{chunk2}
+Source: {file2}:{line2}
+
+Question: {userQuestion}
+
+Answer the question based only on the provided context. Cite sources using [file:line] format.
+```
+
+### Source Attribution
+- All generated answers must explicitly reference source code files
+- Include specific entities used as context
+- Format: `[file:line]` or `[repository/file:line]`
+
+## LLM Integration
+
+### Provider Selection
+- Support multiple providers: Ollama (local), OpenAI, Anthropic
+- Configure default provider via `megabrain.llm.provider`
+- Allow per-request model selection
+- Support runtime switching without restart
+
+### Model Configuration
+```properties
+# Default provider
+megabrain.llm.provider=ollama
+
+# Ollama configuration
+megabrain.llm.ollama.endpoint=http://localhost:11434
+megabrain.llm.ollama.model=codellama
+
+# OpenAI configuration
+megabrain.llm.openai.api-key=${OPENAI_API_KEY}
+megabrain.llm.openai.model=gpt-4
+
+# Anthropic configuration
+megabrain.llm.anthropic.api-key=${ANTHROPIC_API_KEY}
+megabrain.llm.anthropic.model=claude-sonnet-3-5
+```
+
+### Streaming Response
+- Stream tokens via SSE using `Multi<String>`
+- Use LangChain4j streaming capabilities
+- Handle streaming errors gracefully
+- Provide source attribution in streamed responses
+
+### Streaming Implementation
+```java
+public Multi<String> streamRagAnswer(String question) {
+    // 1. Perform search
+    List<CodeChunk> chunks = searchService.search(question).await().indefinitely();
+    
+    // 2. Construct prompt
+    String prompt = buildPrompt(question, chunks);
+    
+    // 3. Stream from LLM
+    return llmClient.stream(prompt)
+        .onItem().transform(token -> token)
+        .onFailure().recoverWithItem("Error generating response");
+}
+```
+
+## Transitive Search
+
+### Inheritance-Aware Queries
+- Support `transitive=true` parameter for inheritance-aware queries
+- Example: "find all implementations" includes transitive subclasses
+- Use graph database for transitive traversal
+- Limit depth to bound response size and latency
+
+### Graph-Enhanced Search
+- Integrate graph traversal into search APIs
+- Natural language queries like "find all implementations of X"
+- Results formatted for LLM consumption
+- Depth-limited traversal for performance
+
+## Performance Optimization
+
+### Caching
+- Cache search results for common queries
+- Cache LLM responses for identical questions
+- Use appropriate TTL based on data freshness requirements
+
+### Result Limiting
+- Limit search results to top-k (typically 10-20)
+- Limit graph traversal depth (typically 3-5)
+- Cap results for LLM context window constraints
+
+### Query Optimization
+- Optimize Lucene queries for performance
+- Use efficient vector search algorithms
+- Batch graph queries when possible

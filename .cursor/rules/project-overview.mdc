@@ -1,0 +1,75 @@
+---
+description: MegaBrain RAG Pipeline - Core project overview, architecture, and technology stack
+alwaysApply: true
+---
+
+# MegaBrain RAG Pipeline
+
+## Project Overview
+
+MegaBrain is a scalable, self-hosted, intelligent code knowledge platform that indexes multi-language source code from various repositories and provides precise semantic search and natural language Q&A through a modern, reactive architecture.
+
+**Core Value:** Solves knowledge fragmentation across large, polyglot, and actively evolving codebases by moving beyond simple text search to understand code semantics and structure, providing developers with instant, context-aware answers about their codebase.
+
+## Technology Stack
+
+### Backend
+- **Language:** Java 21+
+- **Framework:** Quarkus 3.15+ (RESTEasy Reactive)
+- **Reactive Model:** Mutiny (`Multi`/`Uni` types for non-blocking streams)
+- **Dependency Injection:** CDI (Contexts and Dependency Injection)
+- **CLI Framework:** Picocli with Quarkus CDI integration
+
+### Search & Storage
+- **Primary Search:** Apache Lucene (Embedded) - fast keyword and hybrid search
+- **Optional Vector Search:** pgvector (PostgreSQL) or Milvus - semantic similarity
+- **Graph Database:** Neo4j Embedded or JanusGraph - dependency analysis and graph queries
+- **Database:** PostgreSQL (with pgvector extension) for persistent storage
+
+### Code Parsing
+- **Java Parsing:** JavaParser - superior for Java-specific analysis
+- **Multi-Language Parsing:** Tree-sitter (via `java-tree-sitter` binding)
+  - Languages: C, C++, Python, JavaScript, TypeScript, Go, Rust, Kotlin, Ruby, Scala, Swift, PHP, C#
+- **Grammar Management:** Dynamic Grammar Registry - on-demand downloading, caching, version management
+
+### LLM Integration
+- **Framework:** Quarkus LangChain4j Extension
+- **Providers:**
+  - **Free/Local:** Ollama (Codellama, Mistral, Llama2, Phi, etc.) - fully offline, privacy-preserving
+  - **Paid Cloud:** OpenAI (GPT-4, GPT-3.5-turbo) - high quality, requires API key
+  - **Paid Cloud:** Anthropic (Claude Sonnet, Claude Opus) - high quality, requires API key
+- **Model Selection:** Configurable globally and per-request for cost/quality optimization
+
+### Frontend
+- **Framework:** Angular 20 (Standalone Components)
+- **Language:** TypeScript
+- **State Management:** Angular Signals / RxJS
+- **UI Components:** Angular Material or PrimeNG
+- **Syntax Highlighting:** Prism.js or Highlight.js
+
+### Protocols & Integration
+- **Streaming:** Server-Sent Events (SSE) - real-time server-to-client updates
+- **MCP Server:** Custom Java implementation or `mcp-java-sdk` - Model Context Protocol for LLM tool integration
+- **MCP Transports:** stdio (primary for local IDE), SSE (secondary for remote/web clients)
+
+## Architecture Principles
+
+- **Reactive First:** Use Mutiny for all async operations - prefer `Uni<T>` and `Multi<T>` over blocking operations
+- **CDI Everywhere:** Use Quarkus CDI for dependency injection - avoid manual instantiation
+- **Modular Design:** Features organized by epics (EPIC-01 through EPIC-08) with clear boundaries
+- **Interface-Based:** Use interfaces for abstraction (e.g., `SourceControlClient`, `CodeParser`, `DependencyExtractor`)
+- **Security-First:** Never log sensitive data, use secure storage, support fully offline operation
+
+## Project Structure
+
+Features are organized by epics:
+- EPIC-01: Code Ingestion & Indexing
+- EPIC-02: Search
+- EPIC-03: RAG
+- EPIC-04: API & CLI
+- EPIC-05: Web Dashboard
+- EPIC-06: Dependency Graph Analysis
+- EPIC-07: Documentation Intelligence
+- EPIC-08: MCP Tool Server
+
+Each epic has user stories with detailed task breakdowns following consistent format.

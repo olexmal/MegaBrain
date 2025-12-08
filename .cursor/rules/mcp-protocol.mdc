@@ -1,0 +1,122 @@
+---
+description: MCP (Model Context Protocol) server implementation patterns and tool development guidelines
+globs:
+  - "**/mcp/**"
+  - "**/*MCP*.java"
+  - "**/*mcp*.ts"
+---
+
+# MCP Protocol Rules
+
+## MCP Server Implementation
+
+### Core Components
+- `MCPServer` - Main protocol handler, manages transports and lifecycle
+- `MCPToolRegistry` - Tool registration and dispatch
+- `MCPResourceProvider` - Resource exposure and subscriptions
+- Tool handlers - Individual tool implementations
+
+### Transport Support
+- **stdio** (primary): For local IDE integration (Cursor, Claude Desktop)
+- **SSE** (secondary): For remote/web-based MCP clients
+
+### Protocol Compliance
+- Handle initialize handshake correctly
+- Advertise server capabilities (tools, resources, prompts)
+- Support tool discovery via `tool/list`
+- Implement proper error handling and response formatting
+
+## Tool Implementation
+
+### Tool Registration
+- Register tools with `MCPToolRegistry`
+- Define JSON Schema for tool parameters
+- Include tool descriptions for LLM discovery
+- Ensure tools appear in `tool/list` response
+
+### Tool Handler Pattern
+```java
+@ApplicationScoped
+public class SearchCodeToolHandler implements MCPToolHandler {
+    @Inject
+    SearchService searchService;
+    
+    public MCPToolResponse handle(MCPToolRequest request) {
+        String query = request.getParameter("query");
+        Optional<String> language = request.getOptionalParameter("language");
+        Optional<String> repository = request.getOptionalParameter("repository");
+        
+        List<SearchResult> results = searchService.search(query, language, repository)
+            .await().indefinitely();
+        
+        return MCPToolResponse.success(results);
+    }
+}
+```
+
+### Tool Response Format
+- Format responses for LLM consumption
+- Include structured data with clear fields
+- Provide source citations for RAG responses
+- Keep responses concise (LLM context window limits)
+
+## MCP Tools
+
+### Code Search Tools
+- `search_code` - Semantic and keyword code search
+- `search_by_entity` - Find specific classes, functions, methods
+- `get_file_content` - Retrieve file or specific line range
+- `list_repositories` - List all indexed repositories
+- `list_entities` - List code entities in a file/module
+
+### Dependency Analysis Tools
+- `find_implementations` - Find all implementations of interface (transitive)
+- `find_usages` - Find all usages of a function/class/method
+- `find_callers` - Find all callers of a function
+- `find_dependencies` - Find what an entity depends on
+- `get_inheritance_tree` - Get class hierarchy
+
+### Documentation Tools
+- `get_documentation` - Get doc comments for an entity
+- `find_examples` - Find code examples for a function/class
+- `get_doc_coverage` - Get documentation coverage for a module
+
+### RAG Query Tool
+- `ask_codebase` - Natural language Q&A about the codebase
+  - Internally performs hybrid search
+  - Retrieves top-k chunks
+  - Returns synthesized answer with source citations
+
+## Resource Provider
+
+### Resource URIs
+- `megabrain://repo/{repo_name}` - Repository metadata and statistics
+- `megabrain://file/{path}` - File content with parsed structure
+- `megabrain://entity/{id}` - Code entity details with relationships
+
+### Resource Subscriptions
+- Support resource subscriptions for index update notifications
+- Handle subscription lifecycle (subscribe, unsubscribe)
+- Notify subscribers when resources change
+
+## Performance Requirements
+
+- **Tool Response Latency:** <1s for search operations, <3s for complex graph traversals
+- **Concurrent Sessions:** Support 10+ simultaneous MCP client connections
+- **Tool Discovery:** Tool schema served in <100ms
+- **Resource Subscriptions:** Support 100+ concurrent resource subscriptions per server instance
+
+## Error Handling
+
+- Return proper MCP error responses
+- Include error codes and messages
+- Never expose internal implementation details
+- Handle transport errors gracefully (stdio disconnect, SSE timeout)
+
+## Configuration
+
+### mcp.json Generation
+- Generate `mcp.json` in standard location (`~/.config/mcp/servers/`)
+- Include server name, command, args, env
+- Support stdio transport configuration
+- Document all configuration options

@@ -1,0 +1,121 @@
+---
+description: Testing requirements, coverage standards, and testing patterns
+alwaysApply: true
+---
+
+# Testing Standards
+
+## Coverage Requirements
+
+- **Minimum test coverage: >80%** for all new code
+- Unit tests for all public methods
+- Integration tests for critical paths
+- Test both success and failure scenarios
+
+## Unit Testing
+
+### Java (JUnit 5)
+- Use JUnit 5 for test framework
+- Use Mockito for mocking external dependencies
+- Mock external services (GitHub API, Ollama, database)
+- Test error scenarios and edge cases
+- Use `@QuarkusTest` for Quarkus-specific tests
+
+### Example Java Test
+```java
+@QuarkusTest
+class SearchServiceTest {
+    @InjectMock
+    LuceneIndexService indexService;
+    
+    @Inject
+    SearchService searchService;
+    
+    @Test
+    void testSearch() {
+        when(indexService.search(anyString())).thenReturn(List.of(result));
+        Uni<SearchResult> result = searchService.search("query");
+        assertThat(result.await().indefinitely()).isNotNull();
+    }
+}
+```
+
+### TypeScript (Jasmine/Karma)
+- Use Angular TestBed and Jasmine/Karma
+- Mock services and API calls
+- Test component interactions and state changes
+- Test SSE service integration
+
+### Example TypeScript Test
+```typescript
+describe('IngestionDashboardComponent', () => {
+  let component: IngestionDashboardComponent;
+  let service: IngestionService;
+  
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      imports: [IngestionDashboardComponent],
+      providers: [
+        { provide: IngestionService, useValue: mockService }
+      ]
+    });
+    component = TestBed.createComponent(IngestionDashboardComponent).componentInstance;
+  });
+  
+  it('should display jobs', () => {
+    // Test implementation
+  });
+});
+```
+
+## Integration Testing
+
+### Use Real Services When Appropriate
+- Test with real GitHub API (dedicated test repository)
+- Use Testcontainers for database and service testing
+- Mark integration tests with `@IntegrationTest` annotation
+- Handle rate limiting gracefully in tests
+- Clean up test data after execution
+
+### Testcontainers Example
+```java
+@QuarkusIntegrationTest
+class GitHubIntegrationTest {
+    @Test
+    void testRealGitHubAPI() {
+        // Test with real GitHub API using test repository
+        // Handle rate limiting
+        // Clean up after test
+    }
+}
+```
+
+## Test Data
+
+### Use Known Test Data
+- Create test code files with known relationships
+- Use dedicated test repositories for external API tests
+- Verify expected outcomes against known data
+- Test edge cases (nested classes, multiple inheritance, etc.)
+
+## Test Organization
+
+### Structure
+- Unit tests: `src/test/java/` (mirror main structure)
+- Integration tests: `src/it/java/` or marked with `@IntegrationTest`
+- Test resources: `src/test/resources/`
+
+### Naming
+- Test classes: `*Test` suffix (e.g., `SearchServiceTest`)
+- Test methods: descriptive names (e.g., `testSearchWithFilters()`)
+
+## Definition of Done
+
+A task is considered done when:
+- [ ] All acceptance criteria met
+- [ ] Code reviewed and merged
+- [ ] Unit tests passing (>80% coverage)
+- [ ] Integration tests passing (if applicable)
+- [ ] Documentation updated
+- [ ] No critical bugs
+- [ ] Performance requirements met (if specified)

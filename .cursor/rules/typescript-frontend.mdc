@@ -1,0 +1,160 @@
+---
+description: Angular 20 and TypeScript frontend coding standards and patterns
+globs:
+  - "**/*.ts"
+  - "**/*.tsx"
+---
+
+# TypeScript Frontend Rules
+
+## Angular 20 Standards
+
+### Component Architecture
+- Use **standalone components** (Angular 20 requirement)
+- Use Angular Signals for reactive state management
+- Use RxJS Observables for async data streams
+- Keep components focused and reusable
+
+### Naming Conventions
+- **Components:** PascalCase with `.component.ts` suffix (e.g., `IngestionDashboardComponent`)
+- **Services:** camelCase with `.service.ts` suffix (e.g., `ingestionService.ts`)
+- **Interfaces:** PascalCase (e.g., `IngestionJob`, `SearchResult`)
+- **Files:** kebab-case for multi-word names (e.g., `ingestion-dashboard.component.ts`)
+
+### Component Structure
+```typescript
+@Component({
+  selector: 'app-ingestion-dashboard',
+  standalone: true,
+  imports: [CommonModule, MaterialModule],
+  templateUrl: './ingestion-dashboard.component.html',
+  styleUrls: ['./ingestion-dashboard.component.css']
+})
+export class IngestionDashboardComponent {
+  // Use signals for reactive state
+  jobs = signal<IngestionJob[]>([]);
+  
+  constructor(private ingestionService: IngestionService) {}
+}
+```
+
+### Service Pattern
+- Injectable services with `@Injectable({ providedIn: 'root' })`
+- Use RxJS `Subject` or `BehaviorSubject` for event emission
+- Handle SSE connections with EventSource API
+
+### Service Example
+```typescript
+@Injectable({ providedIn: 'root' })
+export class ProgressService {
+  private eventSource: EventSource | null = null;
+  private progressSubject = new BehaviorSubject<ProgressEvent | null>(null);
+  
+  connect(endpoint: string): Observable<ProgressEvent> {
+    this.eventSource = new EventSource(endpoint);
+    this.eventSource.onmessage = (event) => {
+      this.progressSubject.next(JSON.parse(event.data));
+    };
+    this.eventSource.onerror = () => {
+      // Handle reconnection logic
+      this.reconnect(endpoint);
+    };
+    return this.progressSubject.asObservable();
+  }
+  
+  disconnect() {
+    this.eventSource?.close();
+  }
+}
+```
+
+## TypeScript Conventions
+
+### Type Safety
+- Always define types for function parameters and return values
+- Use interfaces for object shapes
+- Prefer `interface` over `type` for extensibility
+- Use union types for discriminated unions
+
+### Error Handling
+- Use try-catch for async operations
+- Handle SSE connection errors with reconnection logic
+- Display user-friendly error messages in UI
+- Never expose technical error details to users
+
+### RxJS Patterns
+- Use `Observable` for async data streams
+- Use `Subject` or `BehaviorSubject` for event emission
+- Unsubscribe in `ngOnDestroy` to prevent memory leaks
+- Use `takeUntil` pattern for cleanup
+
+## UI Components
+
+### Angular Material
+- Use Angular Material or PrimeNG for UI components
+- Follow Material Design guidelines
+- Use Material table or list for data display
+- Use Material progress bar for progress indicators
+
+### Responsive Design
+- Layout adapts to screen width (responsive breakpoints)
+- Usable on 13" laptop screens
+- Optimal experience on 24"+ monitors
+- Mobile view functional (read-only acceptable)
+
+### Theme Support
+- Support dark and light themes
+- Theme preference persisted in local storage
+- System preference detection as default
+
+## SSE Integration
+
+### EventSource Usage
+- Use EventSource API or Angular HTTP client with SSE support
+- Handle reconnection on disconnect
+- Parse progress events correctly
+- Emit events via RxJS Subject or BehaviorSubject
+
+### SSE Service Pattern
+```typescript
+connectToProgress(jobId: string): Observable<ProgressEvent> {
+  const endpoint = `/api/v1/ingestion/${jobId}/progress`;
+  return new Observable(observer => {
+    const eventSource = new EventSource(endpoint);
+    
+    eventSource.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      observer.next(data);
+    };
+    
+    eventSource.onerror = (error) => {
+      observer.error(error);
+      eventSource.close();
+    };
+    
+    return () => {
+      eventSource.close();
+    };
+  });
+}
+```
+
+## State Management
+
+### Angular Signals
+- Use signals for component-local state
+- Use computed signals for derived state
+- Use effect() for side effects
+
+### RxJS for Global State
+- Use RxJS services for shared state
+- Use BehaviorSubject for current state
+- Use Observable for state streams
+
+## Testing
+
+- Use Angular TestBed and Jasmine/Karma
+- Mock services and API calls
+- Test component interactions and state changes
+- Test SSE service integration
+- Test error handling and edge cases

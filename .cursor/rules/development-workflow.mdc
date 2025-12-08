@@ -1,0 +1,152 @@
+---
+description: Development workflow, task breakdown, dependencies, and acceptance criteria patterns
+---
+
+# Development Workflow
+
+## Task Breakdown
+
+### Task Structure
+Break down user stories into specific, actionable tasks:
+- Each task should be completable in 2-8 hours
+- Tasks should have clear acceptance criteria
+- Document dependencies between tasks
+- Include technical notes for implementation guidance
+
+### Task Template
+```markdown
+### T1: Task Name
+- **Description:** Clear description of what needs to be done
+- **Estimated Hours:** N hours
+- **Assignee:** TBD
+- **Status:** Not Started
+- **Dependencies:** List of dependencies (other tasks or user stories)
+- **Acceptance Criteria:**
+  - [ ] Specific, testable criterion
+  - [ ] Another criterion
+- **Technical Notes:** Implementation details, technical decisions, patterns to follow
+```
+
+## Dependencies
+
+### Identifying Dependencies
+- **Always identify dependencies:**
+  - List prerequisite user stories (e.g., "US-08-01 (needs MCP server)")
+  - List prerequisite tasks within the same story (e.g., "T1 (needs MCPServer)")
+  - Ensure dependencies are unblocked before starting
+  - Example: "US-08-01 (needs MCP server), US-04-02 (needs search API)"
+
+### Dependency Types
+- **Story Dependencies:** Other user stories that must be completed first
+- **Task Dependencies:** Other tasks in the same or different stories
+- **External Dependencies:** External services, libraries, or infrastructure
+
+## Acceptance Criteria
+
+### Guidelines
+- Make criteria specific and testable
+- Use checkboxes for clarity
+- Include performance requirements (e.g., "Tool latency <1s")
+- Include functional requirements
+- Include non-functional requirements (error handling, logging)
+
+### Example Acceptance Criteria
+```markdown
+- **Acceptance Criteria:**
+  - [ ] search_code tool handler implemented
+  - [ ] Accepts query and filters
+  - [ ] Returns search results
+  - [ ] Tool latency <1s
+  - [ ] Error handling for invalid queries
+  - [ ] Unit tests with >80% coverage
+```
+
+## Status Tracking
+
+### Task Status Values
+- **Not Started:** Task not yet begun
+- **In Progress:** Task actively being worked on
+- **In Review:** Code review or QA in progress
+- **Done:** Task completed and accepted
+
+### Status Updates
+- Update status as work progresses
+- Mark dependencies clearly
+- Update status when blocking dependencies are resolved
+
+## Story Points Estimation
+
+### Estimation Guidelines
+- 1 Story Point ≈ 4-6 hours of work (varies by team)
+- Consider complexity, not just time
+- Account for testing, documentation, and review time
+- Re-estimate if scope changes significantly
+
+## Sprint Planning
+
+### Story Selection
+- Select stories based on sprint capacity
+- Consider dependencies between stories
+- Prioritize based on business value
+- Ensure stories are "ready" (Definition of Ready met)
+
+### Definition of Ready
+A story is ready for sprint when:
+- [ ] User story clearly written (As a... I want... So that...)
+- [ ] Acceptance criteria defined and testable
+- [ ] Story points estimated by team
+- [ ] Dependencies identified and unblocked
+- [ ] Technical tasks broken down
+- [ ] Test scenarios documented
+- [ ] Demo script approved by PO
+- [ ] No blocking questions
+
+## Definition of Done
+
+A task is considered done when:
+- [ ] All acceptance criteria met
+- [ ] Code reviewed and merged
+- [ ] Unit tests passing (>80% coverage)
+- [ ] Integration tests passing (if applicable)
+- [ ] Documentation updated
+- [ ] No critical bugs
+- [ ] Performance requirements met (if specified)
+- [ ] Demo successfully presented (for user stories)
+
+## Technical Notes
+
+### Always Include Technical Notes
+- Document how to implement the task
+- Reference specific libraries or frameworks to use
+- Include code patterns or examples
+- Explain integration with other components
+- Document configuration requirements
+
+### Technical Notes Template
+```
+**Technical Notes:** 
+- Use [library/framework] for [purpose]
+- Follow [pattern/architecture]
+- Integrate with [component/service]
+- Configuration: [property]=[value]
+- Example: [code snippet or reference]
+```
+
+## Code Review
+
+### Review Checklist
+- Code follows project standards and patterns
+- Tests are comprehensive (>80% coverage)
+- Documentation is updated
+- Security guidelines are followed
+- Performance requirements are met
+- Error handling is appropriate
+
+## Demo Preparation
+
+### Demo Requirements
+- Story is demonstrable at end of sprint
+- Demo script is prepared
+- Acceptance criteria are verified
+- No critical bugs
+- Documentation is complete

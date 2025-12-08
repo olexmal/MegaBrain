@@ -1,0 +1,126 @@
+---
+description: Documentation standards for user stories, code documentation, and technical notes
+---
+
+# Documentation Standards
+
+## User Story Format
+
+All user stories follow this consistent structure:
+
+```markdown
+## Story Reference
+- **Epic:** EPIC-XX (Epic Name)
+- **Story:** US-XX-YY
+- **Story Points:** N
+- **Sprint Target:** Sprint N
+
+## Task List
+
+### T1: Task Name
+- **Description:** Clear description of what needs to be done
+- **Estimated Hours:** N hours
+- **Assignee:** TBD
+- **Status:** Not Started
+- **Dependencies:** List of dependencies (other tasks or user stories)
+- **Acceptance Criteria:**
+  - [ ] Specific, testable criteria
+  - [ ] Another criterion
+- **Technical Notes:** Implementation details, technical decisions, patterns to follow
+```
+
+## Task Structure
+
+### Required Fields
+- **Description:** What needs to be done (clear and actionable)
+- **Estimated Hours:** Time estimate for planning
+- **Dependencies:** Prerequisite tasks or user stories
+- **Acceptance Criteria:** Specific, testable criteria (use checkboxes)
+- **Technical Notes:** Implementation guidance, patterns, examples
+
+### Acceptance Criteria Guidelines
+- Make criteria specific and testable
+- Use checkboxes for clarity
+- Include performance requirements (e.g., "Tool latency <1s")
+- Include functional requirements
+- Include non-functional requirements (error handling, logging)
+
+### Technical Notes Guidelines
+- Document architectural decisions
+- Explain why certain patterns or libraries were chosen
+- Include code examples when helpful
+- Reference related user stories or epics
+- Document integration points with other services
+
+## Code Documentation
+
+### Java (Javadoc)
+- Use Javadoc for all public classes and methods
+- Document parameters (`@param`), return values (`@return`), and exceptions (`@throws`)
+- Include usage examples for complex methods
+- Document thread safety and concurrency considerations
+
+### Example Javadoc
+```java
+/**
+ * Performs code search using hybrid search (keyword + vector).
+ * 
+ * @param query The search query string
+ * @param language Optional language filter (e.g., "java", "python")
+ * @param repository Optional repository filter
+ * @return Uni containing list of search results, ordered by relevance
+ * @throws SearchException if search index is unavailable
+ */
+public Uni<List<SearchResult>> search(String query, Optional<String> language, Optional<String> repository) {
+    // Implementation
+}
+```
+
+### TypeScript (JSDoc)
+- Use JSDoc comments for public APIs
+- Document component inputs/outputs (`@Input`, `@Output`)
+- Document service methods and their return types
+- Include usage examples for complex components
+
+### Example JSDoc
+```typescript
+/**
+ * Service for managing ingestion jobs and progress tracking.
+ * 
+ * @param jobId The ingestion job identifier
+ * @returns Observable that emits progress events
+ */
+connectToProgress(jobId: string): Observable<ProgressEvent> {
+    // Implementation
+}
+```
+
+## Technical Notes in Tasks
+
+### Always Include Technical Notes
+- Document how to implement the task
+- Reference specific libraries or frameworks to use
+- Include code patterns or examples
+- Explain integration with other components
+- Document configuration requirements
+
+### Example Technical Notes
+```
+**Technical Notes:** Use LangChain4j's OllamaStreamingChatLanguageModel. 
+Create unified interface for LLM clients (Ollama, OpenAI, Anthropic). 
+Use Quarkus CDI for dependency injection. Configuration: 
+megabrain.llm.ollama.endpoint=http://localhost:11434
+```
+
+## Documentation Quality
+
+### Requirements
+- All public APIs must be documented
+- User stories must have complete task breakdowns
+- Technical decisions must be documented in technical notes
+- Configuration options must be documented
+
+### Review Process
+- Documentation reviewed as part of code review
+- Technical notes verified for accuracy
+- Examples tested for correctness
