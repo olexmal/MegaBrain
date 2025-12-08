@@ -13,7 +13,7 @@
 
 ## Acceptance Criteria
 
-- [x] **AC1:** `.java` files detected and routed to JavaParser
+Bitbucket and story file- [x] **AC1:** `.java` files detected and routed to JavaParser
 - [x] **AC2:** Classes extracted with name, package, modifiers
 - [x] **AC3:** Methods extracted with name, parameters, return type
 - [x] **AC4:** Fields extracted with name, type, modifiers
