@@ -1,0 +1,295 @@
+---
+description: Copyright header templates for all source code files
+globs:
+  - "**/*.java"
+  - "**/*.ts"
+  - "**/*.tsx"
+  - "**/*.js"
+  - "**/*.jsx"
+  - "**/*.properties"
+  - "**/*.json"
+  - "**/*.yaml"
+  - "**/*.yml"
+  - "**/*.md"
+  - "**/*.xml"
+  - "**/*.html"
+  - "**/*.css"
+  - "**/*.scss"
+---
+
+# Copyright Headers
+
+All new source code files MUST include a copyright header at the top of the file, matching the MIT License format.
+
+## Copyright Information
+
+- **Year:** 2025
+- **Copyright Holder:** MegaBrain Contributors
+- **License:** MIT License (see [LICENSE](../../LICENSE))
+
+## Header Format Requirements
+
+### Required Elements
+- Copyright notice with year and holder
+- License reference (optional but recommended)
+
+### Optional Elements
+- File description/purpose
+- Author information
+- Creation date
+
+### Placement
+- **Java/TypeScript/JavaScript:** Before package/import statements
+- **Properties/Config:** At the very top of the file
+- **Markdown:** At the top, before any content
+- **XML/HTML:** After XML declaration, before root element
+
+## File Type Templates
+
+### Java Files (.java)
+
+```java
+/*
+ * Copyright (c) 2025 MegaBrain Contributors
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
+package io.megabrain.example;
+```
+
+**Minimal Version (for simple files):**
+```java
+/*
+ * Copyright (c) 2025 MegaBrain Contributors
+ * Licensed under the MIT License - see LICENSE file for details.
+ */
+
+package io.megabrain.example;
+```
+
+### TypeScript/JavaScript Files (.ts, .tsx, .js, .jsx)
+
+```typescript
+/*
+ * Copyright (c) 2025 MegaBrain Contributors
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
+import { Component } from '@angular/core';
+```
+
+**Minimal Version:**
+```typescript
+/*
+ * Copyright (c) 2025 MegaBrain Contributors
+ * Licensed under the MIT License - see LICENSE file for details.
+ */
+
+import { Component } from '@angular/core';
+```
+
+### Properties Files (.properties)
+
+```properties
+# Copyright (c) 2025 MegaBrain Contributors
+# Licensed under the MIT License - see LICENSE file for details.
+
+quarkus.application.name=megabrain
+```
+
+### JSON Files (.json)
+
+```json
+{
+  "_comment": "Copyright (c) 2025 MegaBrain Contributors. Licensed under the MIT License - see LICENSE file for details.",
+  "name": "example",
+  "version": "1.0.0"
+}
+```
+
+**Note:** JSON doesn't support comments in standard format. Use `_comment` field or add comment in adjacent documentation.
+
+### YAML Files (.yaml, .yml)
+
+```yaml
+# Copyright (c) 2025 MegaBrain Contributors
+# Licensed under the MIT License - see LICENSE file for details.
+
+name: example
+version: 1.0.0
+```
+
+### Markdown Files (.md)
+
+```markdown
+<!--
+Copyright (c) 2025 MegaBrain Contributors
+
+Licensed under the MIT License - see LICENSE file for details.
+-->
+
+# Document Title
+```
+
+**Or as text header:**
+```markdown
+**Copyright (c) 2025 MegaBrain Contributors**
+
+Licensed under the MIT License - see [LICENSE](../LICENSE) file for details.
+
+---
+
+# Document Title
+```
+
+### XML Files (.xml)
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Copyright (c) 2025 MegaBrain Contributors
+  Licensed under the MIT License - see LICENSE file for details.
+-->
+<project>
+```
+
+### HTML Files (.html)
+
+```html
+<!--
+  Copyright (c) 2025 MegaBrain Contributors
+  Licensed under the MIT License - see LICENSE file for details.
+-->
+<!DOCTYPE html>
+<html>
+```
+
+### CSS/SCSS Files (.css, .scss)
+
+```css
+/*
+ * Copyright (c) 2025 MegaBrain Contributors
+ * Licensed under the MIT License - see LICENSE file for details.
+ */
+
+.app-container {
+  /* styles */
+}
+```
+
+## Examples
+
+### Example 1: Java Service Class
+
+```java
+/*
+ * Copyright (c) 2025 MegaBrain Contributors
+ * Licensed under the MIT License - see LICENSE file for details.
+ */
+
+package io.megabrain.search;
+
+import jakarta.enterprise.context.ApplicationScoped;
+
+/**
+ * Service for performing code search operations.
+ */
+@ApplicationScoped
+public class SearchService {
+    // Implementation
+}
+```
+
+### Example 2: TypeScript Component
+
+```typescript
+/*
+ * Copyright (c) 2025 MegaBrain Contributors
+ * Licensed under the MIT License - see LICENSE file for details.
+ */
+
+import { Component } from '@angular/core';
+
+@Component({
+  selector: 'app-dashboard',
+  standalone: true,
+  template: `<!-- template -->`
+})
+export class DashboardComponent {
+  // Implementation
+}
+```
+
+### Example 3: Application Properties
+
+```properties
+# Copyright (c) 2025 MegaBrain Contributors
+# Licensed under the MIT License - see LICENSE file for details.
+
+# Application Configuration
+quarkus.application.name=megabrain
+quarkus.http.port=8080
+```
+
+### Example 4: Package JSON
+
+```json
+{
+  "_comment": "Copyright (c) 2025 MegaBrain Contributors. Licensed under the MIT License - see LICENSE file for details.",
+  "name": "megabrain-frontend",
+  "version": "1.0.0"
+}
+```
+
+## Guidelines
+
+1. **Always include copyright header** in new source files
+2. **Use minimal version** for simple files to reduce boilerplate
+3. **Use full license text** for important/core files
+4. **Keep copyright year current** (2025)
+5. **Maintain consistency** across all file types
+6. **Place header at the very top** before any code or imports
+
+## Enforcement
+
+- Code reviews should verify copyright headers are present
+- Automated tools can check for copyright headers in CI/CD
+- Missing headers should be added during code review
+
+---
+
+**Reference:** [MIT License](../../LICENSE)
