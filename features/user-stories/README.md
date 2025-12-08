@@ -6,6 +6,7 @@ This directory contains sprint-ready user stories organized by epic. Each story 
 
 | Epic | Stories | Total Points | Sprints |
 |:-----|:--------|:-------------|:--------|
+| [EPIC-00: Infrastructure](epic-00-infrastructure/) | 1 | 3 | Pre-Sprint 1 |
 | [EPIC-01: Ingestion](epic-01-ingestion/) | 8 | 37 | 1-3 |
 | [EPIC-02: Search](epic-02-search/) | 6 | 28 | 2-5 |
 | [EPIC-03: RAG](epic-03-rag/) | 5 | 19 | 4-5 |
@@ -14,9 +15,24 @@ This directory contains sprint-ready user stories organized by epic. Each story 
 | [EPIC-06: Dependency](epic-06-dependency/) | 7 | 32 | 3-6 |
 | [EPIC-07: Documentation](epic-07-documentation/) | 6 | 22 | 3-6 |
 | [EPIC-08: MCP](epic-08-mcp/) | 7 | 31 | 5-7 |
-| **Total** | **51** | **208** | **7 sprints** |
+| **Total** | **52** | **211** | **7 sprints** |
 
 ## Sprint Planning
+
+### Pre-Sprint 1: Project Setup
+**Velocity Target:** 3 points | **Demo Theme:** "Project Infrastructure Ready"
+
+| Story | Points | Epic |
+|:------|:-------|:-----|
+| US-00-01: Maven Project Setup with Dependencies | 3 | Infrastructure |
+
+**Sprint Demo:**
+- Show Maven project structure
+- Verify all dependencies resolve
+- Demonstrate project compiles and runs
+- Health endpoint responds
+
+---
 
 ### Sprint 1: Foundation
 **Velocity Target:** 13 points | **Demo Theme:** "First Code Indexed"

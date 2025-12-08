@@ -6,6 +6,7 @@ This directory contains the agile epics for the MegaBrain RAG Pipeline project. 
 
 | Epic ID | Name | Priority | Scope | Status |
 |:--------|:-----|:---------|:------|:-------|
+| [EPIC-00](EPIC-00-project-infrastructure.md) | Project Infrastructure Setup | Critical | S | Planned |
 | [EPIC-01](EPIC-01-ingestion.md) | Code Ingestion & Indexing | Critical | XL | Planned |
 | [EPIC-02](EPIC-02-search.md) | Hybrid Search & Retrieval | Critical | L | Planned |
 | [EPIC-03](EPIC-03-rag.md) | RAG Answer Generation | Critical | M | Planned |
@@ -19,6 +20,7 @@ This directory contains the agile epics for the MegaBrain RAG Pipeline project. 
 
 ```mermaid
 flowchart TD
+    E00[EPIC-00<br>Project Infrastructure Setup]
     E01[EPIC-01<br>Code Ingestion & Indexing]
     E02[EPIC-02<br>Hybrid Search & Retrieval]
     E03[EPIC-03<br>RAG Answer Generation]
@@ -28,6 +30,14 @@ flowchart TD
     E07[EPIC-07<br>Documentation Intelligence]
     E08[EPIC-08<br>MCP Tool Server]
     
+    E00 --> E01
+    E00 --> E02
+    E00 --> E03
+    E00 --> E04
+    E00 --> E05
+    E00 --> E06
+    E00 --> E07
+    E00 --> E08
     E01 --> E02
     E01 --> E06
     E01 --> E07
@@ -44,6 +54,9 @@ flowchart TD
 ```
 
 ## Recommended Implementation Order
+
+### Phase 0: Foundation Setup (Pre-requisite)
+0. **EPIC-00: Project Infrastructure Setup** - Maven project, dependencies, and basic structure
 
 ### Phase 1: Foundation (Critical Path)
 1. **EPIC-01: Code Ingestion & Indexing** - Foundation for all other epics
@@ -65,6 +78,7 @@ flowchart TD
 
 | Epic | Spec Section | Functional Requirements |
 |:-----|:-------------|:------------------------|
+| EPIC-00 | Foundation Setup | Project infrastructure, dependencies, build configuration |
 | EPIC-01 | 4.1 | FR-ING-01 through FR-ING-05 |
 | EPIC-02 | 4.2 | FR-SRH-01 through FR-SRH-03 |
 | EPIC-03 | 4.3 | FR-RAG-01 through FR-RAG-03 |
@@ -78,6 +92,7 @@ flowchart TD
 
 | Epic | Primary Components |
 |:-----|:-------------------|
+| EPIC-00 | Maven project structure, pom.xml, package organization, build configuration |
 | EPIC-01 | `RepositoryIngestionService`, `SourceControlClientFactory`, `TreeSitterParser`, `JavaParserService`, `ParserRegistry`, `GrammarManager` |
 | EPIC-02 | `LuceneIndexService`, `VectorStore`, `MegaBrainOrchestrator` |
 | EPIC-03 | `RagService`, `MegaBrainOrchestrator` |
