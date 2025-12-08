@@ -1,0 +1,98 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [dev]
+  workflow_dispatch:
+
+jobs:
+  test-backend:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+
+      - name: Run backend tests
+        run: |
+          cd backend
+          mvn -B test
+
+  benchmark:
+    name: Benchmark (optional)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+
+      - name: Build benchmark jar
+        run: |
+          cd backend
+          mvn -B -Pbenchmark -DskipTests -DskipITs clean package
+
+      - name: Run benchmark
+        run: |
+          cd backend
+          java -jar target/megabrain-1.0.0-SNAPSHOT-benchmarks.jar -rf text -rff target/jmh-java-parser.txt || true
+
+      - name: Upload benchmark report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jmh-java-parser
+          path: backend/target/jmh-java-parser.txt
+
+  test-frontend:
+    name: Frontend Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Chromium for headless tests
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y chromium-browser
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Lint
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Test (headless)
+        working-directory: frontend
+        env:
+          CHROME_BIN: /usr/bin/chromium-browser
+        run: npm test -- --watch=false --browsers=ChromeHeadless
+
+      - name: Build
+        working-directory: frontend
+        run: npm run build -- --configuration=production
+
