@@ -27,7 +27,7 @@
 ### Demo Steps
 1. **Run Detection:**
    ```bash
-   curl "http://localhost:8080/api/v1/graph/dead-code?repository=backend"
+   curl "http://localhost:8080/api/v1/graph/dead-code?repository=olexmal/MegaBrain"
    ```
 2. **Show Results:** List unused classes/methods
 3. **Exclusions:** Show configured exclusion patterns

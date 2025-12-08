@@ -37,7 +37,7 @@
 3. **Trigger Incremental:** Run incremental indexing
    ```bash
    curl -X POST "http://localhost:8080/api/v1/ingest/github" \
-     -d '{"repository": "...", "incremental": true}'
+     -d '{"repository": "olexmal/MegaBrain", "incremental": true}'
    ```
 4. **Show Diff:** Display which files were processed
 5. **Compare Times:** Show full vs incremental duration

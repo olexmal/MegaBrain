@@ -13,7 +13,7 @@
 
 ## Acceptance Criteria
 
-- [ ] **AC1:** User can provide GitHub repository URL (e.g., `github.com/owner/repo`)
+- [ ] **AC1:** User can provide GitHub repository URL (e.g., `github.com/olexmal/MegaBrain`)
 - [ ] **AC2:** System clones repository to temporary storage
 - [ ] **AC3:** System extracts all source files from the repository
 - [ ] **AC4:** Repository metadata captured (name, owner, branch, commit SHA)
@@ -27,7 +27,7 @@
 
 ### Setup
 1. Ensure MegaBrain backend is running
-2. Have a test GitHub repository URL ready (public or private with token)
+2. Have the MegaBrain GitHub repository URL ready: `github.com/olexmal/MegaBrain`
 3. Clear any existing data for clean demo
 
 ### Demo Steps
@@ -35,7 +35,7 @@
    ```bash
    curl -X POST "http://localhost:8080/api/v1/ingest/github" \
      -H "Content-Type: application/json" \
-     -d '{"repository": "octocat/Hello-World", "branch": "main"}'
+     -d '{"repository": "olexmal/MegaBrain", "branch": "main"}'
    ```
 2. **Show Progress:** Display SSE stream showing clone progress
 3. **Verify Files:** Query database to show extracted files

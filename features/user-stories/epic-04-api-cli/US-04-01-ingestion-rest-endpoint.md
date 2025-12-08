@@ -26,14 +26,14 @@
 
 ### Setup
 1. MegaBrain backend running
-2. Test repository URL ready
+2. MegaBrain repository URL ready: `github.com/olexmal/MegaBrain`
 
 ### Demo Steps
 1. **Trigger Ingestion:**
    ```bash
    curl -X POST "http://localhost:8080/api/v1/ingest/github" \
      -H "Content-Type: application/json" \
-     -d '{"repository": "owner/repo", "branch": "main"}'
+     -d '{"repository": "olexmal/MegaBrain", "branch": "main"}'
    ```
 2. **Show SSE Stream:** Progress events flowing
 3. **Show Job ID:** Job tracking identifier

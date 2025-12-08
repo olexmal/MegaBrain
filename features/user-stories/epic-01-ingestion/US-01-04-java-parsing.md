@@ -27,7 +27,7 @@
 ## Demo Script
 
 ### Setup
-1. Ingest a Java repository (e.g., Spring Boot sample)
+1. Ingest the MegaBrain repository (contains Java code)
 2. Ensure repository is fully indexed
 
 ### Demo Steps

@@ -26,7 +26,7 @@
 
 ### Demo Steps
 1. **Open Form:** Click "New Ingestion" button
-2. **Fill Form:** Select GitHub, enter repo URL
+2. **Fill Form:** Select GitHub, enter `olexmal/MegaBrain`
 3. **Submit:** Click submit and watch job appear
 4. **Validation:** Show validation errors for bad input
 

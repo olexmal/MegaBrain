@@ -31,7 +31,7 @@
    ```
 2. **Read Resource:**
    ```json
-   {"method": "resources/read", "params": {"uri": "megabrain://repo/backend"}}
+   {"method": "resources/read", "params": {"uri": "megabrain://repo/olexmal/MegaBrain"}}
    ```
 3. **Subscribe:** Subscribe to repository updates
 4. **Update Notification:** Show notification on change

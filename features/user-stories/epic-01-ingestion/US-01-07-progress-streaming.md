@@ -27,13 +27,13 @@
 
 ### Setup
 1. Ensure MegaBrain backend is running
-2. Have a medium-sized repository ready (100+ files)
+2. Have the MegaBrain repository ready: `github.com/olexmal/MegaBrain`
 
 ### Demo Steps
 1. **Start Ingestion:** Trigger ingestion and capture SSE stream
    ```bash
    curl -N "http://localhost:8080/api/v1/ingest/github?stream=true" \
-     -d '{"repository": "..."}'
+     -d '{"repository": "olexmal/MegaBrain"}'
    ```
 2. **Show Events:** Display real-time events in terminal
    ```

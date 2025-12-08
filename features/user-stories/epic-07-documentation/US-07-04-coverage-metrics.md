@@ -26,7 +26,7 @@
 ### Demo Steps
 1. **View Metrics:**
    ```bash
-   curl "http://localhost:8080/api/v1/docs/coverage?repository=backend"
+   curl "http://localhost:8080/api/v1/docs/coverage?repository=olexmal/MegaBrain"
    ```
 2. **Show Breakdown:** By language, by entity type
 3. **Undocumented List:** Show undocumented public methods

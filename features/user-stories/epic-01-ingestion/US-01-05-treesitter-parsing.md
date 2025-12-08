@@ -27,7 +27,7 @@
 ## Demo Script
 
 ### Setup
-1. Ingest a polyglot repository (e.g., with Python, JS, C++)
+1. Ingest the MegaBrain repository (contains multiple languages)
 2. Ensure all languages are indexed
 
 ### Demo Steps

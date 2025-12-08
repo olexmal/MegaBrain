@@ -13,7 +13,7 @@
 
 ## Acceptance Criteria
 
-- [ ] **AC1:** Command: `megabrain ingest --source github --repo owner/repo`
+- [ ] **AC1:** Command: `megabrain ingest --source github --repo olexmal/MegaBrain`
 - [ ] **AC2:** Supports: `--branch`, `--token`, `--incremental`
 - [ ] **AC3:** Progress displayed in terminal (progress bar)
 - [ ] **AC4:** Exit code: 0 (success), non-zero (failure)
@@ -35,12 +35,12 @@
    ```
 2. **Ingest Repository:**
    ```bash
-   megabrain ingest --source github --repo octocat/Hello-World
+   megabrain ingest --source github --repo olexmal/MegaBrain
    ```
 3. **Show Progress:** Progress bar updating
 4. **Incremental:**
    ```bash
-   megabrain ingest --source github --repo octocat/Hello-World --incremental
+   megabrain ingest --source github --repo olexmal/MegaBrain --incremental
    ```
 5. **Check Exit Code:** `echo $?`
 
