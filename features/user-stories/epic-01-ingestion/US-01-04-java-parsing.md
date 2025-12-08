@@ -13,14 +13,14 @@
 
 ## Acceptance Criteria
 
-- [ ] **AC1:** `.java` files detected and routed to JavaParser
-- [ ] **AC2:** Classes extracted with name, package, modifiers
-- [ ] **AC3:** Methods extracted with name, parameters, return type
-- [ ] **AC4:** Fields extracted with name, type, modifiers
-- [ ] **AC5:** Inner classes and nested types handled correctly
-- [ ] **AC6:** Each chunk includes: language, entity_type, entity_name, source_file, line range
-- [ ] **AC7:** Parsing errors logged but don't stop ingestion
-- [ ] **AC8:** Performance: >10,000 LOC per minute
+- [x] **AC1:** `.java` files detected and routed to JavaParser
+- [x] **AC2:** Classes extracted with name, package, modifiers
+- [x] **AC3:** Methods extracted with name, parameters, return type
+- [x] **AC4:** Fields extracted with name, type, modifiers
+- [x] **AC5:** Inner classes and nested types handled correctly
+- [x] **AC6:** Each chunk includes: language, entity_type, entity_name, source_file, line range
+- [x] **AC7:** Parsing errors logged but don't stop ingestion
+- [x] **AC8:** Performance: >10,000 LOC per minute
 
 ---
 
@@ -50,15 +50,15 @@
 
 ## Technical Tasks
 
-- [ ] **T1:** Implement `JavaParserService` class (backend)
-- [ ] **T2:** Create AST visitor for class extraction (backend)
-- [ ] **T3:** Create AST visitor for method extraction (backend)
-- [ ] **T4:** Create AST visitor for field extraction (backend)
-- [ ] **T5:** Handle inner classes and anonymous classes (backend)
-- [ ] **T6:** Implement TextChunk creation with metadata (backend)
-- [ ] **T7:** Add error handling for malformed Java files (backend)
-- [ ] **T8:** Write unit tests with sample Java files (test)
-- [ ] **T9:** Performance benchmark test (test)
+- [x] **T1:** Implement `JavaParserService` class (backend)
+- [x] **T2:** Create AST visitor for class extraction (backend)
+- [x] **T3:** Create AST visitor for method extraction (backend)
+- [x] **T4:** Create AST visitor for field extraction (backend)
+- [x] **T5:** Handle inner classes and anonymous classes (backend)
+- [x] **T6:** Implement TextChunk creation with metadata (backend)
+- [x] **T7:** Add error handling for malformed Java files (backend)
+- [x] **T8:** Write unit tests with sample Java files (test)
+- [x] **T9:** Performance benchmark test (test)
 
 ---
 
