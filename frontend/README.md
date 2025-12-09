@@ -1,85 +1,73 @@
-# MegaBrain Frontend
+# MegaBrain
 
-Angular 20 frontend application for MegaBrain RAG Pipeline.
+This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 20.3.13.
 
-## Prerequisites
+## Development server
 
-- Node.js 18+ and npm
-- Angular CLI 20 (install globally: `npm install -g @angular/cli@20`)
-
-## Development
-
-### Install Dependencies
+To start a local development server, run:
 
 ```bash
-cd frontend
-npm install
-```
-
-### Development Server
-
-Start the development server with API proxy:
-
-```bash
-npm start
-# or
 ng serve
 ```
 
-The application will be available at `http://localhost:4200` and will proxy API requests to `http://localhost:8080/api`.
+Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
 
-### Build for Production
+## Code scaffolding
 
-Build the application for production (outputs to Quarkus static resources):
+Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
 
 ```bash
-npm run build
-# or
+ng generate component component-name
+```
+
+For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+
+```bash
+ng generate --help
+```
+
+## Building
+
+To build the project run:
+
+```bash
 ng build
 ```
 
-The build output will be in `../src/main/resources/META-INF/resources` for Quarkus to serve.
+This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
 
-## Project Structure
+## Running unit tests
 
-```
-frontend/
-├── src/
-│   ├── app/
-│   │   ├── app.component.ts      # Root component
-│   │   ├── app.routes.ts          # Routing configuration
-│   │   ├── app.config.ts          # Application configuration
-│   │   ├── dashboard/            # Ingestion dashboard module
-│   │   ├── search/               # Search interface module
-│   │   └── chat/                 # RAG chat interface module
-│   ├── assets/                   # Static assets
-│   ├── environments/            # Environment configuration
-│   ├── styles.css               # Global styles
-│   ├── index.html               # Main HTML file
-│   └── main.ts                  # Application entry point
-├── angular.json                  # Angular CLI configuration
-├── package.json                  # npm dependencies
-├── tsconfig.json                 # TypeScript configuration
-└── proxy.conf.json              # API proxy configuration for development
+To execute unit tests with [Jest](https://jestjs.io), use:
+
+```bash
+npm test
 ```
 
-## Features
+To run in watch mode during development:
 
-- **Standalone Components:** All components use Angular 20 standalone architecture (no NgModules)
-- **Angular Material:** UI component library for modern design
-- **RxJS:** Reactive state management
-- **Prism.js:** Syntax highlighting for code preview
-- **HTTP Client:** Configured for API calls to backend
-- **Routing:** Lazy-loaded routes for dashboard, search, and chat modules
+```bash
+npm run test:watch
+```
 
-## API Integration
+## Linting
 
-The frontend communicates with the backend API at `/api/v1`. During development, the proxy configuration (`proxy.conf.json`) forwards requests to `http://localhost:8080`.
+Run a fast type-check over the project:
 
-In production, the Angular app is built and served from Quarkus static resources at `/META-INF/resources`.
+```bash
+npm run lint
+```
 
-## Environment Configuration
+## Running end-to-end tests
 
-- **Development:** `src/environments/environment.ts` - API URL: `http://localhost:8080/api/v1`
-- **Production:** `src/environments/environment.prod.ts` - API URL: `/api/v1` (relative)
+For end-to-end (e2e) testing, run:
 
+```bash
+ng e2e
+```
+
+Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+
+## Additional Resources
+
+For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
