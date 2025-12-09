@@ -12,7 +12,7 @@
 - **Description:** Create the base `TreeSitterParser` abstract class that implements the `CodeParser` interface. This class will provide common functionality for all Tree-sitter-based parsers including grammar loading, tree parsing, and error handling. Define the interface for language-specific query implementations.
 - **Estimated Hours:** 6 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** In Progress
 - **Dependencies:** US-01-01 (needs files to parse)
 - **Acceptance Criteria:**
   - [ ] Base class implements `CodeParser` interface

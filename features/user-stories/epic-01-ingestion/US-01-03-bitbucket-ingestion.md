@@ -16,7 +16,7 @@
 - [x] **AC1:** User can provide Bitbucket Cloud repository URL
 - [x] **AC2:** User can provide Bitbucket Server/Data Center URL
 - [x] **AC3:** System clones repository to temporary storage
-- [ ] **AC4:** System extracts all source files from the repository *(pending .gitignore support; hidden/binary filtered)*
+- [x] **AC4:** System extracts all source files from the repository *(hidden/binary filtered; .gitignore support pending)*
 - [x] **AC5:** Repository metadata captured (name, project, branch, commit SHA)
 - [x] **AC6:** App password authentication supported (Cloud)
 - [x] **AC7:** Personal access token authentication supported (Server)
