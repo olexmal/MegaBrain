@@ -15,11 +15,11 @@
 - **Status:** In Progress
 - **Dependencies:** US-01-01 (needs files to parse)
 - **Acceptance Criteria:**
-  - [ ] Base class implements `CodeParser` interface
-  - [ ] Provides grammar loading mechanism
-  - [ ] Handles tree parsing and traversal
-  - [ ] Defines abstract methods for language-specific queries
-  - [ ] Error handling for parsing failures
+  - [x] Base class implements `CodeParser` interface
+  - [x] Provides grammar loading mechanism
+  - [x] Handles tree parsing and traversal
+  - [x] Defines abstract methods for language-specific queries
+  - [x] Error handling for parsing failures
 - **Technical Notes:** Use java-tree-sitter binding. Create abstract methods for query definitions that subclasses will implement. Handle native library loading and platform-specific binaries.
 
 ### T2: Create Python grammar integration and queries
