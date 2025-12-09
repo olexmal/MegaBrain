@@ -9,7 +9,7 @@ Scalable, self-hosted, intelligent code knowledge platform that indexes multi-la
 ## Technology Stack
 
 - **Backend Framework:** Quarkus 3.15+ (RESTEasy Reactive)
-- **Language:** Java 21+
+- **Language:** Java 22+
 - **Build Tool:** Maven 3.8+
 - **Code Parsing:** JavaParser 3.x, Tree-sitter (java-tree-sitter)
 - **Search:** Apache Lucene 9.x
@@ -61,7 +61,7 @@ megabrain/
 ### Prerequisites
 
 **Backend:**
-- Java 21 or higher
+- Java 22 or higher
 - Maven 3.8 or higher
 
 **Frontend:**

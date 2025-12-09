@@ -29,7 +29,7 @@
 ## Demo Script
 
 ### Setup
-1. Ensure Java 21+ is installed and configured
+1. Ensure Java 22+ is installed and configured
 2. Ensure Maven 3.8+ is installed
 3. Ensure Node.js 18+ and npm are installed (for Angular)
 4. Ensure Angular CLI is installed globally (`npm install -g @angular/cli@20`)

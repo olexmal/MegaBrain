@@ -3,7 +3,7 @@
 Audience: operators running MegaBrain backend for ingestion/search. This focuses on configuration and runtime verification (no code changes required).
 
 ## Prerequisites
-- Java 21+, Maven 3.8+ (backend)
+- Java 22+, Maven 3.8+ (backend)
 - Optional: Node 18+/Angular CLI 20+ (frontend UI)
 - Network access to Git providers (GitHub, Bitbucket Cloud/Server)
 - PostgreSQL (for persistence/vector) and Neo4j (graph) if you enable those features

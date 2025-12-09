@@ -13,11 +13,11 @@
     <description>Scalable, self-hosted, intelligent code knowledge platform</description>
 
     <properties>
-        <maven.compiler.release>21</maven.compiler.release>
+        <maven.compiler.release>22</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         
-        <java.version>21</java.version>
+        <java.version>22</java.version>
         <quarkus.version>3.30.2</quarkus.version>
         
         <!-- Dependency versions -->

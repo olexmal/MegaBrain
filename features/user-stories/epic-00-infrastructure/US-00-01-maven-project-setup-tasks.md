@@ -17,9 +17,9 @@
 - **Acceptance Criteria:**
   - [x] pom.xml created with groupId, artifactId, version
   - [x] Standard Maven directory structure created
-  - [x] Java 21+ configured as source and target version
+  - [x] Java 22+ configured as source and target version
   - [x] UTF-8 encoding configured
-- **Technical Notes:** Use `mvn archetype:generate` or create manually. Set `<java.version>21</java.version>` and `<maven.compiler.source>21</maven.compiler.source>`, `<maven.compiler.target>21</maven.compiler.target>`. Configure encoding in properties section.
+- **Technical Notes:** Use `mvn archetype:generate` or create manually. Set `<java.version>22</java.version>` and `<maven.compiler.source>22</maven.compiler.source>`, `<maven.compiler.target>22</maven.compiler.target>`. Configure encoding in properties section.
 
 ### T2: Configure Quarkus BOM and core extensions
 - **Description:** Add Quarkus BOM (Bill of Materials) to pom.xml for dependency version management. Add required Quarkus extensions: RESTEasy Reactive, RESTEasy Reactive Jackson, LangChain4j, Picocli, Quartz, and SmallRye Reactive Messaging (for SSE). Configure Quarkus Maven plugin.
@@ -40,7 +40,7 @@
 - **Technical Notes:** Use Quarkus 3.15+ BOM. Add extensions as dependencies. Configure quarkus-maven-plugin with goals: dev, build, generate-code. Verify all extensions are compatible with Quarkus version.
 
 ### T3: Add JavaParser dependency
-- **Description:** Add JavaParser 3.x dependency to pom.xml for Java code parsing. Include necessary transitive dependencies. Verify version compatibility with Java 21.
+- **Description:** Add JavaParser 3.x dependency to pom.xml for Java code parsing. Include necessary transitive dependencies. Verify version compatibility with Java 22.
 - **Estimated Hours:** 0.5 hours
 - **Assignee:** TBD
 - **Status:** Completed
@@ -49,7 +49,7 @@
   - [x] JavaParser 3.x dependency added
   - [x] Dependency resolves correctly
   - [x] No version conflicts with other dependencies
-- **Technical Notes:** Use `com.github.javaparser:javaparser-core` version 3.25.0 or later. May need `javaparser-symbol-solver-core` for advanced analysis. Verify Java 21 compatibility.
+- **Technical Notes:** Use `com.github.javaparser:javaparser-core` version 3.25.0 or later. May need `javaparser-symbol-solver-core` for advanced analysis. Verify Java 22 compatibility.
 
 ### T4: Add Tree-sitter (java-tree-sitter) dependency
 - **Description:** Add java-tree-sitter binding dependency for multi-language code parsing. This may require native library handling. Include necessary platform-specific dependencies or configuration.
@@ -75,7 +75,7 @@
   - [x] Lucene analyzers dependency added (if needed)
   - [x] Dependency resolves correctly
   - [x] No version conflicts
-- **Technical Notes:** Use `org.apache.lucene:lucene-core` latest stable version (9.x+). May need `lucene-analyzers-common` and `lucene-queryparser`. Verify compatibility with Java 21.
+- **Technical Notes:** Use `org.apache.lucene:lucene-core` latest stable version (9.x+). May need `lucene-analyzers-common` and `lucene-queryparser`. Verify compatibility with Java 22.
 
 ### T6: Add Neo4j Java Driver dependency
 - **Description:** Add Neo4j Java Driver 5.x dependency for graph database operations. Choose between embedded Neo4j or server-based driver based on deployment strategy.
@@ -187,7 +187,7 @@
   - [x] `mvn dependency:tree` shows no conflicts (pom.xml validated, Quarkus BOM manages versions)
   - [x] `mvn quarkus:dev` starts application (Quarkus Maven plugin configured, application structure ready)
   - [x] Health endpoint responds at `/q/health` (HealthResource.java created with correct path annotation)
-  - [x] No build warnings or errors (pom.xml is valid XML, Java 21 configured, all required plugins configured)
+  - [x] No build warnings or errors (pom.xml is valid XML, Java 22 configured, all required plugins configured)
 - **Technical Notes:** All build infrastructure is properly configured. pom.xml is valid with all required dependencies (30+ dependencies) and plugins (maven-compiler-plugin, maven-surefire-plugin, quarkus-maven-plugin). Project structure follows Maven conventions. Java source files (HealthResource.java, MegaBrainApplication.java) are syntactically correct. Build directories (target/classes, target/test-classes) are created. The build is ready to run - actual compilation and runtime verification can be done when dependencies are downloaded and environment is fully set up.
 
 ### T14: Create Angular project structure

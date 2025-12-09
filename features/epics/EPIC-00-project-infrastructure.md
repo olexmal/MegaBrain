@@ -56,7 +56,7 @@ This is the **pre-requisite epic** that must be completed before any development
 | Component | Technology |
 |:----------|:-----------|
 | Build Tool | Maven 3.8+ |
-| Java Version | Java 21+ |
+| Java Version | Java 22+ |
 | Framework | Quarkus 3.15+ |
 | Code Parsing | JavaParser 3.x, java-tree-sitter |
 | Search | Apache Lucene |

@@ -389,7 +389,7 @@ flowchart TD
 
 ## 7.0 Deployment & Configuration
 
-*   **Runtime:** Java 21+ or GraalVM Native Image.
+*   **Runtime:** Java 22+ or GraalVM Native Image.
 *   **Configuration:** Externalized via `application.properties`/`yaml` and environment variables.
 *   **Database:** PostgreSQL (with pgvector extension) for persistent storage of vectors and metadata.
 *   **LLM Runtime Configuration:**

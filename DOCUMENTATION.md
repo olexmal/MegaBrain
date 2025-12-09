@@ -239,9 +239,9 @@ frontend/src/app/
 
 #### Backend Prerequisites
 
-- **Java 21 or higher**
+- **Java 22 or higher**
   ```bash
-  java -version  # Should show 21 or higher
+  java -version  # Should show 22 or higher
   ```
 
 - **Maven 3.8 or higher**
