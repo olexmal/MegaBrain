@@ -16,6 +16,7 @@ import io.megabrain.ingestion.parser.TextChunk;
 import org.jboss.logging.Logger;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -79,7 +80,7 @@ public abstract class TreeSitterParser implements CodeParser {
             return List.of();
         }
 
-        Language lang = language();
+        Language lang = resolveLanguage();
         if (lang == null) {
             LOG.errorf("Tree-sitter language failed to load for %s; skipping parse", filePath);
             return List.of();
@@ -94,7 +95,7 @@ public abstract class TreeSitterParser implements CodeParser {
 
             try (Tree tree = parsed.get()) {
                 Node root = tree.getRootNode();
-                TreeSitterSource tsSource = new TreeSitterSource(source, filePath, ENCODING.charset());
+                TreeSitterSource tsSource = new TreeSitterSource(source, filePath, StandardCharsets.UTF_8);
                 return List.copyOf(extractChunks(root, tree, tsSource));
             }
         } catch (Exception | UnsatisfiedLinkError e) {
@@ -164,7 +165,7 @@ public abstract class TreeSitterParser implements CodeParser {
      */
     protected abstract List<TextChunk> extractChunks(Node rootNode, Tree tree, TreeSitterSource source);
 
-    private Language language() {
+    private Language resolveLanguage() {
         Language existing = languageRef.get();
         if (existing != null) {
             return existing;
