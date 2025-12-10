@@ -222,12 +222,14 @@ public abstract class TreeSitterParser implements CodeParser {
         String content = source.slice(startByte, endByte);
 
         Map<String, String> safeAttributes = attributes == null ? Map.of() : Map.copyOf(attributes);
+        String normalizedType = entityType.trim().toLowerCase(Locale.ROOT);
+        String normalizedName = entityName.trim();
 
         return new TextChunk(
                 content,
                 language(),
-                entityType,
-                entityName,
+                normalizedType,
+                normalizedName,
                 source.filePath().toString(),
                 startLine,
                 endLine,
