@@ -1,0 +1,12 @@
+---
+description: Rule to avoid usage of TextChunk class
+globs:
+  - "**/*.java"
+  - "**/*.ts"
+---
+
+# TextChunk Usage Rule
+
+- Do not reference or use `io.megabrain.ingestion.parser.TextChunk` directly.
+- Prefer working with abstractions or downstream data structures that do not expose `TextChunk`.
+- If chunk-like data is needed, introduce or use interfaces/value objects that do not depend on `TextChunk`.
