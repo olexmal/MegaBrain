@@ -13,14 +13,15 @@
 
 ## Acceptance Criteria
 
-- [ ] **AC1:** Python files parsed (functions, classes, methods)
-- [ ] **AC2:** JavaScript/TypeScript files parsed (functions, classes, methods)
-- [ ] **AC3:** C/C++ files parsed (functions, structs, classes)
-- [ ] **AC4:** File extension routing to correct Tree-sitter grammar
-- [ ] **AC5:** Each chunk includes: language, entity_type, entity_name, source_file, line range
-- [ ] **AC6:** Tree-sitter grammars loaded dynamically
-- [ ] **AC7:** Parsing errors logged but don't stop ingestion
-- [ ] **AC8:** Performance: >10,000 LOC per minute
+- [x] **AC1:** Python files parsed (functions, classes, methods)
+- [x] **AC2:** JavaScript/TypeScript files parsed (functions, classes, methods)
+- [x] **AC3:** Java files parsed (classes, interfaces, methods)
+- [x] **AC4:** C/C++ files parsed (functions, structs, classes)
+- [x] **AC5:** File extension routing to correct Tree-sitter grammar
+- [x] **AC6:** Each chunk includes: language, entity_type, entity_name, source_file, line range
+- [x] **AC7:** Tree-sitter grammars loaded dynamically
+- [ ] **AC8:** Parsing errors logged but don't stop ingestion
+- [ ] **AC9:** Performance: >10,000 LOC per minute
 
 ---
 
@@ -58,6 +59,7 @@
 - [ ] **T7:** Create TextChunk with consistent metadata (backend)
 - [ ] **T8:** Write unit tests per language (test)
 - [ ] **T9:** Performance benchmark test (test)
+- [ ] **T10:** Create Java grammar integration and queries (backend)
 
 ---
 
@@ -70,6 +72,7 @@
 | JS function | .js file with function | Parse file | Function extracted |
 | JS class (ES6) | .js file with class | Parse file | Class extracted |
 | TypeScript | .ts file | Parse file | Types and functions extracted |
+| Java class | .java file with annotations and generics | Parse file | Classes/interfaces/methods extracted |
 | C function | .c file with functions | Parse file | Functions extracted |
 | C++ class | .cpp file with class | Parse file | Class and methods extracted |
 | Mixed repo | Repo with multiple langs | Ingest | All languages parsed correctly |
@@ -106,6 +109,6 @@
 
 ## Notes
 - Use java-tree-sitter binding
-- Grammars needed: tree-sitter-python, tree-sitter-javascript, tree-sitter-typescript, tree-sitter-c, tree-sitter-cpp
+- Grammars needed: tree-sitter-python, tree-sitter-javascript, tree-sitter-typescript, tree-sitter-java, tree-sitter-c, tree-sitter-cpp
 - Consider bundling grammars vs dynamic download
 
