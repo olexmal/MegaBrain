@@ -252,7 +252,7 @@ final class JavaAstVisitor extends VoidVisitorAdapter<JavaAstVisitor.Context> {
             List<String> types = new ArrayList<>(typeStack);
             List<String> ordered = new ArrayList<>();
             for (String type : types) {
-                ordered.add(0, type);
+                ordered.addFirst(type);
             }
             String typePath = String.join(".", ordered);
             if (packageName == null || packageName.isBlank()) {
@@ -266,10 +266,10 @@ final class JavaAstVisitor extends VoidVisitorAdapter<JavaAstVisitor.Context> {
                 return Optional.empty();
             }
             List<String> types = new ArrayList<>(typeStack);
-            types.remove(0);
+            types.removeFirst();
             List<String> ordered = new ArrayList<>();
             for (String type : types) {
-                ordered.add(0, type);
+                ordered.addFirst(type);
             }
             String typePath = String.join(".", ordered);
             if (packageName == null || packageName.isBlank()) {

@@ -50,7 +50,7 @@ class BitbucketCloudApiHeadersFactoryTest {
         MultivaluedMap<String, String> result = factory.update(new MultivaluedHashMap<>(), new MultivaluedHashMap<>());
 
         // then
-        assertThat(result.containsKey("Authorization")).isFalse();
+        assertThat(result).doesNotContainKey("Authorization");
         assertThat(result.getFirst("User-Agent")).isEqualTo("MegaBrain/1.0");
         assertThat(result.getFirst("Accept")).isEqualTo("application/json");
     }

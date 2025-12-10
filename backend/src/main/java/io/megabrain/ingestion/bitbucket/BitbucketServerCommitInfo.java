@@ -35,6 +35,6 @@ public record BitbucketServerCommitInfo(
      * Gets the first (latest) commit from the list.
      */
     public Commit getLatestCommit() {
-        return values != null && !values.isEmpty() ? values.get(0) : null;
+        return values != null && !values.isEmpty() ? values.getFirst() : null;
     }
 }

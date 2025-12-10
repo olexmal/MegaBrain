@@ -21,7 +21,7 @@ class SourceCoordinatesTest {
 
         SourceCoordinates coordinates = new SourceCoordinates(source);
 
-        assertThat(coordinates.toByteOffset(new Position(1, 1))).isEqualTo(0);      // 'a'
+        assertThat(coordinates.toByteOffset(new Position(1, 1))).isZero();      // 'a'
         assertThat(coordinates.toByteOffset(new Position(2, 2))).isEqualTo(5);      // 'e'
         assertThat(coordinates.toByteOffset(new Position(3, 3))).isEqualTo(10);     // 'h'
 

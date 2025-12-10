@@ -114,8 +114,8 @@ class BitbucketSourceControlClientTest {
         // Then
         List<ProgressEvent> events = result.collect().asList().await().indefinitely();
         assertThat(events).isNotEmpty();
-        assertThat(events.get(events.size() - 1).stage()).isEqualTo("EXTRACTING");
-        assertThat(events.get(events.size() - 1).message()).contains("completed");
+        assertThat(events.getLast().stage()).isEqualTo("EXTRACTING");
+        assertThat(events.getLast().message()).contains("completed");
     }
 
     @Test
@@ -382,7 +382,7 @@ class BitbucketSourceControlClientTest {
 
         var events = client.extractFiles(tempDir).collect().asList().await().indefinitely();
 
-        assertThat(events).anyMatch(e -> e.message().contains("Main.java"));
-        assertThat(events).noneMatch(e -> e.message().contains("README.md"));
+        assertThat(events).anyMatch(e -> e.message().contains("Main.java"))
+                .noneMatch(e -> e.message().contains("README.md"));
     }
 }

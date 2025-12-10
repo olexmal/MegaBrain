@@ -51,21 +51,21 @@ class JavaAstVisitorTest {
         TextChunk classChunk = findByType(chunks, "class");
         assertThat(classChunk.entityName()).isEqualTo("com.example.Sample");
         assertThat(classChunk.attributes().get("modifiers")).contains("public");
-        assertThat(classChunk.attributes().get("package")).isEqualTo("com.example");
+        assertThat(classChunk.attributes()).containsEntry("package", "com.example");
 
         TextChunk fieldChunk = findByType(chunks, "field");
         assertThat(fieldChunk.entityName()).isEqualTo("com.example.Sample#name");
-        assertThat(fieldChunk.attributes().get("fieldType")).isEqualTo("String");
+        assertThat(fieldChunk.attributes()).containsEntry("fieldType", "String");
 
         TextChunk ctorChunk = findByType(chunks, "constructor");
         assertThat(ctorChunk.entityName()).contains("Sample#Sample(String)");
-        assertThat(ctorChunk.attributes().get("parent")).isEqualTo("com.example.Sample");
+        assertThat(ctorChunk.attributes()).containsEntry("parent", "com.example.Sample");
 
         TextChunk methodChunk = chunks.stream()
                 .filter(c -> c.entityType().equals("method") && c.entityName().contains("greet"))
                 .findFirst()
                 .orElseThrow();
-        assertThat(methodChunk.attributes().get("returnType")).isEqualTo("String");
+        assertThat(methodChunk.attributes()).containsEntry("returnType", "String");
         assertThat(methodChunk.attributes().get("parameters")).contains("String target");
 
         TextChunk anonymousClass = chunks.stream()
@@ -73,7 +73,7 @@ class JavaAstVisitorTest {
                 .findFirst()
                 .orElseThrow();
         assertThat(anonymousClass.entityName()).contains("AnonymousClass");
-        assertThat(anonymousClass.attributes().get("parent")).isEqualTo("com.example.Sample");
+        assertThat(anonymousClass.attributes()).containsEntry("parent", "com.example.Sample");
 
         TextChunk anonymousRun = chunks.stream()
                 .filter(c -> c.entityType().equals("method") && c.entityName().contains("AnonymousClass") && c.entityName().contains("run"))

@@ -27,7 +27,6 @@ import jakarta.ws.rs.WebApplicationException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
@@ -465,9 +464,7 @@ public class BitbucketSourceControlClient implements SourceControlClient {
         if (ignoreNode != null) {
             String relative = repositoryRoot.relativize(file).toString().replace("\\", "/");
             var result = ignoreNode.isIgnored(relative, false);
-            if (result == IgnoreNode.MatchResult.IGNORED) {
-                return false;
-            }
+            return result != IgnoreNode.MatchResult.IGNORED;
         }
 
         return true;

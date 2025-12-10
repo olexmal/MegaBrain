@@ -122,7 +122,7 @@ class TreeSitterParserTest {
 
         assertThat(chunks).isEmpty();
         assertThat(languageInvoked).isFalse();
-        assertThat(loaderInvocations.get()).isEqualTo(1);
+        assertThat(loaderInvocations.get()).isOne();
     }
 
     @Test
@@ -136,7 +136,7 @@ class TreeSitterParserTest {
         parser.parse(file);
         parser.parse(file);
 
-        assertThat(loaderInvocations.get()).isEqualTo(1);
+        assertThat(loaderInvocations.get()).isOne();
     }
 
     @Test

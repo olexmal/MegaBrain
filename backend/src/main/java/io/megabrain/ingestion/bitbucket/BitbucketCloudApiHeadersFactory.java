@@ -7,6 +7,8 @@ package io.megabrain.ingestion.bitbucket;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.ws.rs.core.MultivaluedMap;
+
 import org.eclipse.microprofile.rest.client.ext.ClientHeadersFactory;
 
 import java.util.Base64;
@@ -22,9 +24,9 @@ public class BitbucketCloudApiHeadersFactory implements ClientHeadersFactory {
     BitbucketTokenProvider tokenProvider;
 
     @Override
-    public jakarta.ws.rs.core.MultivaluedMap<String, String> update(
-            jakarta.ws.rs.core.MultivaluedMap<String, String> incomingHeaders,
-            jakarta.ws.rs.core.MultivaluedMap<String, String> outgoingHeaders) {
+    public MultivaluedMap<String, String> update(
+            MultivaluedMap<String, String> incomingHeaders,
+            MultivaluedMap<String, String> outgoingHeaders) {
 
         // Get Bitbucket Cloud credentials
         BitbucketTokenProvider.BitbucketCredentials credentials = tokenProvider.getCredentials(true);

@@ -9,7 +9,6 @@ import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 
 import java.nio.file.Path;
-import java.util.List;
 
 /**
  * Interface for source control system clients.

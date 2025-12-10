@@ -26,7 +26,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * JMH benchmark for JavaParserService throughput.
- *
+ * <p>
  * Run (fat jar, forked) from repo root:
  *   mvn -Pbenchmark -DskipTests -DskipITs clean package
  *   java -jar backend/target/megabrain-1.0.0-SNAPSHOT-benchmarks.jar \

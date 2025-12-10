@@ -16,7 +16,6 @@ import java.nio.file.Path;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @QuarkusTest
 class GitHubSourceControlClientTest {
@@ -87,8 +86,8 @@ class GitHubSourceControlClientTest {
         // Then
         List<ProgressEvent> events = result.collect().asList().await().indefinitely();
         assertThat(events).isNotEmpty();
-        assertThat(events.get(events.size() - 1).stage()).isEqualTo("EXTRACTING");
-        assertThat(events.get(events.size() - 1).message()).contains("completed");
+        assertThat(events.getLast().stage()).isEqualTo("EXTRACTING");
+        assertThat(events.getLast().message()).contains("completed");
     }
 
     @Test

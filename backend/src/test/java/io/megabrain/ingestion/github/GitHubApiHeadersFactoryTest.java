@@ -60,7 +60,7 @@ class GitHubApiHeadersFactoryTest {
         MultivaluedMap<String, String> headers = factory.update(new MultivaluedHashMap<>(), new MultivaluedHashMap<>());
 
         // then
-        assertThat(headers.containsKey("Authorization")).isFalse();
+        assertThat(headers).doesNotContainKey("Authorization");
         assertThat(headers.getFirst("X-GitHub-Api-Version")).isEqualTo("2022-11-28");
     }
 }

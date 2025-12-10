@@ -19,7 +19,7 @@ class TreeSitterSourceTest {
     void convertsPointToOneBasedLineNumber() {
         TreeSitterSource source = new TreeSitterSource("line1\nline2", Path.of("Sample.test"), StandardCharsets.UTF_8);
 
-        assertThat(source.toLineNumber(new Point(0, 0))).isEqualTo(1);
+        assertThat(source.toLineNumber(new Point(0, 0))).isOne();
         assertThat(source.toLineNumber(new Point(3, 5))).isEqualTo(4);
     }
 

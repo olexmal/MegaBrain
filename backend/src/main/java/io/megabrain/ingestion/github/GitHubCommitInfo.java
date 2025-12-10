@@ -6,7 +6,6 @@
 package io.megabrain.ingestion.github;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  * GitHub commit information DTO.

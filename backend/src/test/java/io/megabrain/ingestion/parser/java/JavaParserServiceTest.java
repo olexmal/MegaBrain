@@ -69,7 +69,7 @@ class JavaParserServiceTest {
                 .findFirst()
                 .orElseThrow();
         assertThat(fieldChunk.entityName()).isEqualTo("com.example.Sample#name");
-        assertThat(fieldChunk.attributes().get("fieldType")).isEqualTo("String");
+        assertThat(fieldChunk.attributes()).containsEntry("fieldType", "String");
         assertThat(fieldChunk.attributes().get("modifiers")).contains("private");
 
         TextChunk constructorChunk = chunks.stream()
@@ -84,7 +84,7 @@ class JavaParserServiceTest {
                 .findFirst()
                 .orElseThrow();
         assertThat(methodChunk.entityName()).isEqualTo("com.example.Sample#greet(String)");
-        assertThat(methodChunk.attributes().get("returnType")).isEqualTo("String");
+        assertThat(methodChunk.attributes()).containsEntry("returnType", "String");
         assertThat(methodChunk.attributes().get("parameters")).contains("String target");
         assertThat(methodChunk.content()).contains("greet");
     }
@@ -117,14 +117,14 @@ class JavaParserServiceTest {
                 .filter(chunk -> chunk.entityType().equals("class") && chunk.entityName().endsWith("Outer.Inner"))
                 .findFirst()
                 .orElseThrow();
-        assertThat(innerClass.attributes().get("parent")).isEqualTo("com.example.Outer");
+        assertThat(innerClass.attributes()).containsEntry("parent", "com.example.Outer");
 
         TextChunk anonymousClass = chunks.stream()
                 .filter(chunk -> chunk.entityType().equals("anonymous_class"))
                 .findFirst()
                 .orElseThrow();
         assertThat(anonymousClass.entityName()).contains("Outer.AnonymousClass");
-        assertThat(anonymousClass.attributes().get("parent")).isEqualTo("com.example.Outer");
+        assertThat(anonymousClass.attributes()).containsEntry("parent", "com.example.Outer");
 
         TextChunk anonymousRun = chunks.stream()
                 .filter(chunk -> chunk.entityType().equals("method") && chunk.entityName().contains("AnonymousClass") && chunk.entityName().contains("run"))
