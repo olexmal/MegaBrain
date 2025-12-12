@@ -13,13 +13,13 @@
 
 ## Acceptance Criteria
 
-- [ ] **AC1:** SSE endpoint streams progress events
-- [ ] **AC2:** Events include: stage, message, percentage, timestamp
-- [ ] **AC3:** Stages: "Cloning", "Parsing", "Indexing", "Complete", "Failed"
-- [ ] **AC4:** Progress updates at least every 5 seconds during processing
-- [ ] **AC5:** File-level progress shown during parsing (X of Y files)
-- [ ] **AC6:** Error events streamed with details if ingestion fails
-- [ ] **AC7:** Client can receive events for in-progress jobs
+- [x] **AC1:** SSE endpoint streams progress events
+- [x] **AC2:** Events include: stage, message, percentage, timestamp
+- [x] **AC3:** Stages: "Cloning", "Parsing", "Indexing", "Complete", "Failed"
+- [x] **AC4:** Progress updates at least every 5 seconds during processing
+- [x] **AC5:** File-level progress shown during parsing (X of Y files)
+- [x] **AC6:** Error events streamed with details if ingestion fails
+- [x] **AC7:** Client can receive events for in-progress jobs
 
 ---
 
@@ -55,13 +55,13 @@
 
 ## Technical Tasks
 
-- [ ] **T1:** Define `StreamEvent` record/class (backend)
-- [ ] **T2:** Implement SSE endpoint using Mutiny Multi (backend)
-- [ ] **T3:** Emit progress events during cloning (backend)
-- [ ] **T4:** Emit progress events during parsing (backend)
-- [ ] **T5:** Emit progress events during indexing (backend)
-- [ ] **T6:** Emit completion/error events (backend)
-- [ ] **T7:** Write integration test for SSE streaming (test)
+- [x] **T1:** Define `StreamEvent` record/class (backend)
+- [x] **T2:** Implement SSE endpoint using Mutiny Multi (backend)
+- [x] **T3:** Emit progress events during cloning (backend)
+- [x] **T4:** Emit progress events during parsing (backend)
+- [x] **T5:** Emit progress events during indexing (backend)
+- [x] **T6:** Emit completion/error events (backend)
+- [x] **T7:** Write integration test for SSE streaming (test)
 
 ---
 
