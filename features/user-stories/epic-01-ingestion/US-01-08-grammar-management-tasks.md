@@ -25,14 +25,14 @@
 - **Description:** Create the `GrammarManager` class that handles Tree-sitter grammar lifecycle: downloading, caching, version management, and loading. The manager should download grammars from GitHub releases, cache them locally, track versions, and provide grammar instances to parsers.
 - **Estimated Hours:** 6 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T1 (needs ParserRegistry structure)
 - **Acceptance Criteria:**
-  - [ ] Downloads grammars from GitHub releases
-  - [ ] Caches grammars locally in configurable directory
-  - [ ] Tracks grammar versions
-  - [ ] Provides grammar instances to parsers
-  - [ ] Grammar loading <500ms (cold start)
+  - [x] Downloads grammars from GitHub releases
+  - [x] Caches grammars locally in configurable directory
+  - [x] Tracks grammar versions
+  - [x] Provides grammar instances to parsers
+  - [x] Grammar loading <500ms (cold start)
 - **Technical Notes:** Download from https://github.com/tree-sitter/tree-sitter-{language}/releases. Cache in `~/.megabrain/grammars/` or configurable path. Store version metadata in JSON file. Handle platform-specific binaries (.so, .dylib, .dll).
 
 ### T3: Create grammar download logic from GitHub releases
