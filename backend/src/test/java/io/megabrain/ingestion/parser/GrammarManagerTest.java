@@ -5,10 +5,14 @@
 
 package io.megabrain.ingestion.parser;
 
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
+import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
+import uk.org.webcompere.systemstubs.jupiter.SystemStub;
+import uk.org.webcompere.systemstubs.jupiter.SystemStubsExtension;
+import uk.org.webcompere.systemstubs.properties.SystemProperties;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -18,24 +22,25 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@ExtendWith(SystemStubsExtension.class)
 class GrammarManagerTest {
 
     @TempDir
     Path tempDir;
 
+    @SystemStub
+    private SystemProperties systemProperties;
+
+    @SystemStub
+    private EnvironmentVariables environmentVariables;
+
     private GrammarManager grammarManager;
     private GrammarSpec testSpec;
-    private String originalCacheDirProperty;
-    private String originalCacheDirEnv;
 
     @BeforeEach
     void setUp() {
-        // Store original values
-        originalCacheDirProperty = System.getProperty("megabrain.grammar.cache.dir");
-        originalCacheDirEnv = System.getenv("MEGABRAIN_GRAMMAR_CACHE_DIR");
-
         // Set custom cache directory for testing
-        System.setProperty("megabrain.grammar.cache.dir", tempDir.toString());
+        systemProperties.set("megabrain.grammar.cache.dir", tempDir.toString());
 
         grammarManager = new GrammarManager();
         testSpec = new GrammarSpec(
@@ -49,34 +54,18 @@ class GrammarManagerTest {
         );
     }
 
-    @AfterEach
-    void tearDown() {
-        // Restore original values
-        if (originalCacheDirProperty != null) {
-            System.setProperty("megabrain.grammar.cache.dir", originalCacheDirProperty);
-        } else {
-            System.clearProperty("megabrain.grammar.cache.dir");
-        }
-        // Environment variables can't be restored, but that's okay for tests
-    }
-
     @Test
     void resolveCacheDir_usesConfiguredProperty() throws Exception {
         String customPath = "/custom/cache/path";
-        System.setProperty("megabrain.grammar.cache.dir", customPath);
+        systemProperties.set("megabrain.grammar.cache.dir", customPath);
 
-        try {
-            GrammarManager customManager = new GrammarManager();
-            // Access private method via reflection for testing
-            java.lang.reflect.Method method = GrammarManager.class.getDeclaredMethod("resolveCacheDir");
-            method.setAccessible(true);
-            Path result = (Path) method.invoke(customManager);
+        GrammarManager customManager = new GrammarManager();
+        // Access private method via reflection for testing
+        java.lang.reflect.Method method = GrammarManager.class.getDeclaredMethod("resolveCacheDir");
+        method.setAccessible(true);
+        Path result = (Path) method.invoke(customManager);
 
-            assertThat(result).isEqualTo(Path.of(customPath));
-        } finally {
-            // Restore the test setting
-            System.setProperty("megabrain.grammar.cache.dir", tempDir.toString());
-        }
+        assertThat(result).isEqualTo(Path.of(customPath));
     }
 
     @Test
@@ -84,22 +73,16 @@ class GrammarManagerTest {
         String customPath = "/env/cache/path";
 
         // Clear system property so environment variable takes precedence
-        System.clearProperty("megabrain.grammar.cache.dir");
+        systemProperties.remove("megabrain.grammar.cache.dir");
+        environmentVariables.set("MEGABRAIN_GRAMMAR_CACHE_DIR", customPath);
 
-        try {
-            // Can't easily set environment variables in tests, so we'll test the logic differently
-            // Instead, let's test that the default path is used when neither property nor env is set
-            GrammarManager customManager = new GrammarManager();
-            java.lang.reflect.Method method = GrammarManager.class.getDeclaredMethod("resolveCacheDir");
-            method.setAccessible(true);
-            Path result = (Path) method.invoke(customManager);
+        GrammarManager customManager = new GrammarManager();
+        // Access private method via reflection for testing
+        java.lang.reflect.Method method = GrammarManager.class.getDeclaredMethod("resolveCacheDir");
+        method.setAccessible(true);
+        Path result = (Path) method.invoke(customManager);
 
-            // Should use the default path since we cleared the system property
-            assertThat(result).isEqualTo(Path.of(System.getProperty("user.home"), ".megabrain", "grammars"));
-        } finally {
-            // Restore the test setting
-            System.setProperty("megabrain.grammar.cache.dir", tempDir.toString());
-        }
+        assertThat(result).isEqualTo(Path.of(customPath));
     }
 
     @Test
