@@ -8,17 +8,27 @@ package io.megabrain.ingestion;
 /**
  * Progress event emitted during repository operations.
  *
- * @param stage the current stage (e.g., "CLONING", "EXTRACTING", "COMPLETE")
  * @param message a descriptive message
- * @param percentage the completion percentage (0-100)
+ * @param progress the completion progress (0.0-100.0)
  */
 public record ProgressEvent(
-        String stage,
         String message,
-        int percentage
+        double progress
 ) {
-    public static ProgressEvent of(String stage, String message, int percentage) {
-        return new ProgressEvent(stage, message, percentage);
+    /**
+     * Creates a ProgressEvent with a message and progress percentage.
+     */
+    public static ProgressEvent of(String message, double progress) {
+        return new ProgressEvent(message, progress);
+    }
+
+    /**
+     * Converts this event to a JSON string for SSE transmission.
+     */
+    public String toJson() {
+        return String.format("{\"message\": \"%s\", \"progress\": %.1f}",
+                message.replace("\"", "\\\""), // Escape quotes
+                progress);
     }
 }
 
