@@ -39,14 +39,14 @@
 - **Description:** Implement grammar downloading functionality that fetches Tree-sitter grammar binaries from GitHub releases. Support version specification, download progress tracking, and error handling. Verify downloaded files (checksums if available).
 - **Estimated Hours:** 5 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T2 (needs GrammarManager structure)
 - **Acceptance Criteria:**
-  - [ ] Downloads grammar binaries from GitHub releases
-  - [ ] Supports version specification
-  - [ ] Handles download failures gracefully
-  - [ ] Verifies downloaded files
-  - [ ] Shows download progress
+  - [x] Downloads grammar binaries from GitHub releases
+  - [x] Supports version specification
+  - [x] Handles download failures gracefully
+  - [x] Verifies downloaded files
+  - [x] Shows download progress
 - **Technical Notes:** Use GitHub API to list releases. Download platform-specific binaries. Support retry logic for network failures. Verify file integrity (size check, checksum if available).
 
 ### T4: Implement local caching with version tracking

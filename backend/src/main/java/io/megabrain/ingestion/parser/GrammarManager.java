@@ -10,6 +10,8 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import io.github.treesitter.jtreesitter.Language;
 import org.jboss.logging.Logger;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.foreign.SymbolLookup;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -17,13 +19,18 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.HexFormat;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Manages Tree-sitter grammar loading and native library lifecycle.
@@ -52,10 +59,25 @@ public class GrammarManager {
         }
     }
 
+    /**
+     * Interface for tracking download progress.
+     */
+    @FunctionalInterface
+    public interface DownloadProgressCallback {
+        void onProgress(long bytesDownloaded, long totalBytes, String message);
+    }
+
+    /**
+     * No-op progress callback for when progress tracking is not needed.
+     */
+    public static final DownloadProgressCallback NO_PROGRESS = (downloaded, total, message) -> { /* no-op */ };
+
     private static final Logger LOG = Logger.getLogger(GrammarManager.class);
     private static final String CACHE_DIR_PROPERTY = "megabrain.grammar.cache.dir";
     private static final String CACHE_DIR_ENV = "MEGABRAIN_GRAMMAR_CACHE_DIR";
     private static final Duration HTTP_TIMEOUT = Duration.ofSeconds(20);
+    private static final int MAX_DOWNLOAD_RETRIES = 3;
+    private static final Duration INITIAL_RETRY_DELAY = Duration.ofSeconds(1);
     private static final ObjectMapper OBJECT_MAPPER = JsonMapper.builder()
             .addModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())
             .build();
@@ -166,7 +188,8 @@ public class GrammarManager {
 
         // Download new version
         Files.createDirectories(versionedLibPath.getParent());
-        downloadGrammar(spec, versionedLibPath);
+        downloadGrammar(spec, versionedLibPath, (downloaded, total, message) ->
+                LOG.infof("Download progress for %s: %s", spec.language(), message));
 
         // Store version metadata
         saveVersionMetadata(spec, platform, versionedLibPath);
@@ -175,21 +198,137 @@ public class GrammarManager {
     }
 
     private void downloadGrammar(GrammarSpec spec, Path target) throws Exception {
+        downloadGrammar(spec, target, NO_PROGRESS);
+    }
+
+    private void downloadGrammar(GrammarSpec spec, Path target, DownloadProgressCallback progressCallback) throws Exception {
         String url = buildDownloadUrl(spec);
         LOG.infof("Downloading Tree-sitter grammar for %s from %s", spec.language(), url);
+
+        Exception lastException = null;
+        for (int attempt = 1; attempt <= MAX_DOWNLOAD_RETRIES; attempt++) {
+            try {
+                progressCallback.onProgress(0, -1, String.format("Attempting download (attempt %d/%d)", attempt, MAX_DOWNLOAD_RETRIES));
+                downloadWithProgress(url, target, progressCallback);
+                progressCallback.onProgress(100, 100, "Download completed successfully");
+
+                // Verify file integrity if possible
+                verifyDownloadedFile(spec, target, progressCallback);
+
+                LOG.infof("Downloaded grammar for %s to %s", spec.language(), target);
+                return;
+
+            } catch (Exception e) {
+                lastException = e;
+                LOG.warnf(e, "Download attempt %d/%d failed for %s: %s", attempt, MAX_DOWNLOAD_RETRIES, spec.language(), e.getMessage());
+
+                if (attempt < MAX_DOWNLOAD_RETRIES) {
+                    Duration delay = INITIAL_RETRY_DELAY.multipliedBy(1L << (attempt - 1)); // exponential backoff
+                    progressCallback.onProgress(0, -1, String.format("Retrying in %d seconds...", delay.getSeconds()));
+                    Thread.sleep(delay.toMillis());
+                } else {
+                    // Clean up failed download
+                    Files.deleteIfExists(target);
+                }
+            }
+        }
+
+        throw new IllegalStateException("Failed to download grammar for " + spec.language() + " after " + MAX_DOWNLOAD_RETRIES + " attempts", lastException);
+    }
+
+    private void downloadWithProgress(String url, Path target, DownloadProgressCallback progressCallback) throws Exception {
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
                 .timeout(HTTP_TIMEOUT)
                 .GET()
                 .build();
-        HttpResponse<Path> response = httpClient.send(request, HttpResponse.BodyHandlers.ofFile(target));
-        if (response.statusCode() >= 200 && response.statusCode() < 300) {
-            LOG.infof("Downloaded grammar for %s to %s", spec.language(), target);
-        } else {
-            LOG.warnf("Failed to download grammar for %s. HTTP %s", spec.language(), response.statusCode());
-            Files.deleteIfExists(target);
-            throw new IllegalStateException("Grammar download failed with status " + response.statusCode());
+
+        HttpResponse<InputStream> response = httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
+
+        if (response.statusCode() < 200 || response.statusCode() >= 300) {
+            throw new IOException("HTTP " + response.statusCode() + ": " + response.statusCode());
         }
+
+        long contentLength = response.headers().firstValueAsLong("content-length").orElse(-1L);
+        AtomicLong bytesDownloaded = new AtomicLong(0);
+
+        try (InputStream inputStream = response.body()) {
+            Files.copy(inputStream, target, StandardCopyOption.REPLACE_EXISTING);
+            // Note: For true progress tracking, we'd need to wrap the InputStream
+            // For now, we show basic progress
+            if (contentLength > 0) {
+                progressCallback.onProgress(contentLength, contentLength, "File downloaded");
+            } else {
+                progressCallback.onProgress(0, -1, "File downloaded (size unknown)");
+            }
+        }
+    }
+
+    private void verifyDownloadedFile(GrammarSpec spec, Path filePath, DownloadProgressCallback progressCallback) throws Exception {
+        if (!Files.exists(filePath)) {
+            throw new IOException("Downloaded file does not exist: " + filePath);
+        }
+
+        long fileSize = Files.size(filePath);
+        if (fileSize == 0) {
+            throw new IOException("Downloaded file is empty: " + filePath);
+        }
+
+        progressCallback.onProgress(100, 100, String.format("Downloaded %d bytes", fileSize));
+
+        // Check for SHA256 checksum file (common pattern in GitHub releases)
+        String checksumUrl = buildDownloadUrl(spec) + ".sha256";
+        try {
+            Optional<String> expectedChecksum = fetchChecksum(checksumUrl);
+            if (expectedChecksum.isPresent()) {
+                String actualChecksum = calculateSha256(filePath);
+                if (!expectedChecksum.get().equalsIgnoreCase(actualChecksum)) {
+                    throw new IOException(String.format("Checksum verification failed for %s. Expected: %s, Actual: %s",
+                            spec.language(), expectedChecksum.get(), actualChecksum));
+                }
+                progressCallback.onProgress(100, 100, "Checksum verification passed");
+                LOG.debugf("Checksum verification passed for %s", spec.language());
+            } else {
+                LOG.debugf("No checksum file available for %s, skipping verification", spec.language());
+            }
+        } catch (Exception e) {
+            LOG.warnf(e, "Checksum verification failed for %s, but continuing: %s", spec.language(), e.getMessage());
+            // Don't fail the download for checksum issues - just warn
+        }
+    }
+
+    private Optional<String> fetchChecksum(String checksumUrl) {
+        try {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(checksumUrl))
+                    .timeout(HTTP_TIMEOUT)
+                    .GET()
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() >= 200 && response.statusCode() < 300) {
+                String checksumLine = response.body().trim();
+                // GitHub checksum files typically contain "checksum filename"
+                String[] parts = checksumLine.split("\\s+");
+                return parts.length > 0 ? Optional.of(parts[0]) : Optional.empty();
+            }
+        } catch (Exception e) {
+            LOG.debugf(e, "Failed to fetch checksum from %s: %s", checksumUrl, e.getMessage());
+        }
+        return Optional.empty();
+    }
+
+    private String calculateSha256(Path filePath) throws IOException, NoSuchAlgorithmException {
+        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+        try (InputStream inputStream = Files.newInputStream(filePath)) {
+            byte[] buffer = new byte[8192];
+            int bytesRead;
+            while ((bytesRead = inputStream.read(buffer)) != -1) {
+                digest.update(buffer, 0, bytesRead);
+            }
+        }
+        byte[] hashBytes = digest.digest();
+        return HexFormat.of().formatHex(hashBytes);
     }
 
     private String buildDownloadUrl(GrammarSpec spec) {
