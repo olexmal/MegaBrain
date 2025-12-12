@@ -99,7 +99,7 @@ public class GitHubSourceControlClient implements SourceControlClient {
     public Multi<ProgressEvent> cloneRepository(String repositoryUrl, String branch) {
         return Multi.createFrom().emitter(emitter -> {
             try {
-                emitter.emit(ProgressEvent.of("CLONING", "Starting repository clone", 0));
+                emitter.emit(ProgressEvent.of("Starting repository clone", 0.0));
 
                 RepositoryUrlParts urlParts = parseRepositoryUrl(repositoryUrl);
                 String cloneUrl = buildCloneUrl(urlParts);
@@ -108,31 +108,46 @@ public class GitHubSourceControlClient implements SourceControlClient {
                 Path tempDir = Files.createTempDirectory("megabrain-git-");
                 Path clonePath = tempDir.resolve(urlParts.repo());
                 
-                emitter.emit(ProgressEvent.of("CLONING", "Preparing clone destination", 10));
+                emitter.emit(ProgressEvent.of("Preparing clone destination", 10.0));
 
                 // Configure clone command
                 CloneCommand cloneCommand = Git.cloneRepository()
                         .setURI(cloneUrl)
                         .setDirectory(clonePath.toFile())
                         .setProgressMonitor(new ProgressMonitor() {
+                            private int currentTask = 0;
+                            private int totalTasks = 0;
+                            private int lastReportedProgress = 20;
+
                             @Override
                             public void start(int totalTasks) {
-                                emitter.emit(ProgressEvent.of("CLONING", "Clone started", 20));
+                                this.totalTasks = totalTasks;
+                                this.currentTask = 0;
+                                emitter.emit(ProgressEvent.of("Clone started", 20.0));
                             }
 
                             @Override
                             public void beginTask(String title, int totalWork) {
-                                emitter.emit(ProgressEvent.of("CLONING", title, 30));
+                                currentTask++;
+                                int baseProgress = 20 + (currentTask * 50 / (totalTasks > 0 ? totalTasks : 1));
+                                emitter.emit(ProgressEvent.of("Cloning: " + title, Math.min(baseProgress, 70.0)));
                             }
 
                             @Override
                             public void update(int completed) {
-                                // Progress updates during clone
+                                // Calculate progress within current task
+                                // Since JGit doesn't provide total progress, we emit periodic updates
+                                int currentProgress = 20 + (currentTask * 50 / (totalTasks > 0 ? totalTasks : 1));
+                                if (currentProgress > lastReportedProgress + 5) { // Report every 5% increase
+                                    emitter.emit(ProgressEvent.of("Cloning repository", Math.min(currentProgress, 70.0)));
+                                    lastReportedProgress = currentProgress;
+                                }
                             }
 
                             @Override
                             public void endTask() {
-                                emitter.emit(ProgressEvent.of("CLONING", "Clone completed", 80));
+                                int progress = 20 + (currentTask * 50 / (totalTasks > 0 ? totalTasks : 1));
+                                emitter.emit(ProgressEvent.of("Task completed", Math.min(progress, 70.0)));
                             }
 
                             @Override
@@ -163,12 +178,12 @@ public class GitHubSourceControlClient implements SourceControlClient {
                     );
                 }
 
-                emitter.emit(ProgressEvent.of("CLONING", "Cloning repository", 40));
+                emitter.emit(ProgressEvent.of("Cloning repository", 40.0));
 
                 // Perform clone
                 try (Git git = cloneCommand.call()) {
                     clonedRepositoryPath.set(clonePath);
-                    emitter.emit(ProgressEvent.of("CLONING", "Repository cloned successfully", 100));
+                    emitter.emit(ProgressEvent.of("Repository cloned successfully", 100.0));
                     emitter.complete();
                 }
 
@@ -189,7 +204,7 @@ public class GitHubSourceControlClient implements SourceControlClient {
     public Multi<ProgressEvent> extractFiles(Path repositoryPath) {
         return Multi.createFrom().emitter(emitter -> {
             try {
-                emitter.emit(ProgressEvent.of("EXTRACTING", "Starting file extraction", 0));
+                emitter.emit(ProgressEvent.of("Starting file extraction", 0.0));
 
                 if (!Files.exists(repositoryPath) || !Files.isDirectory(repositoryPath)) {
                     emitter.fail(new IllegalArgumentException("Repository path does not exist or is not a directory: " + repositoryPath));
@@ -208,7 +223,7 @@ public class GitHubSourceControlClient implements SourceControlClient {
                             .count();
                 }
 
-                emitter.emit(ProgressEvent.of("EXTRACTING", "Found " + totalFiles[0] + " files to extract", 10));
+                emitter.emit(ProgressEvent.of("Found " + totalFiles[0] + " files to extract", 10.0));
 
                 // Second pass: process files
                 try (var paths = Files.walk(repositoryPath)) {
@@ -218,14 +233,13 @@ public class GitHubSourceControlClient implements SourceControlClient {
                                 int currentProcessed = processedFiles.incrementAndGet();
                                 int percentage = totalFiles[0] > 0 ? (currentProcessed * 90 / totalFiles[0]) + 10 : 50;
                                 emitter.emit(ProgressEvent.of(
-                                        "EXTRACTING",
                                         "Extracted: " + file.getFileName(),
                                         percentage
                                 ));
                             });
                 }
 
-                emitter.emit(ProgressEvent.of("EXTRACTING", "File extraction completed", 100));
+                emitter.emit(ProgressEvent.of("File extraction completed", 100.0));
                 emitter.complete();
 
             } catch (IOException e) {
