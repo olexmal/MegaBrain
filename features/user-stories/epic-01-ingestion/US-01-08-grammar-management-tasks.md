@@ -12,7 +12,7 @@
 - **Description:** Create the `ParserRegistry` class that serves as a central registry for all code parsers (Tree-sitter and JavaParser). The registry should map file extensions to parser instances, handle parser instantiation, and provide lookup functionality. Support dynamic registration of parsers.
 - **Estimated Hours:** 4 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** US-01-04, US-01-05 (needs parser implementations)
 - **Acceptance Criteria:**
   - [ ] Registry maps file extensions to parsers
