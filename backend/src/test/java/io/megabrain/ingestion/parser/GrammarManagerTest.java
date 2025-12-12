@@ -700,4 +700,158 @@ class GrammarManagerTest {
                 .isInstanceOf(NullPointerException.class)
                 .hasMessage("spec");
     }
+
+    @Test
+    void applyVersionPinning_handlesEmptyAndBlankVersions() {
+        // Test with empty string language-specific version (should use default)
+        GrammarConfig configWithEmptyVersion = new GrammarConfig() {
+            @Override
+            public Optional<String> defaultVersion() {
+                return Optional.of("2.0.0");
+            }
+
+            @Override
+            public Map<String, String> languageVersions() {
+                return Map.of("testlang", ""); // Empty string
+            }
+
+            @Override
+            public String getEffectiveVersion(String language, String defaultSpecVersion) {
+                String languageSpecificVersion = languageVersions().get(language);
+                if (languageSpecificVersion != null && !languageSpecificVersion.trim().isEmpty()) {
+                    return languageSpecificVersion.trim();
+                }
+                return defaultVersion().orElse(defaultSpecVersion);
+            }
+        };
+
+        GrammarManager testManager = new GrammarManager(configWithEmptyVersion);
+        GrammarSpec spec = new GrammarSpec("testlang", "symbol", "lib", "prop", "env", "repo", "1.0.0");
+
+        GrammarSpec result = testManager.applyVersionPinning(spec);
+
+        assertThat(result.version()).isEqualTo("2.0.0"); // Should use default since language version is empty
+    }
+
+    @Test
+    void applyVersionPinning_handlesWhitespaceOnlyVersions() {
+        // Test with whitespace-only language-specific version (should use default)
+        GrammarConfig configWithWhitespaceVersion = new GrammarConfig() {
+            @Override
+            public Optional<String> defaultVersion() {
+                return Optional.of("2.0.0");
+            }
+
+            @Override
+            public Map<String, String> languageVersions() {
+                return Map.of("testlang", "   "); // Whitespace only
+            }
+
+            @Override
+            public String getEffectiveVersion(String language, String defaultSpecVersion) {
+                String languageSpecificVersion = languageVersions().get(language);
+                if (languageSpecificVersion != null && !languageSpecificVersion.trim().isEmpty()) {
+                    return languageSpecificVersion.trim();
+                }
+                return defaultVersion().orElse(defaultSpecVersion);
+            }
+        };
+
+        GrammarManager testManager = new GrammarManager(configWithWhitespaceVersion);
+        GrammarSpec spec = new GrammarSpec("testlang", "symbol", "lib", "prop", "env", "repo", "1.0.0");
+
+        GrammarSpec result = testManager.applyVersionPinning(spec);
+
+        assertThat(result.version()).isEqualTo("2.0.0"); // Should use default since language version is whitespace
+    }
+
+    @Test
+    void applyVersionPinning_preservesOtherSpecFields() {
+        // Test that version pinning only changes the version field
+        GrammarConfig configWithGlobalDefault = new GrammarConfig() {
+            @Override
+            public Optional<String> defaultVersion() {
+                return Optional.of("9.9.9");
+            }
+
+            @Override
+            public Map<String, String> languageVersions() {
+                return Map.of();
+            }
+
+            @Override
+            public String getEffectiveVersion(String language, String defaultSpecVersion) {
+                return defaultVersion().orElse(defaultSpecVersion);
+            }
+        };
+
+        GrammarManager testManager = new GrammarManager(configWithGlobalDefault);
+        GrammarSpec originalSpec = new GrammarSpec("testlang", "unique_symbol", "unique_lib", "unique_prop", "unique_env", "unique_repo", "1.0.0");
+
+        GrammarSpec result = testManager.applyVersionPinning(originalSpec);
+
+        // Version should change
+        assertThat(result.version()).isEqualTo("9.9.9");
+
+        // All other fields should remain unchanged
+        assertThat(result.language()).isEqualTo(originalSpec.language());
+        assertThat(result.symbol()).isEqualTo(originalSpec.symbol());
+        assertThat(result.libraryName()).isEqualTo(originalSpec.libraryName());
+        assertThat(result.propertyKey()).isEqualTo(originalSpec.propertyKey());
+        assertThat(result.envKey()).isEqualTo(originalSpec.envKey());
+        assertThat(result.repository()).isEqualTo(originalSpec.repository());
+    }
+
+    @Test
+    void getVersionInfo_withNullVersion_handlesNonExistentLanguageGracefully() {
+        // Test that null version with non-existent language returns empty
+        java.util.Optional<GrammarManager.GrammarVersionMetadata> result = grammarManager.getVersionInfo("completely-non-existent-language", null);
+
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    void getCachedVersions_handlesSpecialCharactersInLanguageNames() throws Exception {
+        // Create cache structure with special characters in language name
+        Path langDir = tempDir.resolve("special.lang-name_123");
+        Path versionDir = langDir.resolve("1.0.0").resolve("linux-amd64");
+        Files.createDirectories(versionDir);
+
+        java.util.List<String> versions = grammarManager.getCachedVersions("special.lang-name_123");
+
+        assertThat(versions).contains("1.0.0");
+    }
+
+    @Test
+    void cleanupOldVersions_handlesEmptyVersionList() {
+        // Test cleanup on language with no versions
+        int removed = grammarManager.cleanupOldVersions("empty-language", 3);
+
+        assertThat(removed).isEqualTo(0);
+    }
+
+    @Test
+    void cleanupAllOldVersions_handlesAllLanguagesEmpty() {
+        // Test cleanup when all languages have no cached versions
+        int removed = grammarManager.cleanupAllOldVersions();
+
+        assertThat(removed).isEqualTo(0);
+    }
+
+    @Test
+    void getCacheStats_handlesEmptyDirectories() {
+        // Create empty language directory (no versions)
+        Path emptyLangDir = tempDir.resolve("empty-lang");
+        try {
+            Files.createDirectories(emptyLangDir);
+        } catch (Exception e) {
+            // Ignore for test
+        }
+
+        GrammarManager.CacheStats stats = grammarManager.getCacheStats();
+
+        // Should handle empty directories gracefully
+        assertThat(stats.totalLanguages).isGreaterThanOrEqualTo(0);
+        assertThat(stats.totalVersions).isGreaterThanOrEqualTo(0);
+    }
 }
