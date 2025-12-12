@@ -21,6 +21,7 @@ import java.time.Instant;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @ExtendWith(SystemStubsExtension.class)
 class GrammarManagerTest {
@@ -190,5 +191,112 @@ class GrammarManagerTest {
         assertThat(loader).isNotNull();
 
         // Note: We don't call run() here as it would try to load an actual native library
+    }
+
+    @Test
+    void calculateSha256_calculatesCorrectHash() throws Exception {
+        // Create a test file with known content
+        String testContent = "Hello, World!";
+        Path testFile = tempDir.resolve("test.txt");
+        Files.writeString(testFile, testContent);
+
+        // Expected SHA256 hash for "Hello, World!" (calculated externally)
+        String expectedHash = "dffd6021bb2bd5b0af676290809ec3a53191dd81c7f70a4b28688a362182986f";
+
+        // Access private method via reflection
+        java.lang.reflect.Method method = GrammarManager.class.getDeclaredMethod("calculateSha256", Path.class);
+        method.setAccessible(true);
+        String actualHash = (String) method.invoke(grammarManager, testFile);
+
+        assertThat(actualHash).isEqualTo(expectedHash);
+    }
+
+    @Test
+    void calculateSha256_throwsExceptionForNonExistentFile() throws Exception {
+        Path nonExistentFile = tempDir.resolve("nonexistent.txt");
+
+        // Access private method via reflection
+        java.lang.reflect.Method method = GrammarManager.class.getDeclaredMethod("calculateSha256", Path.class);
+        method.setAccessible(true);
+
+        assertThatThrownBy(() -> method.invoke(grammarManager, nonExistentFile))
+                .isInstanceOf(java.lang.reflect.InvocationTargetException.class)
+                .hasCauseInstanceOf(IOException.class);
+    }
+
+    @Test
+    void verifyDownloadedFile_acceptsValidFile() throws Exception {
+        // Create a valid test file
+        String testContent = "test content";
+        Path testFile = tempDir.resolve("valid-test.so");
+        Files.writeString(testFile, testContent);
+
+        // Track progress callback invocations
+        java.util.List<String> progressMessages = new java.util.ArrayList<>();
+        GrammarManager.DownloadProgressCallback callback = (downloaded, total, message) -> {
+            progressMessages.add(message);
+        };
+
+        GrammarSpec spec = new GrammarSpec("test", "symbol", "lib", "prop", "env", "repo", "1.0.0");
+
+        // Access private method via reflection
+        java.lang.reflect.Method method = GrammarManager.class.getDeclaredMethod("verifyDownloadedFile",
+                GrammarSpec.class, Path.class, GrammarManager.DownloadProgressCallback.class);
+        method.setAccessible(true);
+
+        // Should not throw exception
+        method.invoke(grammarManager, spec, testFile, callback);
+
+        // Should have received progress messages
+        assertThat(progressMessages).isNotEmpty();
+        assertThat(progressMessages.get(progressMessages.size() - 1)).contains("bytes");
+    }
+
+    @Test
+    void verifyDownloadedFile_throwsExceptionForEmptyFile() throws Exception {
+        // Create an empty file
+        Path emptyFile = tempDir.resolve("empty.so");
+        Files.createFile(emptyFile);
+
+        GrammarManager.DownloadProgressCallback callback = (d, t, m) -> {};
+        GrammarSpec spec = new GrammarSpec("test", "symbol", "lib", "prop", "env", "repo", "1.0.0");
+
+        // Access private method via reflection
+        java.lang.reflect.Method method = GrammarManager.class.getDeclaredMethod("verifyDownloadedFile",
+                GrammarSpec.class, Path.class, GrammarManager.DownloadProgressCallback.class);
+        method.setAccessible(true);
+
+        assertThatThrownBy(() -> method.invoke(grammarManager, spec, emptyFile, callback))
+                .isInstanceOf(java.lang.reflect.InvocationTargetException.class)
+                .hasCauseInstanceOf(IOException.class)
+                .hasRootCauseMessage("Downloaded file is empty: %s", emptyFile.toString());
+    }
+
+    @Test
+    void verifyDownloadedFile_throwsExceptionForNonExistentFile() throws Exception {
+        Path nonExistentFile = tempDir.resolve("nonexistent.so");
+
+        GrammarManager.DownloadProgressCallback callback = (d, t, m) -> {};
+        GrammarSpec spec = new GrammarSpec("test", "symbol", "lib", "prop", "env", "repo", "1.0.0");
+
+        // Access private method via reflection
+        java.lang.reflect.Method method = GrammarManager.class.getDeclaredMethod("verifyDownloadedFile",
+                GrammarSpec.class, Path.class, GrammarManager.DownloadProgressCallback.class);
+        method.setAccessible(true);
+
+        assertThatThrownBy(() -> method.invoke(grammarManager, spec, nonExistentFile, callback))
+                .isInstanceOf(java.lang.reflect.InvocationTargetException.class)
+                .hasCauseInstanceOf(IOException.class)
+                .hasRootCauseMessage("Downloaded file does not exist: %s", nonExistentFile.toString());
+    }
+
+    @Test
+    void downloadProgressCallback_noOpImplementation() {
+        // Test that NO_PROGRESS callback doesn't throw exceptions
+        GrammarManager.DownloadProgressCallback callback = GrammarManager.NO_PROGRESS;
+
+        // Should not throw any exceptions
+        callback.onProgress(100, 1000, "test message");
+        callback.onProgress(0, -1, "another message");
     }
 }
