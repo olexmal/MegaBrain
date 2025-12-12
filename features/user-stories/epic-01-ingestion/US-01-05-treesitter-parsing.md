@@ -20,8 +20,8 @@
 - [x] **AC5:** File extension routing to correct Tree-sitter grammar
 - [x] **AC6:** Each chunk includes: language, entity_type, entity_name, source_file, line range
 - [x] **AC7:** Tree-sitter grammars loaded dynamically
-- [ ] **AC8:** Parsing errors logged but don't stop ingestion
-- [ ] **AC9:** Performance: >10,000 LOC per minute
+- [x] **AC8:** Parsing errors logged but don't stop ingestion
+- [x] **AC9:** Performance: >10,000 LOC per minute
 
 ---
 
@@ -50,16 +50,16 @@
 
 ## Technical Tasks
 
-- [ ] **T1:** Implement `TreeSitterParser` base class (backend)
-- [ ] **T2:** Create Python grammar integration and queries (backend)
-- [ ] **T3:** Create JavaScript/TS grammar integration and queries (backend)
-- [ ] **T4:** Create C/C++ grammar integration and queries (backend)
-- [ ] **T5:** Implement file extension to grammar routing (backend)
-- [ ] **T6:** Add dynamic grammar loading (backend)
-- [ ] **T7:** Create TextChunk with consistent metadata (backend)
-- [ ] **T8:** Write unit tests per language (test)
-- [ ] **T9:** Performance benchmark test (test)
-- [ ] **T10:** Create Java grammar integration and queries (backend)
+- [x] **T1:** Implement `TreeSitterParser` base class (backend)
+- [x] **T2:** Create Python grammar integration and queries (backend)
+- [x] **T3:** Create JavaScript/TS grammar integration and queries (backend)
+- [x] **T4:** Create C/C++ grammar integration and queries (backend)
+- [x] **T5:** Implement file extension to grammar routing (backend)
+- [x] **T6:** Add dynamic grammar loading (backend)
+- [x] **T7:** Create TextChunk with consistent metadata (backend)
+- [x] **T8:** Write unit tests per language (test)
+- [x] **T9:** Performance benchmark test (test)
+- [x] **T10:** Create Java grammar integration and queries (backend)
 
 ---
 
