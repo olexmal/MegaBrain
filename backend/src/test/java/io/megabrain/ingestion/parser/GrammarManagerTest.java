@@ -9,6 +9,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
 import uk.org.webcompere.systemstubs.jupiter.SystemStub;
 import uk.org.webcompere.systemstubs.jupiter.SystemStubsExtension;
@@ -19,10 +21,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(SystemStubsExtension.class)
 class GrammarManagerTest {
@@ -36,15 +41,30 @@ class GrammarManagerTest {
     @SystemStub
     private EnvironmentVariables environmentVariables;
 
+    @Mock
+    private GrammarConfig grammarConfig;
+
     private GrammarManager grammarManager;
     private GrammarSpec testSpec;
 
     @BeforeEach
     void setUp() {
+        MockitoAnnotations.openMocks(this);
+
         // Set custom cache directory for testing
         systemProperties.set("megabrain.grammar.cache.dir", tempDir.toString());
 
-        grammarManager = new GrammarManager();
+        // Mock the grammar configuration to return default behavior (no pinning)
+        when(grammarConfig.defaultVersion()).thenReturn(Optional.empty());
+        when(grammarConfig.languageVersions()).thenReturn(Map.of());
+        when(grammarConfig.getEffectiveVersion(anyString(), anyString())).thenAnswer(invocation -> {
+            // Default behavior: return the spec version (no pinning)
+            return invocation.getArgument(1);
+        });
+
+        // Create GrammarManager with mock config for testing
+        grammarManager = new GrammarManager(grammarConfig);
+
         testSpec = new GrammarSpec(
                 "testlang",
                 "tree_sitter_testlang",
@@ -587,5 +607,97 @@ class GrammarManagerTest {
         com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
         mapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
         mapper.writeValue(metadataPath.toFile(), metadata);
+    }
+
+    @Test
+    void applyVersionPinning_usesDefaultSpecVersionWhenNoConfig() {
+        // Test with no configuration - should use spec version
+        GrammarSpec spec = new GrammarSpec("testlang", "symbol", "lib", "prop", "env", "repo", "1.0.0");
+
+        GrammarSpec result = grammarManager.applyVersionPinning(spec);
+
+        assertThat(result.version()).isEqualTo("1.0.0");
+        assertThat(result.language()).isEqualTo(spec.language());
+        assertThat(result.symbol()).isEqualTo(spec.symbol());
+    }
+
+    @Test
+    void applyVersionPinning_usesGlobalDefaultVersion() {
+        // Create a new manager with specific config for this test
+        GrammarConfig globalConfig = new GrammarConfig() {
+            @Override
+            public Optional<String> defaultVersion() {
+                return Optional.of("2.0.0");
+            }
+
+            @Override
+            public Map<String, String> languageVersions() {
+                return Map.of();
+            }
+
+            @Override
+            public String getEffectiveVersion(String language, String defaultSpecVersion) {
+                return defaultVersion().orElse(defaultSpecVersion);
+            }
+        };
+
+        GrammarManager testManager = new GrammarManager(globalConfig);
+        GrammarSpec spec = new GrammarSpec("testlang", "symbol", "lib", "prop", "env", "repo", "1.0.0");
+
+        GrammarSpec result = testManager.applyVersionPinning(spec);
+
+        assertThat(result.version()).isEqualTo("2.0.0");
+        assertThat(result.language()).isEqualTo(spec.language());
+    }
+
+    @Test
+    void applyVersionPinning_usesLanguageSpecificVersion() {
+        // Create a new manager with specific config for this test
+        GrammarConfig languageConfig = new GrammarConfig() {
+            @Override
+            public Optional<String> defaultVersion() {
+                return Optional.empty();
+            }
+
+            @Override
+            public Map<String, String> languageVersions() {
+                return Map.of("testlang", "3.0.0");
+            }
+
+            @Override
+            public String getEffectiveVersion(String language, String defaultSpecVersion) {
+                String languageSpecificVersion = languageVersions().get(language);
+                if (languageSpecificVersion != null && !languageSpecificVersion.trim().isEmpty()) {
+                    return languageSpecificVersion.trim();
+                }
+                return defaultVersion().orElse(defaultSpecVersion);
+            }
+        };
+
+        GrammarManager testManager = new GrammarManager(languageConfig);
+        GrammarSpec spec = new GrammarSpec("testlang", "symbol", "lib", "prop", "env", "repo", "1.0.0");
+
+        GrammarSpec result = testManager.applyVersionPinning(spec);
+
+        assertThat(result.version()).isEqualTo("3.0.0");
+        assertThat(result.language()).isEqualTo(spec.language());
+    }
+
+    @Test
+    void applyVersionPinning_returnsSameSpecWhenNoChangesNeeded() {
+        // When no pinning is configured, should return the same spec
+        GrammarSpec spec = new GrammarSpec("testlang", "symbol", "lib", "prop", "env", "repo", "1.0.0");
+
+        GrammarSpec result = grammarManager.applyVersionPinning(spec);
+
+        // Should return the exact same instance when no changes are needed
+        assertThat(result).isSameAs(spec);
+    }
+
+    @Test
+    void applyVersionPinning_handlesNullSpec() {
+        assertThatThrownBy(() -> grammarManager.applyVersionPinning(null))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessage("spec");
     }
 }

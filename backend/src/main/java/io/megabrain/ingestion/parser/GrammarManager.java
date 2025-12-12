@@ -10,6 +10,8 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import io.github.treesitter.jtreesitter.Language;
 import org.jboss.logging.Logger;
 
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.foreign.SymbolLookup;
@@ -36,8 +38,22 @@ import java.util.concurrent.atomic.AtomicLong;
  * Manages Tree-sitter grammar loading and native library lifecycle.
  * Caches loaded grammars and libraries to avoid repeated loads.
  * Tracks grammar versions and provides version management.
+ * Supports version pinning through configuration.
  */
+@ApplicationScoped
 public class GrammarManager {
+
+    @Inject
+    GrammarConfig grammarConfig;
+
+    // Default constructor for CDI
+    public GrammarManager() {
+    }
+
+    // Constructor for testing purposes
+    GrammarManager(GrammarConfig grammarConfig) {
+        this.grammarConfig = grammarConfig;
+    }
 
     /**
      * Metadata for cached grammar versions.
@@ -92,27 +108,59 @@ public class GrammarManager {
             .build();
 
     /**
+     * Apply version pinning configuration to a grammar spec.
+     * Returns a new GrammarSpec with the effective version based on configuration.
+     *
+     * @param spec the original grammar spec
+     * @return grammar spec with version pinning applied
+     */
+    public GrammarSpec applyVersionPinning(GrammarSpec spec) {
+        Objects.requireNonNull(spec, "spec");
+
+        String effectiveVersion = grammarConfig.getEffectiveVersion(spec.language(), spec.version());
+        if (effectiveVersion.equals(spec.version())) {
+            // No change needed
+            return spec;
+        }
+
+        LOG.debugf("Applied version pinning for %s: %s -> %s", spec.language(), spec.version(), effectiveVersion);
+        return new GrammarSpec(
+                spec.language(),
+                spec.symbol(),
+                spec.libraryName(),
+                spec.propertyKey(),
+                spec.envKey(),
+                spec.repository(),
+                effectiveVersion
+        );
+    }
+
+    /**
      * Load (or return cached) Tree-sitter language for the given spec.
+     * Applies version pinning configuration before loading.
      *
      * @param spec grammar spec metadata
      * @return loaded Language or null if loading failed
      */
     public Language loadLanguage(GrammarSpec spec) {
-        Objects.requireNonNull(spec, "spec");
-        Language cached = loadedLanguages.get(spec.symbol());
+        // Apply version pinning first
+        GrammarSpec pinnedSpec = applyVersionPinning(spec);
+
+        Objects.requireNonNull(pinnedSpec, "pinnedSpec");
+        Language cached = loadedLanguages.get(pinnedSpec.symbol());
         if (cached != null) {
             return cached;
         }
-        if (!ensureNativeLibraryLoaded(spec)) {
+        if (!ensureNativeLibraryLoaded(pinnedSpec)) {
             return null;
         }
         try {
-            Language lang = Language.load(SymbolLookup.loaderLookup(), spec.symbol());
-            loadedLanguages.put(spec.symbol(), lang);
-            LOG.debugf("Loaded Tree-sitter language %s via symbol %s", spec.language(), spec.symbol());
+            Language lang = Language.load(SymbolLookup.loaderLookup(), pinnedSpec.symbol());
+            loadedLanguages.put(pinnedSpec.symbol(), lang);
+            LOG.debugf("Loaded Tree-sitter language %s via symbol %s", pinnedSpec.language(), pinnedSpec.symbol());
             return lang;
         } catch (Exception | UnsatisfiedLinkError e) {
-            LOG.errorf(e, "Failed to load grammar for %s via symbol %s", spec.language(), spec.symbol());
+            LOG.errorf(e, "Failed to load grammar for %s via symbol %s", pinnedSpec.language(), pinnedSpec.symbol());
             return null;
         }
     }
@@ -132,27 +180,30 @@ public class GrammarManager {
     }
 
     private boolean ensureNativeLibraryLoaded(GrammarSpec spec) {
-        if (Boolean.TRUE.equals(nativeLoaded.get(spec.symbol()))) {
+        // Apply version pinning to ensure we're using the correct version
+        GrammarSpec pinnedSpec = applyVersionPinning(spec);
+
+        if (Boolean.TRUE.equals(nativeLoaded.get(pinnedSpec.symbol()))) {
             return true;
         }
         try {
-            Optional<Path> configured = resolveConfiguredPath(spec).map(Path::of);
-            if (configured.isPresent() && tryLoad(configured.get(), spec)) {
-                nativeLoaded.put(spec.symbol(), true);
+            Optional<Path> configured = resolveConfiguredPath(pinnedSpec).map(Path::of);
+            if (configured.isPresent() && tryLoad(configured.get(), pinnedSpec)) {
+                nativeLoaded.put(pinnedSpec.symbol(), true);
                 return true;
             }
-            Path cached = ensureCachedLibrary(spec);
-            if (tryLoad(cached, spec)) {
-                nativeLoaded.put(spec.symbol(), true);
+            Path cached = ensureCachedLibrary(pinnedSpec);
+            if (tryLoad(cached, pinnedSpec)) {
+                nativeLoaded.put(pinnedSpec.symbol(), true);
                 return true;
             }
             // Fallback to system library path if nothing else worked.
-            System.loadLibrary(spec.libraryName());
-            nativeLoaded.put(spec.symbol(), true);
+            System.loadLibrary(pinnedSpec.libraryName());
+            nativeLoaded.put(pinnedSpec.symbol(), true);
             return true;
         } catch (Exception | UnsatisfiedLinkError e) {
-            LOG.errorf(e, "Failed to load native library for %s. Set %s or %s to the library path.", spec.language(), spec.propertyKey(), spec.envKey());
-            nativeLoaded.put(spec.symbol(), false);
+            LOG.errorf(e, "Failed to load native library for %s. Set %s or %s to the library path.", pinnedSpec.language(), pinnedSpec.propertyKey(), pinnedSpec.envKey());
+            nativeLoaded.put(pinnedSpec.symbol(), false);
             return false;
         }
     }
@@ -483,10 +534,11 @@ public class GrammarManager {
         }
 
         if (version != null) {
-            GrammarVersionMetadata metadata = loadVersionMetadata(
-                    new GrammarSpec(language, "", "", "", "", "", version),
-                    platform
-            );
+            // Create a spec with pinned version for metadata lookup
+            GrammarSpec spec = new GrammarSpec(language, "", "", "", "", "", version);
+            GrammarSpec pinnedSpec = applyVersionPinning(spec);
+
+            GrammarVersionMetadata metadata = loadVersionMetadata(pinnedSpec, platform);
             return Optional.ofNullable(metadata);
         }
 

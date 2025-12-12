@@ -66,13 +66,13 @@
 - **Description:** Implement configuration support for grammar version pinning. Allow users to specify exact grammar versions in configuration file to prevent unexpected updates. Support both global and per-language version pinning.
 - **Estimated Hours:** 3 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T2, T4 (needs GrammarManager and caching)
 - **Acceptance Criteria:**
-  - [ ] Version pinning configuration supported
-  - [ ] Global default version configuration
-  - [ ] Per-language version override
-  - [ ] Pinned versions respected during download
+  - [x] Version pinning configuration supported
+  - [x] Global default version configuration
+  - [x] Per-language version override
+  - [x] Pinned versions respected during download
 - **Technical Notes:** Use Quarkus configuration. Format: `megabrain.grammars.{language}.version=1.2.3`. Support default version for all languages. Validate version format.
 
 ### T6: Add rollback/downgrade capability
