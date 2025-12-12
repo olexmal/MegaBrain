@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -428,5 +429,163 @@ class GrammarManagerTest {
         assertThat(stats.metadataFiles).isEqualTo(0);
         assertThat(stats.totalSizeBytes).isEqualTo(0);
         assertThat(stats.librarySizeBytes).isEqualTo(0);
+    }
+
+    @Test
+    void cleanupOldVersions_defaultOverload_usesDefaultMaxVersions() throws Exception {
+        // Create mock cache structure with 5 versions
+        Path langDir = tempDir.resolve("testlang");
+        for (int i = 1; i <= 5; i++) {
+            Path versionDir = langDir.resolve("1." + i + ".0").resolve("linux-x86_64");
+            Files.createDirectories(versionDir);
+            Files.writeString(versionDir.resolve("test.so"), "lib" + i);
+        }
+
+        int removed = grammarManager.cleanupOldVersions("testlang");
+
+        // Should keep 3 most recent (DEFAULT_MAX_VERSIONS_PER_LANGUAGE), remove 2 oldest
+        assertThat(removed).isEqualTo(2);
+        java.util.List<String> remainingVersions = grammarManager.getCachedVersions("testlang");
+        assertThat(remainingVersions).hasSize(3);
+        // Should keep the 3 highest versions: 1.5.0, 1.4.0, 1.3.0
+        assertThat(remainingVersions).containsExactly("1.5.0", "1.4.0", "1.3.0");
+    }
+
+    @Test
+    void cleanupAllOldVersions_defaultOverload_usesDefaultMaxVersions() throws Exception {
+        // Create cache structure for multiple languages
+        Path lang1Dir = tempDir.resolve("lang1");
+        Path lang2Dir = tempDir.resolve("lang2");
+
+        // Lang1: 4 versions
+        for (int i = 1; i <= 4; i++) {
+            Path versionDir = lang1Dir.resolve("1." + i + ".0").resolve("linux-x86_64");
+            Files.createDirectories(versionDir);
+            Files.writeString(versionDir.resolve("test.so"), "lib" + i);
+        }
+
+        // Lang2: 5 versions
+        for (int i = 1; i <= 5; i++) {
+            Path versionDir = lang2Dir.resolve("2." + i + ".0").resolve("linux-x86_64");
+            Files.createDirectories(versionDir);
+            Files.writeString(versionDir.resolve("test.so"), "lib" + i);
+        }
+
+        int removed = grammarManager.cleanupAllOldVersions();
+
+        // Should remove 1 from lang1 (4-3) + 2 from lang2 (5-3) = 3 total
+        assertThat(removed).isEqualTo(3);
+
+        // Verify both languages have exactly 3 versions remaining
+        assertThat(grammarManager.getCachedVersions("lang1")).hasSize(3);
+        assertThat(grammarManager.getCachedVersions("lang2")).hasSize(3);
+    }
+
+    @Test
+    void cacheStats_toString_formatsCorrectly() throws Exception {
+        // Create mock cache structure
+        Path langDir = tempDir.resolve("testlang");
+        Path versionDir = langDir.resolve("1.0.0").resolve("linux-x86_64");
+        Files.createDirectories(versionDir);
+
+        // Create library file
+        Path libFile = versionDir.resolve("test.so");
+        Files.writeString(libFile, "test library content 12345"); // 25 chars
+
+        // Create metadata file
+        Path metadataFile = versionDir.resolve("metadata.json");
+        Files.writeString(metadataFile, "{}");
+
+        GrammarManager.CacheStats stats = grammarManager.getCacheStats();
+        String toString = stats.toString();
+
+        // Verify the toString format
+        assertThat(toString).contains("CacheStats{");
+        assertThat(toString).contains("languages=1");
+        assertThat(toString).contains("versions=1");
+        assertThat(toString).contains("files=");
+        assertThat(toString).contains("libs=");
+        assertThat(toString).contains("meta=");
+        assertThat(toString).contains("size=");
+        assertThat(toString).contains("bytes");
+        assertThat(toString).contains("libs=");
+        assertThat(toString).contains("bytes");
+    }
+
+    @Test
+    void getVersionInfo_withNullVersion_returnsLatestVersion() throws Exception {
+        // Get the actual platform name used by the system
+        java.lang.reflect.Method platformMethod = GrammarManager.class.getDeclaredMethod("platformName");
+        platformMethod.setAccessible(true);
+        String platform = (String) platformMethod.invoke(grammarManager);
+
+        // Create mock cache structure with multiple versions using the correct platform
+        Path langDir = tempDir.resolve("testlang");
+        Path version1Dir = langDir.resolve("1.0.0").resolve(platform);
+        Path version2Dir = langDir.resolve("1.1.0").resolve(platform);
+        Path version3Dir = langDir.resolve("2.0.0").resolve(platform);
+
+        Files.createDirectories(version1Dir);
+        Files.createDirectories(version2Dir);
+        Files.createDirectories(version3Dir);
+
+        // Create metadata files
+        createMockMetadataFile(version1Dir, "1.0.0");
+        createMockMetadataFile(version2Dir, "1.1.0");
+        createMockMetadataFile(version3Dir, "2.0.0");
+
+        java.util.Optional<GrammarManager.GrammarVersionMetadata> result = grammarManager.getVersionInfo("testlang", null);
+
+        assertThat(result).isPresent();
+        assertThat(result.get().version()).isEqualTo("2.0.0"); // Should return latest version
+    }
+
+    @Test
+    void getVersionInfo_withNullVersion_returnsEmptyWhenNoVersionsExist() {
+        java.util.Optional<GrammarManager.GrammarVersionMetadata> result = grammarManager.getVersionInfo("nonexistent", null);
+
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    void getVersionInfo_withSpecificVersion_returnsCorrectVersion() throws Exception {
+        // Get the actual platform name used by the system
+        java.lang.reflect.Method platformMethod = GrammarManager.class.getDeclaredMethod("platformName");
+        platformMethod.setAccessible(true);
+        String platform = (String) platformMethod.invoke(grammarManager);
+
+        // Create mock cache structure
+        Path langDir = tempDir.resolve("testlang");
+        Path versionDir = langDir.resolve("1.5.0").resolve(platform);
+        Files.createDirectories(versionDir);
+
+        // Create metadata file
+        createMockMetadataFile(versionDir, "1.5.0");
+
+        java.util.Optional<GrammarManager.GrammarVersionMetadata> result = grammarManager.getVersionInfo("testlang", "1.5.0");
+
+        assertThat(result).isPresent();
+        assertThat(result.get().version()).isEqualTo("1.5.0");
+    }
+
+    private void createMockMetadataFile(Path versionDir, String version) throws Exception {
+        // Get the actual platform name
+        java.lang.reflect.Method platformMethod = GrammarManager.class.getDeclaredMethod("platformName");
+        platformMethod.setAccessible(true);
+        String platform = (String) platformMethod.invoke(grammarManager);
+
+        GrammarManager.GrammarVersionMetadata metadata = new GrammarManager.GrammarVersionMetadata(
+                "testlang",
+                version,
+                "tree-sitter-testlang",
+                java.time.Instant.now(),
+                platform,
+                1024L
+        );
+
+        Path metadataPath = versionDir.resolve("metadata.json");
+        com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+        mapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
+        mapper.writeValue(metadataPath.toFile(), metadata);
     }
 }
