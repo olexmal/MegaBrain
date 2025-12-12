@@ -13,15 +13,16 @@ import java.util.Optional;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class ParserRegistryTest {
 
-    private final CodeParser python = new FakeParser("python", ".py");
-    private final CodeParser js = new FakeParser("javascript", ".js");
-    private final CodeParser ts = new FakeParser("typescript", ".ts");
-    private final CodeParser c = new FakeParser("c", ".c");
-    private final CodeParser cpp = new FakeParser("cpp", ".cpp");
-    private final CodeParser java = new FakeParser("java", ".java");
+    private final ParserFactory python = new FakeParserFactory("python", ".py");
+    private final ParserFactory js = new FakeParserFactory("javascript", ".js");
+    private final ParserFactory ts = new FakeParserFactory("typescript", ".ts");
+    private final ParserFactory c = new FakeParserFactory("c", ".c");
+    private final ParserFactory cpp = new FakeParserFactory("cpp", ".cpp");
+    private final ParserFactory javaParser = new FakeParserFactory("java", ".java");
 
     private ParserRegistry registry = new ParserRegistry(Map.of(
             "py", python,
@@ -33,14 +34,15 @@ class ParserRegistryTest {
             "h", c,
             "cpp", cpp,
             "hpp", cpp,
-            "java", java
+            "java", javaParser
     ));
 
     @Test
     void resolvesParserByExtension_caseInsensitive() {
         Optional<CodeParser> parser = registry.findParser(Path.of("/repo/src/FOO.JsX"));
 
-        assertThat(parser).contains(js);
+        assertThat(parser).isPresent();
+        assertThat(parser.get().language()).isEqualTo("javascript");
     }
 
     @Test
@@ -52,13 +54,153 @@ class ParserRegistryTest {
 
     @Test
     void mapsMultipleExtensionsToSameParser() {
-        assertThat(registry.findParser("file.tsx")).contains(ts);
-        assertThat(registry.findParser("file.ts")).contains(ts);
+        Optional<CodeParser> tsxParser = registry.findParser("file.tsx");
+        Optional<CodeParser> tsParser = registry.findParser("file.ts");
+
+        assertThat(tsxParser).isPresent();
+        assertThat(tsParser).isPresent();
+        assertThat(tsxParser.get().language()).isEqualTo("typescript");
+        assertThat(tsParser.get().language()).isEqualTo("typescript");
     }
 
     @Test
     void prefersCForHeaderFiles() {
-        assertThat(registry.findParser("foo.h")).contains(c);
+        Optional<CodeParser> parser = registry.findParser("foo.h");
+
+        assertThat(parser).isPresent();
+        assertThat(parser.get().language()).isEqualTo("c");
+    }
+
+    @Test
+    void supportsDynamicParserRegistration() {
+        ParserRegistry dynamicRegistry = new ParserRegistry();
+
+        // Register a new parser for .txt files
+        ParserFactory txtFactory = new FakeParserFactory("text", ".txt");
+        dynamicRegistry.registerParser(txtFactory, "txt");
+
+        Optional<CodeParser> parser = dynamicRegistry.findParser("document.txt");
+        assertThat(parser).isPresent();
+        assertThat(parser.get().language()).isEqualTo("text");
+    }
+
+    @Test
+    void supportsDynamicRegistrationOfMultipleExtensions() {
+        ParserRegistry dynamicRegistry = new ParserRegistry();
+
+        // Register a parser for multiple extensions
+        ParserFactory customFactory = new FakeParserFactory("custom", ".custom");
+        dynamicRegistry.registerParser(customFactory, List.of("custom", "cst", "myext"));
+
+        assertThat(dynamicRegistry.findParser("file.custom")).isPresent();
+        assertThat(dynamicRegistry.findParser("file.cst")).isPresent();
+        assertThat(dynamicRegistry.findParser("file.myext")).isPresent();
+
+        assertThat(dynamicRegistry.findParser("file.custom").get().language()).isEqualTo("custom");
+        assertThat(dynamicRegistry.findParser("file.cst").get().language()).isEqualTo("custom");
+        assertThat(dynamicRegistry.findParser("file.myext").get().language()).isEqualTo("custom");
+    }
+
+    @Test
+    void supportsParserUnregistration() {
+        ParserRegistry dynamicRegistry = new ParserRegistry();
+
+        // Register and then unregister a parser
+        ParserFactory tempFactory = new FakeParserFactory("temporary", ".tmp");
+        dynamicRegistry.registerParser(tempFactory, "tmp");
+
+        assertThat(dynamicRegistry.findParser("file.tmp")).isPresent();
+
+        dynamicRegistry.unregisterParser("tmp");
+
+        assertThat(dynamicRegistry.findParser("file.tmp")).isEmpty();
+    }
+
+    @Test
+    void throwsExceptionForNullFactory() {
+        ParserRegistry dynamicRegistry = new ParserRegistry();
+
+        assertThatThrownBy(() -> dynamicRegistry.registerParser(null, "txt"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("factory cannot be null");
+    }
+
+    @Test
+    void throwsExceptionForNullExtensions() {
+        ParserRegistry dynamicRegistry = new ParserRegistry();
+        ParserFactory factory = new FakeParserFactory("test", ".test");
+
+        assertThatThrownBy(() -> dynamicRegistry.registerParser(factory, (List<String>) null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("extensions cannot be null or empty");
+    }
+
+    @Test
+    void throwsExceptionForEmptyExtensions() {
+        ParserRegistry dynamicRegistry = new ParserRegistry();
+        ParserFactory factory = new FakeParserFactory("test", ".test");
+
+        assertThatThrownBy(() -> dynamicRegistry.registerParser(factory, List.of()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("extensions cannot be null or empty");
+    }
+
+    @Test
+    void throwsExceptionForNullExtensionInList() {
+        ParserRegistry dynamicRegistry = new ParserRegistry();
+        ParserFactory factory = new FakeParserFactory("test", ".test");
+
+        assertThatThrownBy(() -> dynamicRegistry.registerParser(factory, java.util.Arrays.asList("test", null)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("extension cannot be null or blank");
+    }
+
+    @Test
+    void throwsExceptionForBlankExtension() {
+        ParserRegistry dynamicRegistry = new ParserRegistry();
+        ParserFactory factory = new FakeParserFactory("test", ".test");
+
+        assertThatThrownBy(() -> dynamicRegistry.registerParser(factory, "   "))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("extension cannot be null or blank");
+    }
+
+    @Test
+    void cachesParserInstances() {
+        ParserRegistry dynamicRegistry = new ParserRegistry();
+
+        // Register a parser
+        ParserFactory factory = new FakeParserFactory("cached", ".cache");
+        dynamicRegistry.registerParser(factory, "cache");
+
+        // Get parser twice
+        Optional<CodeParser> parser1 = dynamicRegistry.findParser("file1.cache");
+        Optional<CodeParser> parser2 = dynamicRegistry.findParser("file2.cache");
+
+        // Should be the same instance (cached)
+        assertThat(parser1).isPresent();
+        assertThat(parser2).isPresent();
+        assertThat(parser1.get()).isSameAs(parser2.get());
+    }
+
+    private static final class FakeParserFactory implements ParserFactory {
+        private final String language;
+        private final String suffix;
+
+        FakeParserFactory(String language, String suffix) {
+            this.language = language;
+            this.suffix = suffix;
+        }
+
+        @Override
+        public CodeParser createParser() {
+            return new FakeParser(language, suffix);
+        }
+
+        @Override
+        public String language() {
+            return language;
+        }
     }
 
     private static final class FakeParser implements CodeParser {
