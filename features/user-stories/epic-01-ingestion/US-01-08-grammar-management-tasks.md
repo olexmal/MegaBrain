@@ -15,10 +15,10 @@
 - **Status:** Completed
 - **Dependencies:** US-01-04, US-01-05 (needs parser implementations)
 - **Acceptance Criteria:**
-  - [ ] Registry maps file extensions to parsers
-  - [ ] Supports dynamic parser registration
-  - [ ] Provides fast lookup (<10ms)
-  - [ ] Handles multiple extensions per parser
+  - [x] Registry maps file extensions to parsers
+  - [x] Supports dynamic parser registration
+  - [x] Provides fast lookup (<10ms)
+  - [x] Handles multiple extensions per parser
 - **Technical Notes:** Use Map<String, ParserFactory> for extension mapping. Support both single extensions (.java) and multiple extensions (.js, .jsx). Use CDI for dependency injection of parsers.
 
 ### T2: Implement GrammarManager class
