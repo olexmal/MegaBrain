@@ -463,12 +463,12 @@ class GrammarManagerTest {
 
         int removed = grammarManager.cleanupOldVersions("testlang");
 
-        // Should keep 3 most recent (DEFAULT_MAX_VERSIONS_PER_LANGUAGE), remove 2 oldest
-        assertThat(removed).isEqualTo(2);
+        // Should keep 5 most recent (DEFAULT_MAX_VERSIONS_PER_LANGUAGE), remove 0 oldest
+        assertThat(removed).isEqualTo(0);
         java.util.List<String> remainingVersions = grammarManager.getCachedVersions("testlang");
-        assertThat(remainingVersions).hasSize(3);
-        // Should keep the 3 highest versions: 1.5.0, 1.4.0, 1.3.0
-        assertThat(remainingVersions).containsExactly("1.5.0", "1.4.0", "1.3.0");
+        assertThat(remainingVersions).hasSize(5);
+        // Should keep all 5 versions since default is now 5
+        assertThat(remainingVersions).containsExactly("1.5.0", "1.4.0", "1.3.0", "1.2.0", "1.1.0");
     }
 
     @Test
@@ -493,12 +493,12 @@ class GrammarManagerTest {
 
         int removed = grammarManager.cleanupAllOldVersions();
 
-        // Should remove 1 from lang1 (4-3) + 2 from lang2 (5-3) = 3 total
-        assertThat(removed).isEqualTo(3);
+        // Should remove 0 from lang1 (4-5) + 0 from lang2 (5-5) = 0 total (since default is now 5)
+        assertThat(removed).isEqualTo(0);
 
-        // Verify both languages have exactly 3 versions remaining
-        assertThat(grammarManager.getCachedVersions("lang1")).hasSize(3);
-        assertThat(grammarManager.getCachedVersions("lang2")).hasSize(3);
+        // Verify both languages have all versions remaining (up to the default limit of 5)
+        assertThat(grammarManager.getCachedVersions("lang1")).hasSize(4);
+        assertThat(grammarManager.getCachedVersions("lang2")).hasSize(5);
     }
 
     @Test
@@ -853,5 +853,193 @@ class GrammarManagerTest {
         // Should handle empty directories gracefully
         assertThat(stats.totalLanguages).isGreaterThanOrEqualTo(0);
         assertThat(stats.totalVersions).isGreaterThanOrEqualTo(0);
+    }
+
+    // ===== ROLLBACK FUNCTIONALITY TESTS =====
+
+    @Test
+    void recordVersionUsage_tracksSuccessAndFailure() throws Exception {
+        // Test recording successful usage
+        java.lang.reflect.Method recordMethod = GrammarManager.class.getDeclaredMethod("recordVersionUsage", String.class, String.class, boolean.class, String.class);
+        recordMethod.setAccessible(true);
+        recordMethod.invoke(grammarManager, "testlang", "1.0.0", true, null);
+
+        java.util.List<GrammarManager.VersionHistoryEntry> history = grammarManager.getVersionHistory("testlang");
+        assertThat(history).hasSize(1);
+        assertThat(history.get(0).language()).isEqualTo("testlang");
+        assertThat(history.get(0).version()).isEqualTo("1.0.0");
+        assertThat(history.get(0).success()).isTrue();
+        assertThat(history.get(0).errorMessage()).isNull();
+
+        // Test recording failed usage
+        recordMethod.invoke(grammarManager, "testlang", "2.0.0", false, "Load failed");
+
+        history = grammarManager.getVersionHistory("testlang");
+        assertThat(history).hasSize(2);
+        assertThat(history.get(0).language()).isEqualTo("testlang");
+        assertThat(history.get(0).version()).isEqualTo("2.0.0");
+        assertThat(history.get(0).success()).isFalse();
+        assertThat(history.get(0).errorMessage()).isEqualTo("Load failed");
+    }
+
+    @Test
+    void recordVersionUsage_limitsHistorySize() throws Exception {
+        // Record more entries than the limit
+        java.lang.reflect.Method recordMethod = GrammarManager.class.getDeclaredMethod("recordVersionUsage", String.class, String.class, boolean.class, String.class);
+        recordMethod.setAccessible(true);
+        for (int i = 0; i < 120; i++) {
+            recordMethod.invoke(grammarManager, "testlang", "v" + i, true, null);
+        }
+
+        java.util.List<GrammarManager.VersionHistoryEntry> history = grammarManager.getVersionHistory("testlang");
+        // Should be limited to MAX_VERSION_HISTORY_ENTRIES
+        assertThat(history.size()).isLessThanOrEqualTo(100);
+    }
+
+    @Test
+    void getVersionHistory_returnsEmptyListForUnknownLanguage() {
+        java.util.List<GrammarManager.VersionHistoryEntry> history = grammarManager.getVersionHistory("unknown-lang");
+        assertThat(history).isEmpty();
+    }
+
+    @Test
+    void rollbackToVersion_failsForNonExistentVersion() {
+        GrammarManager.RollbackResult result = grammarManager.rollbackToVersion("testlang", "non-existent-version");
+
+        assertThat(result.success()).isFalse();
+        assertThat(result.language()).isEqualTo("testlang");
+        assertThat(result.fromVersion()).isEqualTo("unknown");
+        assertThat(result.toVersion()).isEqualTo("non-existent-version");
+        assertThat(result.errorMessage()).contains("not found in cache");
+    }
+
+    @Test
+    void rollbackToVersion_failsGracefullyForExistingVersion() throws Exception {
+        // Create a cached version
+        Path langDir = tempDir.resolve("testlang");
+        Path versionDir = langDir.resolve("1.0.0").resolve("linux-amd64");
+        Files.createDirectories(versionDir);
+        Path libFile = versionDir.resolve("libtree-sitter-testlang.so");
+        Files.write(libFile, "fake library content".getBytes());
+
+        // Save metadata
+        java.lang.reflect.Method saveMethod = GrammarManager.class.getDeclaredMethod("saveVersionMetadata", GrammarSpec.class, String.class, Path.class);
+        saveMethod.setAccessible(true);
+        saveMethod.invoke(grammarManager, testSpec, "linux-amd64", libFile);
+
+        // Test that rollback recognizes the cached version exists
+        java.util.List<String> cachedVersions = grammarManager.getCachedVersions("testlang");
+        assertThat(cachedVersions).contains("1.0.0");
+
+        // The rollback method will try to load the cached version, but since it's not a real library,
+        // it will fail gracefully
+        GrammarManager.RollbackResult result = grammarManager.rollbackToVersion("testlang", "1.0.0");
+
+        // Verify the rollback attempt was made correctly
+        assertThat(result.language()).isEqualTo("testlang");
+        assertThat(result.toVersion()).isEqualTo("1.0.0");
+        // Loading will fail due to fake library file, but the method should handle it gracefully
+        assertThat(result.errorMessage()).isNotNull();
+    }
+
+    @Test
+    void rollbackToPrevious_findsMostRecentSuccessfulVersion() throws Exception {
+        // Record version history: success, failure, success
+        java.lang.reflect.Method recordMethod = GrammarManager.class.getDeclaredMethod("recordVersionUsage", String.class, String.class, boolean.class, String.class);
+        recordMethod.setAccessible(true);
+        recordMethod.invoke(grammarManager, "testlang", "1.0.0", true, null);
+        recordMethod.invoke(grammarManager, "testlang", "2.0.0", false, "Failed to load");
+        recordMethod.invoke(grammarManager, "testlang", "3.0.0", true, null);
+
+        // Create cached version for 1.0.0
+        Path langDir = tempDir.resolve("testlang");
+        Path versionDir = langDir.resolve("1.0.0").resolve("linux-amd64");
+        Files.createDirectories(versionDir);
+        Path libFile = versionDir.resolve("libtree-sitter-testlang.so");
+        Files.write(libFile, "fake library content".getBytes());
+        java.lang.reflect.Method saveMethod = GrammarManager.class.getDeclaredMethod("saveVersionMetadata", GrammarSpec.class, String.class, Path.class);
+        saveMethod.setAccessible(true);
+        saveMethod.invoke(grammarManager, testSpec, "linux-amd64", libFile);
+
+        // Verify that version history is recorded correctly
+        java.util.List<GrammarManager.VersionHistoryEntry> history = grammarManager.getVersionHistory("testlang");
+        assertThat(history).hasSize(3);
+        assertThat(history.get(0).version()).isEqualTo("3.0.0"); // Most recent
+        assertThat(history.get(0).success()).isTrue();
+        assertThat(history.get(1).version()).isEqualTo("2.0.0");
+        assertThat(history.get(1).success()).isFalse();
+        assertThat(history.get(2).version()).isEqualTo("1.0.0"); // Oldest successful
+        assertThat(history.get(2).success()).isTrue();
+
+        // Test rollback - it will try to load 3.0.0 (most recent successful), but since it doesn't exist in cache,
+        // it should try 1.0.0 (next most recent successful)
+        GrammarManager.RollbackResult result = grammarManager.rollbackToPrevious("testlang");
+
+        // The rollback should attempt to load 1.0.0 and fail gracefully due to fake library
+        assertThat(result.language()).isEqualTo("testlang");
+        assertThat(result.toVersion()).isEqualTo("1.0.0");
+        assertThat(result.errorMessage()).isNotNull();
+    }
+
+    @Test
+    void rollbackToPrevious_failsWithNoHistory() {
+        GrammarManager.RollbackResult result = grammarManager.rollbackToPrevious("testlang");
+
+        assertThat(result.success()).isFalse();
+        assertThat(result.errorMessage()).contains("No version history available");
+    }
+
+    @Test
+    void rollbackToPrevious_failsWithNoSuccessfulVersions() throws Exception {
+        // Record only failures
+        java.lang.reflect.Method recordMethod = GrammarManager.class.getDeclaredMethod("recordVersionUsage", String.class, String.class, boolean.class, String.class);
+        recordMethod.setAccessible(true);
+        recordMethod.invoke(grammarManager, "testlang", "1.0.0", false, "Failed");
+        recordMethod.invoke(grammarManager, "testlang", "2.0.0", false, "Failed");
+
+        GrammarManager.RollbackResult result = grammarManager.rollbackToPrevious("testlang");
+
+        assertThat(result.success()).isFalse();
+        assertThat(result.errorMessage()).contains("No suitable previous version found");
+    }
+
+    @Test
+    void markVersionAsFailed_recordsFailure() {
+        grammarManager.markVersionAsFailed("testlang", "1.0.0", "Test failure");
+
+        java.util.List<GrammarManager.VersionHistoryEntry> history = grammarManager.getVersionHistory("testlang");
+        assertThat(history).hasSize(1);
+        assertThat(history.get(0).success()).isFalse();
+        assertThat(history.get(0).errorMessage()).isEqualTo("Test failure");
+    }
+
+    @Test
+    void createGrammarSpecForVersion_createsBasicSpec() throws Exception {
+        java.lang.reflect.Method createMethod = GrammarManager.class.getDeclaredMethod("createGrammarSpecForVersion", String.class, String.class);
+        createMethod.setAccessible(true);
+        GrammarSpec result = (GrammarSpec) createMethod.invoke(grammarManager, "testlang", "2.0.0");
+
+        assertThat(result).isNotNull();
+        assertThat(result.language()).isEqualTo("testlang");
+        assertThat(result.version()).isEqualTo("2.0.0");
+    }
+
+    @Test
+    void cleanupOldVersions_preservesMoreVersionsForRollback() throws Exception {
+        // Create multiple versions
+        Path langDir = tempDir.resolve("testlang");
+        for (int i = 1; i <= 15; i++) {
+            Path versionDir = langDir.resolve("v" + i).resolve("linux-amd64");
+            Files.createDirectories(versionDir);
+            Path libFile = versionDir.resolve("lib.so");
+            Files.write(libFile, ("content" + i).getBytes());
+        }
+
+        // Cleanup should preserve 10 versions (ROLLBACK_MAX_VERSIONS_PER_LANGUAGE)
+        int removed = grammarManager.cleanupOldVersions("testlang", 10);
+
+        java.util.List<String> remainingVersions = grammarManager.getCachedVersions("testlang");
+        assertThat(remainingVersions.size()).isEqualTo(10);
+        assertThat(removed).isEqualTo(5); // 15 - 10 = 5 removed
     }
 }

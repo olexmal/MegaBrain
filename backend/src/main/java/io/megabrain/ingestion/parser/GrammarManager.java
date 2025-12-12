@@ -76,6 +76,40 @@ public class GrammarManager {
     }
 
     /**
+     * Version history entry for rollback tracking.
+     */
+    public record VersionHistoryEntry(
+            String language,
+            String version,
+            Instant usedAt,
+            boolean success,
+            String errorMessage
+    ) {
+        public VersionHistoryEntry {
+            Objects.requireNonNull(language, "language");
+            Objects.requireNonNull(version, "version");
+            Objects.requireNonNull(usedAt, "usedAt");
+        }
+    }
+
+    /**
+     * Rollback result information.
+     */
+    public record RollbackResult(
+            String language,
+            String fromVersion,
+            String toVersion,
+            boolean success,
+            String errorMessage
+    ) {
+        public RollbackResult {
+            Objects.requireNonNull(language, "language");
+            Objects.requireNonNull(fromVersion, "fromVersion");
+            Objects.requireNonNull(toVersion, "toVersion");
+        }
+    }
+
+    /**
      * Interface for tracking download progress.
      */
     @FunctionalInterface
@@ -94,7 +128,9 @@ public class GrammarManager {
     private static final Duration HTTP_TIMEOUT = Duration.ofSeconds(20);
     private static final int MAX_DOWNLOAD_RETRIES = 3;
     private static final Duration INITIAL_RETRY_DELAY = Duration.ofSeconds(1);
-    private static final int DEFAULT_MAX_VERSIONS_PER_LANGUAGE = 3;
+    private static final int DEFAULT_MAX_VERSIONS_PER_LANGUAGE = 5; // Increased for rollback capability
+    private static final int ROLLBACK_MAX_VERSIONS_PER_LANGUAGE = 10; // Keep more for rollback
+    private static final int MAX_VERSION_HISTORY_ENTRIES = 100; // Limit history size
     private static final ObjectMapper OBJECT_MAPPER = JsonMapper.builder()
             .addModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())
             .build();
@@ -102,6 +138,7 @@ public class GrammarManager {
     private final Map<String, Language> loadedLanguages = new ConcurrentHashMap<>();
     private final Map<String, Boolean> nativeLoaded = new ConcurrentHashMap<>();
     private final Map<String, GrammarVersionMetadata> versionCache = new ConcurrentHashMap<>();
+    private final Map<String, java.util.Deque<VersionHistoryEntry>> versionHistory = new ConcurrentHashMap<>();
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(HTTP_TIMEOUT)
             .followRedirects(HttpClient.Redirect.NORMAL)
@@ -149,18 +186,144 @@ public class GrammarManager {
         Objects.requireNonNull(pinnedSpec, "pinnedSpec");
         Language cached = loadedLanguages.get(pinnedSpec.symbol());
         if (cached != null) {
+            // Record successful usage of cached language
+            recordVersionUsage(pinnedSpec.language(), pinnedSpec.version(), true, null);
             return cached;
         }
+
+        // Record attempt to load this version
+        recordVersionUsage(pinnedSpec.language(), pinnedSpec.version(), false, null);
+
         if (!ensureNativeLibraryLoaded(pinnedSpec)) {
+            // Record failure
+            recordVersionUsage(pinnedSpec.language(), pinnedSpec.version(), false, "Failed to load native library");
             return null;
         }
         try {
             Language lang = Language.load(SymbolLookup.loaderLookup(), pinnedSpec.symbol());
             loadedLanguages.put(pinnedSpec.symbol(), lang);
+            // Record success
+            recordVersionUsage(pinnedSpec.language(), pinnedSpec.version(), true, null);
             LOG.debugf("Loaded Tree-sitter language %s via symbol %s", pinnedSpec.language(), pinnedSpec.symbol());
             return lang;
         } catch (Exception | UnsatisfiedLinkError e) {
             LOG.errorf(e, "Failed to load grammar for %s via symbol %s", pinnedSpec.language(), pinnedSpec.symbol());
+            // Record failure and attempt automatic rollback
+            recordVersionUsage(pinnedSpec.language(), pinnedSpec.version(), false, e.getMessage());
+            return tryAutomaticRollback(pinnedSpec);
+        }
+    }
+
+    /**
+     * Record version usage in history for rollback tracking.
+     */
+    private void recordVersionUsage(String language, String version, boolean success, String errorMessage) {
+        Objects.requireNonNull(language, "language");
+        Objects.requireNonNull(version, "version");
+
+        VersionHistoryEntry entry = new VersionHistoryEntry(
+                language,
+                version,
+                Instant.now(),
+                success,
+                errorMessage
+        );
+
+        versionHistory.computeIfAbsent(language, k -> new java.util.LinkedList<>()).addFirst(entry);
+
+        // Limit history size to prevent memory leaks
+        java.util.Deque<VersionHistoryEntry> history = versionHistory.get(language);
+        while (history.size() > MAX_VERSION_HISTORY_ENTRIES) {
+            history.removeLast();
+        }
+
+        LOG.debugf("Recorded version usage: %s v%s - %s%s", language, version,
+                   success ? "SUCCESS" : "FAILED",
+                   errorMessage != null ? " (" + errorMessage + ")" : "");
+    }
+
+    /**
+     * Attempt automatic rollback to a previous working version when loading fails.
+     */
+    private Language tryAutomaticRollback(GrammarSpec failedSpec) {
+        Objects.requireNonNull(failedSpec, "failedSpec");
+
+        java.util.Deque<VersionHistoryEntry> history = versionHistory.get(failedSpec.language());
+        if (history == null || history.isEmpty()) {
+            LOG.debugf("No version history available for %s, cannot rollback", failedSpec.language());
+            return null;
+        }
+
+        // Find the most recent successful version that's different from the failed one
+        for (VersionHistoryEntry entry : history) {
+            if (entry.success() && !entry.version().equals(failedSpec.version())) {
+                LOG.infof("Attempting automatic rollback for %s from %s to %s",
+                         failedSpec.language(), failedSpec.version(), entry.version());
+
+                // Create a new spec with the rollback version
+                GrammarSpec rollbackSpec = new GrammarSpec(
+                        failedSpec.language(),
+                        failedSpec.symbol(),
+                        failedSpec.libraryName(),
+                        failedSpec.propertyKey(),
+                        failedSpec.envKey(),
+                        failedSpec.repository(),
+                        entry.version()
+                );
+
+                // Try to load with the rollback version
+                Language rollbackResult = loadLanguageWithVersion(rollbackSpec, false); // Don't recurse rollback
+                if (rollbackResult != null) {
+                    LOG.infof("Automatic rollback successful for %s to version %s",
+                             failedSpec.language(), entry.version());
+                    return rollbackResult;
+                } else {
+                    LOG.debugf("Automatic rollback failed for %s to version %s",
+                              failedSpec.language(), entry.version());
+                }
+            }
+        }
+
+        LOG.debugf("No suitable rollback version found for %s", failedSpec.language());
+        return null;
+    }
+
+    /**
+     * Load language with a specific version, used for rollback operations.
+     * Similar to loadLanguage but skips automatic rollback to prevent recursion.
+     */
+    private Language loadLanguageWithVersion(GrammarSpec spec, boolean allowRollback) {
+        Objects.requireNonNull(spec, "spec");
+
+        Language cached = loadedLanguages.get(spec.symbol());
+        if (cached != null) {
+            if (allowRollback) {
+                recordVersionUsage(spec.language(), spec.version(), true, null);
+            }
+            return cached;
+        }
+
+        if (!ensureNativeLibraryLoaded(spec)) {
+            if (allowRollback) {
+                recordVersionUsage(spec.language(), spec.version(), false, "Failed to load native library");
+            }
+            return null;
+        }
+
+        try {
+            Language lang = Language.load(SymbolLookup.loaderLookup(), spec.symbol());
+            loadedLanguages.put(spec.symbol(), lang);
+            if (allowRollback) {
+                recordVersionUsage(spec.language(), spec.version(), true, null);
+            }
+            LOG.debugf("Loaded Tree-sitter language %s via symbol %s", spec.language(), spec.symbol());
+            return lang;
+        } catch (Exception | UnsatisfiedLinkError e) {
+            LOG.errorf(e, "Failed to load grammar for %s via symbol %s", spec.language(), spec.symbol());
+            if (allowRollback) {
+                recordVersionUsage(spec.language(), spec.version(), false, e.getMessage());
+                return tryAutomaticRollback(spec);
+            }
             return null;
         }
     }
@@ -247,7 +410,8 @@ public class GrammarManager {
         saveVersionMetadata(spec, platform, versionedLibPath);
 
         // Clean up old versions after successful download
-        cleanupOldVersions(spec.language());
+        // Keep more versions for rollback capability
+        cleanupOldVersions(spec.language(), ROLLBACK_MAX_VERSIONS_PER_LANGUAGE);
 
         return versionedLibPath;
     }
@@ -770,6 +934,157 @@ public class GrammarManager {
                         LOG.warnf(e, "Failed to delete %s during cleanup", p);
                     }
                 });
+    }
+
+    /**
+     * Rollback to a specific previous version for a language.
+     *
+     * @param language the language name
+     * @param version the version to rollback to
+     * @return rollback result information
+     */
+    public RollbackResult rollbackToVersion(String language, String version) {
+        Objects.requireNonNull(language, "language");
+        Objects.requireNonNull(version, "version");
+
+        LOG.infof("Manual rollback requested for %s to version %s", language, version);
+
+        // Check if the version exists in cache
+        java.util.List<String> cachedVersions = getCachedVersions(language);
+        if (!cachedVersions.contains(version)) {
+            String error = String.format("Version %s not found in cache for language %s", version, language);
+            LOG.errorf(error);
+            return new RollbackResult(language, "unknown", version, false, error);
+        }
+
+        // Find the currently loaded version (if any)
+        String currentVersion = findCurrentLoadedVersion(language);
+        if (currentVersion != null && currentVersion.equals(version)) {
+            String message = String.format("Already using version %s for language %s", version, language);
+            LOG.infof(message);
+            return new RollbackResult(language, currentVersion, version, true, message);
+        }
+
+        // Create spec for the rollback version
+        GrammarSpec rollbackSpec = createGrammarSpecForVersion(language, version);
+        if (rollbackSpec == null) {
+            String error = String.format("Failed to create grammar spec for %s version %s", language, version);
+            LOG.errorf(error);
+            return new RollbackResult(language, currentVersion != null ? currentVersion : "unknown", version, false, error);
+        }
+
+        // Try to load the rollback version
+        Language loaded = loadLanguageWithVersion(rollbackSpec, false);
+        if (loaded != null) {
+            LOG.infof("Manual rollback successful for %s to version %s", language, version);
+            return new RollbackResult(language, currentVersion != null ? currentVersion : "unknown", version, true, null);
+        } else {
+            String error = String.format("Failed to load language %s with version %s during rollback", language, version);
+            LOG.errorf(error);
+            return new RollbackResult(language, currentVersion != null ? currentVersion : "unknown", version, false, error);
+        }
+    }
+
+    /**
+     * Rollback to the previous working version for a language.
+     *
+     * @param language the language name
+     * @return rollback result information
+     */
+    public RollbackResult rollbackToPrevious(String language) {
+        Objects.requireNonNull(language, "language");
+
+        LOG.infof("Rolling back %s to previous working version", language);
+
+        java.util.Deque<VersionHistoryEntry> history = versionHistory.get(language);
+        if (history == null || history.isEmpty()) {
+            String error = String.format("No version history available for language %s", language);
+            LOG.errorf(error);
+            return new RollbackResult(language, "unknown", "unknown", false, error);
+        }
+
+        String currentVersion = findCurrentLoadedVersion(language);
+
+        // Find the most recent successful version that's different from current
+        for (VersionHistoryEntry entry : history) {
+            if (entry.success() && (currentVersion == null || !entry.version().equals(currentVersion))) {
+                return rollbackToVersion(language, entry.version());
+            }
+        }
+
+        String error = String.format("No suitable previous version found for language %s", language);
+        LOG.errorf(error);
+        return new RollbackResult(language, currentVersion != null ? currentVersion : "unknown", "unknown", false, error);
+    }
+
+    /**
+     * Mark a version as failed/problematic for future reference.
+     *
+     * @param language the language name
+     * @param version the version to mark as failed
+     * @param errorMessage optional error message
+     */
+    public void markVersionAsFailed(String language, String version, String errorMessage) {
+        Objects.requireNonNull(language, "language");
+        Objects.requireNonNull(version, "version");
+
+        recordVersionUsage(language, version, false, errorMessage);
+        LOG.infof("Marked version %s as failed for language %s%s", version, language,
+                  errorMessage != null ? ": " + errorMessage : "");
+    }
+
+    /**
+     * Get version history for a language.
+     *
+     * @param language the language name
+     * @return list of version history entries (most recent first)
+     */
+    public java.util.List<VersionHistoryEntry> getVersionHistory(String language) {
+        Objects.requireNonNull(language, "language");
+
+        java.util.Deque<VersionHistoryEntry> history = versionHistory.get(language);
+        if (history == null) {
+            return java.util.Collections.emptyList();
+        }
+
+        return java.util.List.copyOf(history);
+    }
+
+    /**
+     * Find the currently loaded version for a language.
+     */
+    private String findCurrentLoadedVersion(String language) {
+        // This is a simplified approach - in a real implementation,
+        // we might need to track which version is currently active per language
+        // For now, we'll look at the most recent successful history entry
+        java.util.Deque<VersionHistoryEntry> history = versionHistory.get(language);
+        if (history != null) {
+            for (VersionHistoryEntry entry : history) {
+                if (entry.success()) {
+                    return entry.version();
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Create a GrammarSpec for a specific language and version.
+     * Uses a basic spec that can be enhanced with version pinning.
+     */
+    private GrammarSpec createGrammarSpecForVersion(String language, String version) {
+        // Create a basic spec with the target version and standard naming patterns
+        // Use non-empty keys to avoid System.getProperty issues in tests
+        String symbol = "tree_sitter_" + language;
+        String libraryName = "tree-sitter-" + language;
+        String propertyKey = "megabrain.grammar." + language + ".path";
+        String envKey = "MEGABRAIN_GRAMMAR_" + language.toUpperCase() + "_PATH";
+        String repository = "tree-sitter/" + language;
+
+        GrammarSpec basicSpec = new GrammarSpec(language, symbol, libraryName, propertyKey, envKey, repository, version);
+
+        // Apply version pinning to get the effective spec
+        return applyVersionPinning(basicSpec);
     }
 }
 
