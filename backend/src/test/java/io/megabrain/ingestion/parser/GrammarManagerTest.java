@@ -299,4 +299,134 @@ class GrammarManagerTest {
         callback.onProgress(100, 1000, "test message");
         callback.onProgress(0, -1, "another message");
     }
+
+    @Test
+    void getCachedVersions_returnsEmptyListForNonExistentLanguage() {
+        java.util.List<String> versions = grammarManager.getCachedVersions("nonexistent");
+
+        assertThat(versions).isEmpty();
+    }
+
+    @Test
+    void getCachedVersions_returnsVersionsInCorrectOrder() throws Exception {
+        // Create mock cache structure with multiple versions
+        Path langDir = tempDir.resolve("testlang");
+        Path version1Dir = langDir.resolve("1.0.0").resolve("linux-x86_64");
+        Path version2Dir = langDir.resolve("1.1.0").resolve("linux-x86_64");
+        Path version3Dir = langDir.resolve("2.0.0").resolve("linux-x86_64");
+
+        Files.createDirectories(version1Dir);
+        Files.createDirectories(version2Dir);
+        Files.createDirectories(version3Dir);
+
+        java.util.List<String> versions = grammarManager.getCachedVersions("testlang");
+
+        // Should be sorted newest first
+        assertThat(versions).containsExactly("2.0.0", "1.1.0", "1.0.0");
+    }
+
+    @Test
+    void cleanupOldVersions_keepsSpecifiedNumber() throws Exception {
+        // Create mock cache structure with multiple versions
+        Path langDir = tempDir.resolve("testlang");
+        Path version1Dir = langDir.resolve("1.0.0").resolve("linux-x86_64");
+        Path version2Dir = langDir.resolve("1.1.0").resolve("linux-x86_64");
+        Path version3Dir = langDir.resolve("2.0.0").resolve("linux-x86_64");
+        Path version4Dir = langDir.resolve("2.1.0").resolve("linux-x86_64");
+
+        Files.createDirectories(version1Dir);
+        Files.createDirectories(version2Dir);
+        Files.createDirectories(version3Dir);
+        Files.createDirectories(version4Dir);
+
+        // Create some files in each version directory
+        Files.writeString(version1Dir.resolve("test.so"), "lib1");
+        Files.writeString(version2Dir.resolve("test.so"), "lib2");
+        Files.writeString(version3Dir.resolve("test.so"), "lib3");
+        Files.writeString(version4Dir.resolve("test.so"), "lib4");
+
+        int removed = grammarManager.cleanupOldVersions("testlang", 2);
+
+        assertThat(removed).isEqualTo(2); // Should remove 2 oldest versions
+
+        // Check that only the 2 newest versions remain
+        java.util.List<String> remainingVersions = grammarManager.getCachedVersions("testlang");
+        assertThat(remainingVersions).containsExactly("2.1.0", "2.0.0");
+
+        // Verify directories were actually deleted
+        assertThat(Files.exists(version1Dir.getParent())).isFalse();
+        assertThat(Files.exists(version2Dir.getParent())).isFalse();
+        assertThat(Files.exists(version3Dir.getParent())).isTrue();
+        assertThat(Files.exists(version4Dir.getParent())).isTrue();
+    }
+
+    @Test
+    void cleanupOldVersions_throwsExceptionForInvalidMaxVersions() {
+        assertThatThrownBy(() -> grammarManager.cleanupOldVersions("testlang", 0))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("maxVersions must be at least 1");
+    }
+
+    @Test
+    void cleanupAllOldVersions_cleansMultipleLanguages() throws Exception {
+        // Create cache structure for multiple languages
+        Path lang1Dir = tempDir.resolve("lang1");
+        Path lang2Dir = tempDir.resolve("lang2");
+
+        // Lang1: 3 versions
+        Files.createDirectories(lang1Dir.resolve("1.0.0").resolve("linux-x86_64"));
+        Files.createDirectories(lang1Dir.resolve("1.1.0").resolve("linux-x86_64"));
+        Files.createDirectories(lang1Dir.resolve("2.0.0").resolve("linux-x86_64"));
+
+        // Lang2: 2 versions
+        Files.createDirectories(lang2Dir.resolve("0.9.0").resolve("linux-x86_64"));
+        Files.createDirectories(lang2Dir.resolve("1.0.0").resolve("linux-x86_64"));
+
+        int removed = grammarManager.cleanupAllOldVersions(1); // Keep only 1 version per language
+
+        assertThat(removed).isEqualTo(3); // Should remove 2 from lang1 + 1 from lang2
+
+        // Verify only 1 version remains per language
+        assertThat(grammarManager.getCachedVersions("lang1")).hasSize(1);
+        assertThat(grammarManager.getCachedVersions("lang2")).hasSize(1);
+    }
+
+    @Test
+    void getCacheStats_returnsCorrectStatistics() throws Exception {
+        // Create mock cache structure
+        Path langDir = tempDir.resolve("testlang");
+        Path versionDir = langDir.resolve("1.0.0").resolve("linux-x86_64");
+        Files.createDirectories(versionDir);
+
+        // Create library file
+        Path libFile = versionDir.resolve("test.so");
+        Files.writeString(libFile, "test library content");
+
+        // Create metadata file
+        Path metadataFile = versionDir.resolve("metadata.json");
+        Files.writeString(metadataFile, "{}");
+
+        GrammarManager.CacheStats stats = grammarManager.getCacheStats();
+
+        assertThat(stats.totalLanguages).isEqualTo(1);
+        assertThat(stats.totalVersions).isEqualTo(1);
+        assertThat(stats.totalFiles).isEqualTo(2);
+        assertThat(stats.libraryFiles).isEqualTo(1);
+        assertThat(stats.metadataFiles).isEqualTo(1);
+        assertThat(stats.totalSizeBytes).isGreaterThan(0);
+        assertThat(stats.librarySizeBytes).isGreaterThan(0);
+    }
+
+    @Test
+    void getCacheStats_returnsEmptyStatsForEmptyCache() {
+        GrammarManager.CacheStats stats = grammarManager.getCacheStats();
+
+        assertThat(stats.totalLanguages).isEqualTo(0);
+        assertThat(stats.totalVersions).isEqualTo(0);
+        assertThat(stats.totalFiles).isEqualTo(0);
+        assertThat(stats.libraryFiles).isEqualTo(0);
+        assertThat(stats.metadataFiles).isEqualTo(0);
+        assertThat(stats.totalSizeBytes).isEqualTo(0);
+        assertThat(stats.librarySizeBytes).isEqualTo(0);
+    }
 }

@@ -78,6 +78,7 @@ public class GrammarManager {
     private static final Duration HTTP_TIMEOUT = Duration.ofSeconds(20);
     private static final int MAX_DOWNLOAD_RETRIES = 3;
     private static final Duration INITIAL_RETRY_DELAY = Duration.ofSeconds(1);
+    private static final int DEFAULT_MAX_VERSIONS_PER_LANGUAGE = 3;
     private static final ObjectMapper OBJECT_MAPPER = JsonMapper.builder()
             .addModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())
             .build();
@@ -193,6 +194,9 @@ public class GrammarManager {
 
         // Store version metadata
         saveVersionMetadata(spec, platform, versionedLibPath);
+
+        // Clean up old versions after successful download
+        cleanupOldVersions(spec.language());
 
         return versionedLibPath;
     }
@@ -487,6 +491,233 @@ public class GrammarManager {
         }
 
         return Optional.empty();
+    }
+
+    /**
+     * Get all cached versions for a language, sorted by version (newest first).
+     *
+     * @param language the language name
+     * @return list of cached versions
+     */
+    public java.util.List<String> getCachedVersions(String language) {
+        Objects.requireNonNull(language, "language");
+        java.util.List<String> versions = new java.util.ArrayList<>();
+
+        try {
+            Path cacheDir = resolveCacheDir();
+            Path langDir = cacheDir.resolve(language);
+            if (Files.exists(langDir)) {
+                Files.list(langDir)
+                        .filter(Files::isDirectory)
+                        .map(Path::getFileName)
+                        .map(Path::toString)
+                        .sorted(java.util.Comparator.reverseOrder()) // newest first
+                        .forEach(versions::add);
+            }
+        } catch (Exception e) {
+            LOG.debugf(e, "Failed to list cached versions for %s", language);
+        }
+
+        return versions;
+    }
+
+    /**
+     * Clean up old cached versions for a language, keeping only the most recent versions.
+     *
+     * @param language the language name
+     * @param maxVersions maximum number of versions to keep (default: 3)
+     * @return number of versions removed
+     */
+    public int cleanupOldVersions(String language, int maxVersions) {
+        Objects.requireNonNull(language, "language");
+        if (maxVersions < 1) {
+            throw new IllegalArgumentException("maxVersions must be at least 1");
+        }
+
+        int removedCount = 0;
+        try {
+            Path cacheDir = resolveCacheDir();
+            Path langDir = cacheDir.resolve(language);
+            if (!Files.exists(langDir)) {
+                return 0;
+            }
+
+            java.util.List<Path> versionDirs = Files.list(langDir)
+                    .filter(Files::isDirectory)
+                    .sorted((a, b) -> b.getFileName().compareTo(a.getFileName())) // newest first
+                    .collect(java.util.stream.Collectors.toList());
+
+            // Keep the first maxVersions, remove the rest
+            for (int i = maxVersions; i < versionDirs.size(); i++) {
+                Path versionDir = versionDirs.get(i);
+                try {
+                    deleteDirectoryRecursively(versionDir);
+                    String version = versionDir.getFileName().toString();
+
+                    // Remove from in-memory cache
+                    String platform = platformName();
+                    String cacheKey = language + "-" + version + "-" + platform;
+                    versionCache.remove(cacheKey);
+
+                    LOG.infof("Removed old cached version %s for language %s", version, language);
+                    removedCount++;
+                } catch (Exception e) {
+                    LOG.warnf(e, "Failed to remove cached version %s for language %s", versionDir.getFileName(), language);
+                }
+            }
+
+            if (removedCount > 0) {
+                LOG.infof("Cleaned up %d old versions for language %s, keeping %d most recent", removedCount, language, maxVersions);
+            }
+
+        } catch (Exception e) {
+            LOG.warnf(e, "Failed to cleanup old versions for language %s", language);
+        }
+
+        return removedCount;
+    }
+
+    /**
+     * Clean up old cached versions for a language using default retention policy.
+     *
+     * @param language the language name
+     * @return number of versions removed
+     */
+    public int cleanupOldVersions(String language) {
+        return cleanupOldVersions(language, DEFAULT_MAX_VERSIONS_PER_LANGUAGE);
+    }
+
+    /**
+     * Clean up old cached versions for all languages.
+     *
+     * @param maxVersionsPerLanguage maximum number of versions to keep per language
+     * @return total number of versions removed across all languages
+     */
+    public int cleanupAllOldVersions(int maxVersionsPerLanguage) {
+        int totalRemoved = 0;
+        try {
+            Path cacheDir = resolveCacheDir();
+            if (!Files.exists(cacheDir)) {
+                return 0;
+            }
+
+            java.util.List<String> languages = Files.list(cacheDir)
+                    .filter(Files::isDirectory)
+                    .map(Path::getFileName)
+                    .map(Path::toString)
+                    .collect(java.util.stream.Collectors.toList());
+
+            for (String language : languages) {
+                totalRemoved += cleanupOldVersions(language, maxVersionsPerLanguage);
+            }
+
+            if (totalRemoved > 0) {
+                LOG.infof("Cleaned up total of %d old versions across all languages", totalRemoved);
+            }
+
+        } catch (Exception e) {
+            LOG.warnf(e, "Failed to cleanup old versions for all languages");
+        }
+
+        return totalRemoved;
+    }
+
+    /**
+     * Clean up old cached versions for all languages using default retention policy.
+     *
+     * @return total number of versions removed across all languages
+     */
+    public int cleanupAllOldVersions() {
+        return cleanupAllOldVersions(DEFAULT_MAX_VERSIONS_PER_LANGUAGE);
+    }
+
+    /**
+     * Get cache statistics for monitoring.
+     *
+     * @return cache statistics
+     */
+    public CacheStats getCacheStats() {
+        CacheStats stats = new CacheStats();
+        try {
+            Path cacheDir = resolveCacheDir();
+            if (!Files.exists(cacheDir)) {
+                return stats;
+            }
+
+            Files.walk(cacheDir)
+                    .filter(Files::isRegularFile)
+                    .forEach(file -> {
+                        try {
+                            long size = Files.size(file);
+                            stats.totalSizeBytes += size;
+                            stats.totalFiles++;
+
+                            if (file.getFileName().toString().endsWith(platformLibraryExtension())) {
+                                stats.libraryFiles++;
+                                stats.librarySizeBytes += size;
+                            } else if (file.getFileName().toString().equals("metadata.json")) {
+                                stats.metadataFiles++;
+                            }
+                        } catch (Exception e) {
+                            LOG.debugf(e, "Failed to get size for file %s", file);
+                        }
+                    });
+
+            // Count languages and versions
+            Files.list(cacheDir)
+                    .filter(Files::isDirectory)
+                    .forEach(langDir -> {
+                        stats.totalLanguages++;
+                        try {
+                            stats.totalVersions += (int) Files.list(langDir)
+                                    .filter(Files::isDirectory)
+                                    .count();
+                        } catch (Exception e) {
+                            LOG.debugf(e, "Failed to count versions for language %s", langDir.getFileName());
+                        }
+                    });
+
+        } catch (Exception e) {
+            LOG.warnf(e, "Failed to collect cache statistics");
+        }
+
+        return stats;
+    }
+
+    /**
+     * Cache statistics record.
+     */
+    public static class CacheStats {
+        public long totalSizeBytes = 0;
+        public long librarySizeBytes = 0;
+        public int totalFiles = 0;
+        public int libraryFiles = 0;
+        public int metadataFiles = 0;
+        public int totalLanguages = 0;
+        public int totalVersions = 0;
+
+        @Override
+        public String toString() {
+            return String.format("CacheStats{languages=%d, versions=%d, files=%d (libs=%d, meta=%d), size=%d bytes (libs=%d bytes)}",
+                    totalLanguages, totalVersions, totalFiles, libraryFiles, metadataFiles, totalSizeBytes, librarySizeBytes);
+        }
+    }
+
+    private void deleteDirectoryRecursively(Path path) throws java.io.IOException {
+        if (!Files.exists(path)) {
+            return;
+        }
+
+        // Walk the tree in reverse order and delete
+        Files.walk(path)
+                .sorted(java.util.Comparator.reverseOrder())
+                .forEach(p -> {
+                    try {
+                        Files.delete(p);
+                    } catch (java.io.IOException e) {
+                        LOG.warnf(e, "Failed to delete %s during cleanup", p);
+                    }
+                });
     }
 }
 
