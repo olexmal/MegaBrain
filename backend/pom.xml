@@ -94,6 +94,10 @@
         </dependency>
         <dependency>
             <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-hibernate-validator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
             <artifactId>quarkus-smallrye-health</artifactId>
         </dependency>
         
@@ -293,26 +297,34 @@
                          </systemPropertyVariables>
                      </configuration>
                  </plugin>
-                 <plugin>
-                     <groupId>org.apache.maven.plugins</groupId>
-                     <artifactId>maven-failsafe-plugin</artifactId>
-                     <version>3.5.1</version>
-                     <executions>
-                         <execution>
-                             <goals>
-                                 <goal>integration-test</goal>
-                                 <goal>verify</goal>
-                             </goals>
-                         </execution>
-                     </executions>
-                     <configuration>
-                         <classesDirectory>target/classes</classesDirectory>
-                         <testClassesDirectory>target/test-classes-it</testClassesDirectory>
-                         <systemPropertyVariables>
-                             <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
-                         </systemPropertyVariables>
-                     </configuration>
-                 </plugin>
+             <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-failsafe-plugin</artifactId>
+                        <version>3.5.1</version>
+                        <executions>
+                            <execution>
+                                <id>default</id>
+                                <phase>integration-test</phase>
+                                <goals>
+                                    <goal>integration-test</goal>
+                                </goals>
+                            </execution>
+                            <execution>
+                                <id>verify</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>verify</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <classesDirectory>target/classes</classesDirectory>
+                            <testClassesDirectory>target/test-classes-it</testClassesDirectory>
+                            <systemPropertyVariables>
+                                <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
+                            </systemPropertyVariables>
+                        </configuration>
+                    </plugin>
                  <plugin>
                      <groupId>io.quarkus</groupId>
                      <artifactId>quarkus-maven-plugin</artifactId>
@@ -340,24 +352,20 @@
                  </plugin>
              </plugins>
          </pluginManagement>
-         <plugins>
-             <plugin>
-                 <groupId>org.apache.maven.plugins</groupId>
-                 <artifactId>maven-compiler-plugin</artifactId>
-             </plugin>
-             <plugin>
-                 <groupId>org.apache.maven.plugins</groupId>
-                 <artifactId>maven-surefire-plugin</artifactId>
-             </plugin>
-             <plugin>
-                 <groupId>org.apache.maven.plugins</groupId>
-                 <artifactId>maven-failsafe-plugin</artifactId>
-             </plugin>
-             <plugin>
-                 <groupId>io.quarkus</groupId>
-                 <artifactId>quarkus-maven-plugin</artifactId>
-             </plugin>
-         </plugins>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>io.quarkus</groupId>
+                <artifactId>quarkus-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
      </build>
 
     <profiles>
