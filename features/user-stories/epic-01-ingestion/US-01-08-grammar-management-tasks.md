@@ -79,13 +79,13 @@
 - **Description:** Implement rollback functionality to revert to previous grammar version if new version causes issues. Track version history and allow manual or automatic rollback. Preserve previous versions in cache for rollback.
 - **Estimated Hours:** 4 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T2, T4, T5 (needs GrammarManager, caching, version tracking)
 - **Acceptance Criteria:**
-  - [ ] Previous versions preserved in cache
-  - [ ] Rollback to previous version supported
-  - [ ] Version history tracked
-  - [ ] Rollback can be triggered manually or automatically
+  - [x] Previous versions preserved in cache
+  - [x] Rollback to previous version supported
+  - [x] Version history tracked
+  - [x] Rollback can be triggered manually or automatically
 - **Technical Notes:** Keep last N versions in cache (e.g., last 3). Implement rollback API endpoint or configuration. Test rollback with known problematic grammar versions.
 
 ### T7: Create health check for grammar status
