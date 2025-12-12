@@ -92,13 +92,13 @@
 - **Description:** Implement health check endpoint that verifies all required grammars are loaded and available. Check grammar loading status, version information, and report any missing or failed grammars. Integrate with Quarkus health checks.
 - **Estimated Hours:** 3 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed ✅
 - **Dependencies:** T1, T2 (needs ParserRegistry and GrammarManager)
 - **Acceptance Criteria:**
-  - [ ] Health check endpoint reports grammar status
-  - [ ] Lists all required grammars and their status
-  - [ ] Reports missing or failed grammars
-  - [ ] Integrates with `/q/health/ready` endpoint
+  - [x] Health check endpoint reports grammar status
+  - [x] Lists all required grammars and their status
+  - [x] Reports missing or failed grammars
+  - [x] Integrates with `/q/health/ready` endpoint
 - **Technical Notes:** Use Quarkus SmallRye Health. Create custom health check that queries GrammarManager. Report status: loaded, missing, failed. Include version information in health response.
 
 ### T8: Add grammars: Go, Rust, Kotlin, Ruby

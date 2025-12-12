@@ -1072,7 +1072,7 @@ public class GrammarManager {
      * Create a GrammarSpec for a specific language and version.
      * Uses a basic spec that can be enhanced with version pinning.
      */
-    private GrammarSpec createGrammarSpecForVersion(String language, String version) {
+    public GrammarSpec createGrammarSpecForVersion(String language, String version) {
         // Create a basic spec with the target version and standard naming patterns
         // Use non-empty keys to avoid System.getProperty issues in tests
         String symbol = "tree_sitter_" + language;
