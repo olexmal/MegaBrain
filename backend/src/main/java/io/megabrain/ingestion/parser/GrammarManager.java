@@ -5,6 +5,8 @@
 
 package io.megabrain.ingestion.parser;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import io.github.treesitter.jtreesitter.Language;
 import org.jboss.logging.Logger;
 
@@ -16,6 +18,7 @@ import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
@@ -25,16 +28,41 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Manages Tree-sitter grammar loading and native library lifecycle.
  * Caches loaded grammars and libraries to avoid repeated loads.
+ * Tracks grammar versions and provides version management.
  */
 public class GrammarManager {
+
+    /**
+     * Metadata for cached grammar versions.
+     */
+    public record GrammarVersionMetadata(
+            String language,
+            String version,
+            String repository,
+            Instant downloadedAt,
+            String platform,
+            long fileSize
+    ) {
+        public GrammarVersionMetadata {
+            Objects.requireNonNull(language, "language");
+            Objects.requireNonNull(version, "version");
+            Objects.requireNonNull(repository, "repository");
+            Objects.requireNonNull(downloadedAt, "downloadedAt");
+            Objects.requireNonNull(platform, "platform");
+        }
+    }
 
     private static final Logger LOG = Logger.getLogger(GrammarManager.class);
     private static final String CACHE_DIR_PROPERTY = "megabrain.grammar.cache.dir";
     private static final String CACHE_DIR_ENV = "MEGABRAIN_GRAMMAR_CACHE_DIR";
     private static final Duration HTTP_TIMEOUT = Duration.ofSeconds(20);
+    private static final ObjectMapper OBJECT_MAPPER = JsonMapper.builder()
+            .addModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())
+            .build();
 
     private final Map<String, Language> loadedLanguages = new ConcurrentHashMap<>();
     private final Map<String, Boolean> nativeLoaded = new ConcurrentHashMap<>();
+    private final Map<String, GrammarVersionMetadata> versionCache = new ConcurrentHashMap<>();
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(HTTP_TIMEOUT)
             .followRedirects(HttpClient.Redirect.NORMAL)
@@ -120,12 +148,30 @@ public class GrammarManager {
     private Path ensureCachedLibrary(GrammarSpec spec) throws Exception {
         Path cacheDir = resolveCacheDir();
         Files.createDirectories(cacheDir);
-        Path libPath = cacheDir.resolve(spec.libraryName() + platformLibraryExtension());
-        if (Files.exists(libPath) && Files.size(libPath) > 0) {
-            return libPath;
+
+        String platform = platformName();
+        Path versionedLibPath = cacheDir.resolve(spec.language())
+                .resolve(spec.version())
+                .resolve(platform)
+                .resolve(spec.libraryName() + platformLibraryExtension());
+
+        // Check if we have the correct version cached
+        GrammarVersionMetadata cachedMetadata = loadVersionMetadata(spec, platform);
+        if (cachedMetadata != null && cachedMetadata.version().equals(spec.version())) {
+            if (Files.exists(versionedLibPath) && Files.size(versionedLibPath) == cachedMetadata.fileSize()) {
+                LOG.debugf("Using cached grammar %s v%s for platform %s", spec.language(), spec.version(), platform);
+                return versionedLibPath;
+            }
         }
-        downloadGrammar(spec, libPath);
-        return libPath;
+
+        // Download new version
+        Files.createDirectories(versionedLibPath.getParent());
+        downloadGrammar(spec, versionedLibPath);
+
+        // Store version metadata
+        saveVersionMetadata(spec, platform, versionedLibPath);
+
+        return versionedLibPath;
     }
 
     private void downloadGrammar(GrammarSpec spec, Path target) throws Exception {
@@ -191,6 +237,117 @@ public class GrammarManager {
             return ".dll";
         }
         return ".so"; // default to linux/unix
+    }
+
+    private String platformName() {
+        String os = System.getProperty("os.name", "").toLowerCase(Locale.ROOT);
+        String arch = System.getProperty("os.arch", "").toLowerCase(Locale.ROOT);
+
+        if (os.contains("mac")) {
+            return "macos-" + arch;
+        }
+        if (os.contains("win")) {
+            return "windows-" + arch;
+        }
+        if (os.contains("linux")) {
+            return "linux-" + arch;
+        }
+        return os + "-" + arch; // fallback
+    }
+
+    private Path getVersionMetadataPath(GrammarSpec spec, String platform) {
+        Path cacheDir = resolveCacheDir();
+        return cacheDir.resolve(spec.language())
+                .resolve(spec.version())
+                .resolve(platform)
+                .resolve("metadata.json");
+    }
+
+    private GrammarVersionMetadata loadVersionMetadata(GrammarSpec spec, String platform) {
+        String cacheKey = spec.language() + "-" + spec.version() + "-" + platform;
+        GrammarVersionMetadata cached = versionCache.get(cacheKey);
+        if (cached != null) {
+            return cached;
+        }
+
+        try {
+            Path metadataPath = getVersionMetadataPath(spec, platform);
+            if (Files.exists(metadataPath)) {
+                GrammarVersionMetadata metadata = OBJECT_MAPPER.readValue(metadataPath.toFile(), GrammarVersionMetadata.class);
+                versionCache.put(cacheKey, metadata);
+                return metadata;
+            }
+        } catch (Exception e) {
+            LOG.debugf(e, "Failed to load version metadata for %s v%s on %s", spec.language(), spec.version(), platform);
+        }
+        return null;
+    }
+
+    private void saveVersionMetadata(GrammarSpec spec, String platform, Path libPath) {
+        try {
+            long fileSize = Files.size(libPath);
+            GrammarVersionMetadata metadata = new GrammarVersionMetadata(
+                    spec.language(),
+                    spec.version(),
+                    spec.repository(),
+                    Instant.now(),
+                    platform,
+                    fileSize
+            );
+
+            Path metadataPath = getVersionMetadataPath(spec, platform);
+            Files.createDirectories(metadataPath.getParent());
+            OBJECT_MAPPER.writeValue(metadataPath.toFile(), metadata);
+
+            String cacheKey = spec.language() + "-" + spec.version() + "-" + platform;
+            versionCache.put(cacheKey, metadata);
+
+            LOG.debugf("Saved version metadata for %s v%s on %s", spec.language(), spec.version(), platform);
+        } catch (Exception e) {
+            LOG.warnf(e, "Failed to save version metadata for %s v%s on %s", spec.language(), spec.version(), platform);
+        }
+    }
+
+    /**
+     * Get version information for a cached grammar.
+     *
+     * @param language the language name
+     * @param version the version (optional, uses latest if null)
+     * @return optional metadata if available
+     */
+    public Optional<GrammarVersionMetadata> getVersionInfo(String language, String version) {
+        Objects.requireNonNull(language, "language");
+        String platform = platformName();
+
+        if (version == null) {
+            // Try to find the latest version by checking directory structure
+            try {
+                Path cacheDir = resolveCacheDir();
+                Path langDir = cacheDir.resolve(language);
+                if (Files.exists(langDir)) {
+                    Optional<String> latestVersion = Files.list(langDir)
+                            .filter(Files::isDirectory)
+                            .map(Path::getFileName)
+                            .map(Path::toString)
+                            .max(String::compareTo);
+                    if (latestVersion.isPresent()) {
+                        version = latestVersion.get();
+                    }
+                }
+            } catch (Exception e) {
+                LOG.debugf(e, "Failed to determine latest version for %s", language);
+            }
+        }
+
+        if (version != null) {
+            GrammarVersionMetadata metadata = loadVersionMetadata(
+                    new GrammarSpec(language, "", "", "", "", "", version),
+                    platform
+            );
+            return Optional.ofNullable(metadata);
+        }
+
+        return Optional.empty();
     }
 }
 
