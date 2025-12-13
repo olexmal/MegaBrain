@@ -114,7 +114,7 @@ class GrammarManagerTest {
 #### Integration Testing
 ```java
 @QuarkusTest
-class GrammarManagerIntegrationTest {
+class GrammarManagerTestIT {
 
     @Test
     void integrationTest_endToEnd() {
@@ -130,7 +130,10 @@ class GrammarManagerIntegrationTest {
 - **Coverage:** >80% for all new code
 - **Types:** Unit tests, integration tests, error scenarios
 - **Frameworks:** JUnit 5 + Mockito for Java, TestBed for Angular
-- **Naming:** `*Test` suffix, descriptive method names
+- **Naming:**
+  - `*Test.java` - Unit tests
+  - `*IT.java` or `*TestIT.java` - Integration tests
+  - Descriptive method names
 
 ### Phase 4: Quality Assurance & Documentation
 **Duration:** 1-2 hours per task
