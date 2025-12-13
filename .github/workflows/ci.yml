@@ -147,7 +147,12 @@ jobs:
         working-directory: frontend
         run: npm ci
 
+      - name: Test (Jest)
+        working-directory: frontend
+        run: npm test -- --runInBand --coverage
+
       - name: SonarQube Scan
+        working-directory: frontend
         uses: SonarSource/sonarqube-scan-action@v6
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
