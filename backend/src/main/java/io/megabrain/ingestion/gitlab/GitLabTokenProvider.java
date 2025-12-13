@@ -6,7 +6,7 @@
 package io.megabrain.ingestion.gitlab;
 
 import jakarta.enterprise.context.ApplicationScoped;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
+import jakarta.inject.Inject;
 
 /**
  * Provides GitLab authentication tokens.
@@ -15,8 +15,8 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 @ApplicationScoped
 public class GitLabTokenProvider {
 
-    @ConfigProperty(name = "megabrain.gitlab.token")
-    java.util.Optional<String> token;
+    @Inject
+    GitLabConfiguration config;
 
     /**
      * Gets the GitLab token if configured.
@@ -25,7 +25,7 @@ public class GitLabTokenProvider {
      * @return the GitLab token, or null if not configured
      */
     public String getToken() {
-        return token.filter(t -> !t.isBlank()).orElse(null);
+        return config.token().filter(t -> !t.isBlank()).orElse(null);
     }
 
     /**
@@ -34,6 +34,6 @@ public class GitLabTokenProvider {
      * @return true if a token is configured, false otherwise
      */
     public boolean hasToken() {
-        return token.isPresent() && !token.get().isBlank();
+        return config.token().isPresent() && !config.token().get().isBlank();
     }
 }

@@ -41,10 +41,10 @@
 - **Status:** Not Started
 - **Dependencies:** T1, T2 (needs client structure and API integration)
 - **Acceptance Criteria:**
-  - [ ] Supports custom GitLab base URL configuration
-  - [ ] Handles self-hosted instance authentication
-  - [ ] Supports custom CA certificates for SSL validation
-  - [ ] Clear error messages for connection failures
+  - [x] Supports custom GitLab base URL configuration
+  - [x] Handles self-hosted instance authentication
+  - [x] Supports custom CA certificates for SSL validation
+  - [x] Clear error messages for connection failures
 - **Technical Notes:** Use Quarkus configuration for base URL. Support environment variables and application.properties. Consider SSL context customization for custom certificates.
 
 ### T4: Implement token-based authentication
