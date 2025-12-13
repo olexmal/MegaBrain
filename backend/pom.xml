@@ -36,6 +36,8 @@
 
         <!-- SonarQube Configuration -->
         <sonar.organization>olexmal</sonar.organization>
+        <sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
+        <sonar.coverage.jacoco.xmlReportPaths>${project.build.directory}/site/jacoco/jacoco.xml,${project.build.directory}/site/jacoco-it/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
     </properties>
 
     <dependencyManagement>
@@ -368,6 +370,32 @@
                      <artifactId>sonar-maven-plugin</artifactId>
                      <version>5.1.0.4751</version>
                  </plugin>
+                 <plugin>
+                     <groupId>org.jacoco</groupId>
+                     <artifactId>jacoco-maven-plugin</artifactId>
+                     <version>0.8.12</version>
+                     <executions>
+                         <execution>
+                             <goals>
+                                 <goal>prepare-agent</goal>
+                             </goals>
+                         </execution>
+                         <execution>
+                             <id>report</id>
+                             <phase>test</phase>
+                             <goals>
+                                 <goal>report</goal>
+                             </goals>
+                         </execution>
+                         <execution>
+                             <id>report-integration</id>
+                             <phase>verify</phase>
+                             <goals>
+                                 <goal>report-integration</goal>
+                             </goals>
+                         </execution>
+                     </executions>
+                 </plugin>
              </plugins>
          </pluginManagement>
         <plugins>
@@ -383,8 +411,12 @@
                 <groupId>io.quarkus</groupId>
                 <artifactId>quarkus-maven-plugin</artifactId>
             </plugin>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+            </plugin>
         </plugins>
-     </build>
+    </build>
 
     <profiles>
         <profile>
