@@ -51,16 +51,16 @@
 
 ## Technical Tasks
 
-- [ ] **T1:** Implement `ParserRegistry` class (backend)
-- [ ] **T2:** Implement `GrammarManager` class (backend)
-- [ ] **T3:** Create grammar download logic from GitHub releases (backend)
-- [ ] **T4:** Implement local caching with version tracking (backend)
-- [ ] **T5:** Add version pinning configuration (backend)
-- [ ] **T6:** Add rollback/downgrade capability (backend)
-- [ ] **T7:** Create health check for grammar status (backend)
-- [ ] **T8:** Add grammars: Go, Rust, Kotlin, Ruby (backend)
-- [ ] **T9:** Add grammars: Scala, Swift, PHP, C# (backend)
-- [ ] **T10:** Write unit tests for grammar management (test)
+- [x] **T1:** Implement `ParserRegistry` class (backend)
+- [x] **T2:** Implement `GrammarManager` class (backend)
+- [x] **T3:** Create grammar download logic from GitHub releases (backend)
+- [x] **T4:** Implement local caching with version tracking (backend)
+- [x] **T5:** Add version pinning configuration (backend)
+- [x] **T6:** Add rollback/downgrade capability (backend)
+- [x] **T7:** Create health check for grammar status (backend)
+- [x] **T8:** Add grammars: Go, Rust, Kotlin, Ruby (backend)
+- [x] **T9:** Add grammars: Scala, Swift, PHP, C# (backend)
+- [x] **T10:** Write unit tests for grammar management (test)
 
 ---
 
