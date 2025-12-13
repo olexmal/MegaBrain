@@ -33,6 +33,9 @@
         <testcontainers.version>1.20.3</testcontainers.version>
         <langchain4j.version>1.9.1</langchain4j.version>
         <j-tree-sitter.version>0.25.6</j-tree-sitter.version>
+
+        <!-- SonarQube Configuration -->
+        <sonar.organization>olexmal</sonar.organization>
     </properties>
 
     <dependencyManagement>
@@ -359,6 +362,11 @@
                              </configuration>
                          </execution>
                      </executions>
+                 </plugin>
+                 <plugin>
+                     <groupId>org.sonarsource.scanner.maven</groupId>
+                     <artifactId>sonar-maven-plugin</artifactId>
+                     <version>4.0.0.4121</version>
                  </plugin>
              </plugins>
          </pluginManagement>
