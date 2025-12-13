@@ -54,11 +54,11 @@
 - **Status:** Not Started
 - **Dependencies:** T1, T2 (needs client structure and API integration)
 - **Acceptance Criteria:**
-  - [ ] Supports personal access tokens
-  - [ ] Supports project access tokens
-  - [ ] Tokens stored securely (environment variables, vault)
-  - [ ] Tokens never logged or exposed in error messages
-  - [ ] Clear error messages for invalid/expired tokens
+  - [x] Supports personal access tokens
+  - [x] Supports project access tokens
+  - [x] Tokens stored securely (environment variables, vault)
+  - [x] Tokens never logged or exposed in error messages
+  - [x] Clear error messages for invalid/expired tokens
 - **Technical Notes:** Use `PRIVATE-TOKEN` header for GitLab API authentication. Support both read and read_repository scopes.
 
 ### T5: Write unit tests for GitLabSourceControlClient

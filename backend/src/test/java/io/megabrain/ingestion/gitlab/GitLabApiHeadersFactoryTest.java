@@ -60,4 +60,43 @@ class GitLabApiHeadersFactoryTest {
         // then
         assertThat(headers).doesNotContainKey("PRIVATE-TOKEN");
     }
+
+    @Test
+    void update_shouldHandlePersonalAccessTokens() {
+        // given - Personal access tokens from gitlab.com
+        System.setProperty(TOKEN_PROPERTY, "glpat-abc123personal");
+        GitLabApiHeadersFactory factory = new GitLabApiHeadersFactory();
+
+        // when
+        MultivaluedMap<String, String> headers = factory.update(new MultivaluedHashMap<>(), new MultivaluedHashMap<>());
+
+        // then
+        assertThat(headers.getFirst("PRIVATE-TOKEN")).isEqualTo("glpat-abc123personal");
+    }
+
+    @Test
+    void update_shouldHandleProjectAccessTokens() {
+        // given - Project access tokens (same format as personal tokens)
+        System.setProperty(TOKEN_PROPERTY, "glpat-xyz789project");
+        GitLabApiHeadersFactory factory = new GitLabApiHeadersFactory();
+
+        // when
+        MultivaluedMap<String, String> headers = factory.update(new MultivaluedHashMap<>(), new MultivaluedHashMap<>());
+
+        // then
+        assertThat(headers.getFirst("PRIVATE-TOKEN")).isEqualTo("glpat-xyz789project");
+    }
+
+    @Test
+    void update_shouldHandleLegacyTokenFormats() {
+        // given - Some users might still use old token formats
+        System.setProperty(TOKEN_PROPERTY, "legacy-token-123");
+        GitLabApiHeadersFactory factory = new GitLabApiHeadersFactory();
+
+        // when
+        MultivaluedMap<String, String> headers = factory.update(new MultivaluedHashMap<>(), new MultivaluedHashMap<>());
+
+        // then
+        assertThat(headers.getFirst("PRIVATE-TOKEN")).isEqualTo("legacy-token-123");
+    }
 }
