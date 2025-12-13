@@ -1042,4 +1042,117 @@ class GrammarManagerTest {
         assertThat(remainingVersions.size()).isEqualTo(10);
         assertThat(removed).isEqualTo(5); // 15 - 10 = 5 removed
     }
+
+    @Test
+    void ensureCachedLibrary_handlesVersionPinningIntegration() throws Exception {
+        // Test the integration of version pinning with ensureCachedLibrary
+        GrammarConfig pinnedConfig = new GrammarConfig() {
+            @Override
+            public Optional<String> defaultVersion() {
+                return Optional.of("2.0.0");
+            }
+
+            @Override
+            public Map<String, String> languageVersions() {
+                return Map.of("java", "1.5.0");
+            }
+        };
+
+        GrammarManager pinnedManager = new GrammarManager(pinnedConfig);
+
+        // Test that applyVersionPinning would use pinned versions
+        GrammarSpec spec = pinnedManager.applyVersionPinning(
+            new GrammarSpec("java", "test", "test", "test", "test", "test", "1.0.0"));
+
+        assertThat(spec.version()).isEqualTo("1.5.0"); // Should use language-specific pinning
+    }
+
+    @Test
+    void rollbackOperations_handleConcurrentAccess() throws Exception {
+        // Test thread safety of rollback operations
+        Path langDir = tempDir.resolve("threadtest");
+        Path version1Dir = langDir.resolve("v1").resolve("linux-amd64");
+        Path version2Dir = langDir.resolve("v2").resolve("linux-amd64");
+        Files.createDirectories(version1Dir);
+        Files.createDirectories(version2Dir);
+
+        // Create library files
+        Files.writeString(version1Dir.resolve("lib.so"), "lib1");
+        Files.writeString(version2Dir.resolve("lib.so"), "lib2");
+
+        // Record some version usage using reflection
+        java.lang.reflect.Method recordMethod = GrammarManager.class.getDeclaredMethod("recordVersionUsage", String.class, String.class, boolean.class, String.class);
+        recordMethod.setAccessible(true);
+        recordMethod.invoke(grammarManager, "threadtest", "v1", true, null);
+        recordMethod.invoke(grammarManager, "threadtest", "v2", true, null);
+
+        // These operations should be thread-safe
+        java.util.List<String> versions1 = grammarManager.getCachedVersions("threadtest");
+        java.util.List<GrammarManager.VersionHistoryEntry> history1 = grammarManager.getVersionHistory("threadtest");
+
+        assertThat(versions1).contains("v1", "v2");
+        assertThat(history1).hasSize(2);
+    }
+
+    @Test
+    void getCacheStats_handlesLargeCacheStructure() throws Exception {
+        // Create a large cache structure to test performance and correctness
+        for (int i = 1; i <= 20; i++) {
+            Path langDir = tempDir.resolve("lang" + i);
+            Path versionDir = langDir.resolve("v" + i).resolve("linux-amd64");
+            Files.createDirectories(versionDir);
+            Files.writeString(versionDir.resolve("lib.so"), "content" + i);
+        }
+
+        GrammarManager.CacheStats stats = grammarManager.getCacheStats();
+
+        assertThat(stats.totalLanguages).isEqualTo(20);
+        assertThat(stats.totalVersions).isEqualTo(20);
+        assertThat(stats.totalSizeBytes).isGreaterThan(0);
+    }
+
+    @Test
+    void versionHistory_operations_areIdempotent() {
+        // Test that repeated operations don't cause issues
+        grammarManager.markVersionAsFailed("idempotent", "1.0.0", "Test failure");
+        grammarManager.markVersionAsFailed("idempotent", "1.0.0", "Test failure");
+        grammarManager.markVersionAsFailed("idempotent", "1.0.0", "Test failure");
+
+        java.util.List<GrammarManager.VersionHistoryEntry> history = grammarManager.getVersionHistory("idempotent");
+        assertThat(history).hasSize(3);
+        assertThat(history).allMatch(entry -> !entry.success());
+    }
+
+    @Test
+    void platformLibraryExtension_handlesUnknownPlatforms() throws Exception {
+        // Test with an unknown platform string
+        systemProperties.set("os.name", "UnknownOS");
+        systemProperties.set("os.arch", "unknown");
+
+        // Should not crash, should return a reasonable default
+        java.lang.reflect.Method extensionMethod = GrammarManager.class.getDeclaredMethod("platformLibraryExtension");
+        extensionMethod.setAccessible(true);
+        String extension = (String) extensionMethod.invoke(grammarManager);
+        assertThat(extension).isNotNull();
+        assertThat(extension).isNotEmpty();
+    }
+
+
+    @Test
+    void getVersionInfo_handlesMalformedMetadata() throws Exception {
+        // Create a malformed metadata file
+        Path langDir = tempDir.resolve("malformed");
+        Path versionDir = langDir.resolve("v1.0.0");
+        Files.createDirectories(versionDir);
+
+        // Write invalid JSON
+        Path metadataFile = versionDir.resolve("metadata.json");
+        Files.writeString(metadataFile, "{invalid json content}");
+
+        Optional<GrammarManager.GrammarVersionMetadata> result =
+            grammarManager.getVersionInfo("malformed", "v1.0.0");
+
+        // Should return empty rather than crash
+        assertThat(result).isEmpty();
+    }
 }

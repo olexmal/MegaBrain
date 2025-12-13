@@ -183,6 +183,84 @@ class ParserRegistryTest {
         assertThat(parser1.get()).isSameAs(parser2.get());
     }
 
+    @Test
+    void handlesPathWithMultipleDots() {
+        Optional<CodeParser> parser = registry.findParser(Path.of("com.example.MyClass.java"));
+        assertThat(parser).isPresent();
+        assertThat(parser.get().language()).isEqualTo("java");
+    }
+
+    @Test
+    void handlesComplexFileNames() {
+        // Test various file naming scenarios
+        String[] complexFiles = {
+            "my-file.py", "test_file.js", "component.test.tsx",
+            "header-file.h", "cpp-file.cpp", "template.hpp"
+        };
+
+        String[] expectedLanguages = {"python", "javascript", "typescript", "c", "cpp", "cpp"};
+
+        for (int i = 0; i < complexFiles.length; i++) {
+            Optional<CodeParser> parser = registry.findParser(complexFiles[i]);
+            assertThat(parser)
+                .describedAs("Parser for complex file %s", complexFiles[i])
+                .isPresent();
+            assertThat(parser.get().language())
+                .describedAs("Language for complex file %s", complexFiles[i])
+                .isEqualTo(expectedLanguages[i]);
+        }
+    }
+
+    @Test
+    void unregisterParser_clearsCache() {
+        ParserRegistry dynamicRegistry = new ParserRegistry();
+
+        // Register and use a parser
+        dynamicRegistry.registerParser(new FakeParserFactory("cachetest", ".cachetest"), "cachetest");
+        Optional<CodeParser> parser1 = dynamicRegistry.findParser("file.cachetest");
+        assertThat(parser1).isPresent();
+
+        // Unregister
+        dynamicRegistry.unregisterParser("cachetest");
+
+        // Should not find parser anymore
+        Optional<CodeParser> parser2 = dynamicRegistry.findParser("file.cachetest");
+        assertThat(parser2).isEmpty();
+    }
+
+    @Test
+    void supportedExtensions_includesAllRegisteredParsers() {
+        // Create an empty registry for this test
+        ParserRegistry dynamicRegistry = new ParserRegistry(Map.of());
+
+        // Register multiple parsers
+        dynamicRegistry.registerParser(new FakeParserFactory("lang1", ".ext1"), "ext1");
+        dynamicRegistry.registerParser(new FakeParserFactory("lang2", ".ext2"), "ext2");
+        dynamicRegistry.registerParser(new FakeParserFactory("lang3", ".ext3"), List.of("ext3a", "ext3b"));
+
+        List<String> extensions = dynamicRegistry.supportedExtensions();
+
+        assertThat(extensions).contains("ext1", "ext2", "ext3a", "ext3b");
+        assertThat(extensions).hasSize(4);
+    }
+
+    @Test
+    void registerParser_overwritesExistingRegistration() {
+        ParserRegistry dynamicRegistry = new ParserRegistry();
+
+        // Register first parser
+        dynamicRegistry.registerParser(new FakeParserFactory("lang1", ".shared"), "shared");
+        Optional<CodeParser> parser1 = dynamicRegistry.findParser("file.shared");
+        assertThat(parser1).isPresent();
+        assertThat(parser1.get().language()).isEqualTo("lang1");
+
+        // Register second parser for same extension
+        dynamicRegistry.registerParser(new FakeParserFactory("lang2", ".shared"), "shared");
+        Optional<CodeParser> parser2 = dynamicRegistry.findParser("file.shared");
+        assertThat(parser2).isPresent();
+        assertThat(parser2.get().language()).isEqualTo("lang2");
+    }
+
     private static final class FakeParserFactory implements ParserFactory {
         private final String language;
         private final String suffix;

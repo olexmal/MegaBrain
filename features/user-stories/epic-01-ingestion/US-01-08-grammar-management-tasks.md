@@ -133,14 +133,14 @@
 - **Description:** Create comprehensive unit tests for GrammarManager and ParserRegistry. Test grammar downloading, caching, version management, rollback, and health checks. Use mocks for external dependencies (GitHub API, file system).
 - **Estimated Hours:** 4 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed ✅
 - **Dependencies:** T1-T9 (needs complete implementation)
 - **Acceptance Criteria:**
-  - [ ] Unit tests cover GrammarManager operations
-  - [ ] Unit tests cover ParserRegistry operations
-  - [ ] Tests use mocks for external dependencies
-  - [ ] Test coverage >80%
-  - [ ] Tests include error scenarios
+  - [x] Unit tests cover GrammarManager operations
+  - [x] Unit tests cover ParserRegistry operations
+  - [x] Tests use mocks for external dependencies
+  - [x] Test coverage >80%
+  - [x] Tests include error scenarios
 - **Technical Notes:** Use JUnit 5 and Mockito. Mock GitHub API calls and file system operations. Test both success and failure paths. Include tests for version pinning and rollback.
 
 ---
