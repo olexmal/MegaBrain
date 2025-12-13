@@ -1,0 +1,253 @@
+---
+description: Comprehensive development process for complex multi-language RAG systems
+alwaysApply: true
+---
+
+# Comprehensive Development Process
+
+## Overview
+This rule defines the comprehensive development process used for implementing complex features in the MegaBrain RAG system. It combines task breakdown, implementation patterns, testing strategies, and quality assurance practices.
+
+## Process Phases
+
+### Phase 1: Story Analysis & Task Breakdown
+**Duration:** 30-60 minutes per story
+
+#### Step 1: Understand Acceptance Criteria
+- Read the complete user story and acceptance criteria
+- Identify all functional and non-functional requirements
+- Note performance requirements (e.g., AC5: <500ms cold start)
+- Identify integration points and dependencies
+
+#### Step 2: Task Decomposition
+Break down user stories into specific, actionable tasks:
+```markdown
+### T1: Task Name
+- **Description:** Clear description of what needs to be done
+- **Estimated Hours:** 2-8 hours (implementable in one session)
+- **Assignee:** TBD
+- **Status:** Not Started
+- **Dependencies:** T0 (needs base implementation)
+- **Acceptance Criteria:**
+  - [ ] Specific, testable criterion
+  - [ ] Another criterion
+- **Technical Notes:** Implementation details, patterns to follow
+```
+
+#### Step 3: Dependency Analysis
+- Identify task dependencies (T1 before T2)
+- Identify story dependencies (other user stories)
+- Ensure dependency chain is logical and unblocked
+
+### Phase 2: Implementation Strategy
+**Duration:** 4-6 hours per task
+
+#### Architecture Planning
+- Design interfaces and contracts first
+- Plan for testability (dependency injection, interfaces)
+- Consider performance implications
+- Plan for error handling and edge cases
+
+#### Implementation Patterns
+```java
+// 1. Define interfaces first
+public interface GrammarManager {
+    Language loadLanguage(GrammarSpec spec);
+    // ... other methods
+}
+
+// 2. Implement with comprehensive error handling
+@ApplicationScoped
+public class GrammarManagerImpl implements GrammarManager {
+    public Language loadLanguage(GrammarSpec spec) {
+        long startTime = System.nanoTime();
+        try {
+            // Implementation with timing
+            long loadTimeMs = (System.nanoTime() - startTime) / 1_000_000;
+            LOG.infof("Loaded language in %d ms", loadTimeMs);
+            return language;
+        } catch (Exception e) {
+            long loadTimeMs = (System.nanoTime() - startTime) / 1_000_000;
+            LOG.errorf(e, "Failed to load language after %d ms", loadTimeMs);
+            throw e;
+        }
+    }
+}
+```
+
+#### Configuration Management
+- Externalize all configuration via `@ConfigMapping`
+- Support environment variables for sensitive data
+- Provide sensible defaults
+- Document configuration options
+
+### Phase 3: Comprehensive Testing
+**Duration:** 2-3 hours per task
+
+#### Unit Testing Strategy
+```java
+@ExtendWith(SystemStubsExtension.class)
+class GrammarManagerTest {
+
+    @TempDir Path tempDir;
+    @SystemStub private SystemProperties systemProperties;
+    @Mock private GrammarConfig grammarConfig;
+
+    private GrammarManager grammarManager;
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+        grammarManager = new GrammarManager(grammarConfig);
+    }
+
+    @Test
+    void testWithEdgeCases() {
+        // Test success path
+        // Test error scenarios
+        // Test boundary conditions
+        // Test performance requirements
+    }
+}
+```
+
+#### Integration Testing
+```java
+@QuarkusTest
+class GrammarManagerIntegrationTest {
+
+    @Test
+    void integrationTest_endToEnd() {
+        // Test real file system operations
+        // Test configuration integration
+        // Test error recovery
+        // Verify performance requirements
+    }
+}
+```
+
+#### Testing Standards
+- **Coverage:** >80% for all new code
+- **Types:** Unit tests, integration tests, error scenarios
+- **Frameworks:** JUnit 5 + Mockito for Java, TestBed for Angular
+- **Naming:** `*Test` suffix, descriptive method names
+
+### Phase 4: Quality Assurance & Documentation
+**Duration:** 1-2 hours per task
+
+#### Performance Verification
+```java
+@Test
+void verifyPerformanceRequirements() {
+    long startTime = System.nanoTime();
+    // Execute operation
+    Language language = grammarManager.loadLanguage(spec);
+    long loadTimeMs = (System.nanoTime() - startTime) / 1_000_000;
+
+    // Verify performance requirement
+    assertThat(loadTimeMs).isLessThan(500); // AC5 requirement
+}
+```
+
+#### Health Check Implementation
+```java
+@Readiness
+@ApplicationScoped
+public class GrammarHealthCheck implements HealthCheck {
+
+    @Override
+    public HealthCheckResponse call() {
+        long checkStartTime = System.nanoTime();
+
+        // Comprehensive health verification
+        GrammarHealthStatus status = checkGrammarHealth();
+        long totalCheckTime = (System.nanoTime() - checkStartTime) / 1_000_000;
+
+        return HealthCheckResponse.named("grammar-health")
+                .state(status.failedGrammars() == 0)
+                .withData("totalCheckTimeMs", totalCheckTime)
+                .withData("grammarDetails", status.grammarDetails())
+                .build();
+    }
+}
+```
+
+#### Documentation Updates
+- Update acceptance criteria status: `[x] Completed`
+- Update task status in task breakdown
+- Add implementation notes and technical decisions
+- Update any API documentation
+
+### Phase 5: Commit & Review Preparation
+**Duration:** 30 minutes per task
+
+#### Commit Message Standards
+```bash
+git commit -m "feat: implement T3 - grammar download logic from GitHub releases
+
+- Add GitHub API integration for release downloads
+- Implement retry logic with exponential backoff
+- Add checksum verification for downloaded files
+- Support platform-specific binary selection
+- Comprehensive error handling for network failures
+
+- Unit tests with >80% coverage for download logic
+- Integration tests for real GitHub API calls
+- Performance monitoring for download times"
+```
+
+#### Definition of Done Verification
+- [x] All acceptance criteria met
+- [x] Unit tests passing (>80% coverage)
+- [x] Integration tests passing
+- [x] Performance requirements verified
+- [x] Documentation updated
+- [x] No critical bugs
+- [x] Health checks implemented
+
+## Key Practices Demonstrated
+
+### Task Organization
+- **Granular Tasks:** T1-T10 breakdown for US-01-08
+- **Clear Dependencies:** Each task listed prerequisites
+- **Acceptance Criteria:** Specific, testable requirements
+- **Technical Notes:** Implementation guidance provided
+
+### Implementation Quality
+- **Interface-First Design:** Define contracts before implementation
+- **Comprehensive Error Handling:** Try-catch with timing and logging
+- **Performance Monitoring:** Built-in timing and threshold checking
+- **Configuration Management:** Externalized via Quarkus config
+
+### Testing Excellence
+- **Multiple Test Types:** Unit, integration, performance tests
+- **Mock Strategies:** External dependencies fully mocked
+- **Edge Case Coverage:** Error scenarios, boundary conditions
+- **Performance Verification:** Automated threshold checking
+
+### Quality Assurance
+- **Health Checks:** Readiness probes for all major components
+- **Performance Alerts:** Automatic warnings for violations
+- **Documentation:** Real-time updates during development
+- **Commit Hygiene:** Detailed commit messages with context
+
+## Process Metrics (US-01-08 Example)
+
+- **Total Tasks:** 10 (T1-T10)
+- **Total Hours:** ~49 hours estimated
+- **Test Coverage:** 240+ tests, >80% coverage
+- **Performance Verified:** <500ms cold start requirement met
+- **Languages Supported:** 16 total (8 original + 8 new)
+- **Health Checks:** Full readiness verification implemented
+- **Documentation:** Complete task tracking and acceptance criteria
+
+## Benefits of This Process
+
+1. **Predictable Delivery:** Clear task breakdown with time estimates
+2. **Quality Assurance:** Comprehensive testing prevents regressions
+3. **Performance Focus:** Built-in monitoring ensures requirements met
+4. **Maintainability:** Interface-first design enables future changes
+5. **Documentation:** Real-time updates keep requirements current
+6. **Team Collaboration:** Clear acceptance criteria enable parallel work
+
+This comprehensive development process ensures that complex features like dynamic grammar management are implemented correctly, tested thoroughly, and delivered reliably within performance and quality requirements.
