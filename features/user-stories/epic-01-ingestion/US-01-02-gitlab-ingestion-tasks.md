@@ -68,11 +68,11 @@
 - **Status:** Not Started
 - **Dependencies:** T1-T4 (needs implementation to test)
 - **Acceptance Criteria:**
-  - [ ] Unit tests cover all public methods
-  - [ ] Tests use mocks for external dependencies
-  - [ ] Test coverage >80%
-  - [ ] Tests include error scenarios
-  - [ ] Tests cover both gitlab.com and self-hosted scenarios
+  - [x] Unit tests cover all public methods
+  - [x] Tests use mocks for external dependencies
+  - [x] Test coverage >80%
+  - [x] Tests include error scenarios
+  - [x] Tests cover both gitlab.com and self-hosted scenarios
 - **Technical Notes:** Use JUnit 5 and Mockito for testing. Test both success and failure paths. Include tests for self-hosted URL handling.
 
 ---
