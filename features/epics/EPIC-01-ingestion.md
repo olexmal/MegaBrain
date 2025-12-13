@@ -9,7 +9,7 @@
 | **Estimated Scope** | XL |
 | **Dependencies** | None (Foundation Epic) |
 | **Spec Reference** | Section 4.1 (FR-ING) |
-| **Status** | Planned |
+| **Status** | Mostly Complete |
 
 ## Business Value
 
@@ -29,13 +29,13 @@ This is the **foundation epic** upon which all other MegaBrain capabilities depe
 **As a** DevOps engineer, **I want** to ingest code from GitHub, GitLab, Bitbucket, and local Git repositories, **so that** all our organization's code is searchable regardless of where it's hosted.
 
 **Acceptance Criteria:**
-- [ ] Support GitHub repositories via GitHub API/clone
+- [x] Support GitHub repositories via GitHub API/clone
 - [ ] Support GitLab repositories via GitLab API/clone
-- [ ] Support Bitbucket repositories via Bitbucket API/clone
+- [x] Support Bitbucket repositories via Bitbucket API/clone
 - [ ] Support local Git repositories via filesystem path
-- [ ] Unified `SourceControlClient` interface abstracts provider differences
-- [ ] Credentials managed securely via environment variables or vault
-- [ ] Repository metadata (name, branch, commit SHA) captured during ingestion
+- [x] Unified `SourceControlClient` interface abstracts provider differences
+- [x] Credentials managed securely via environment variables or vault
+- [x] Repository metadata (name, branch, commit SHA) captured during ingestion
 
 **Spec Reference:** FR-ING-01
 
@@ -46,11 +46,11 @@ This is the **foundation epic** upon which all other MegaBrain capabilities depe
 **As a** developer, **I want** the system to parse code into logical chunks (functions, classes, methods), **so that** search results are meaningful code units rather than arbitrary text fragments.
 
 **Acceptance Criteria:**
-- [ ] Java files parsed via JavaParser extracting classes, methods, fields
-- [ ] Python, C, C++, JS, TS files parsed via Tree-sitter
-- [ ] Each chunk includes metadata: `language`, `entity_type`, `entity_name`, `source_file`, `byte_range`
-- [ ] Parser correctly handles nested structures (inner classes, nested functions)
-- [ ] Malformed files handled gracefully with partial parsing or skip
+- [x] Java files parsed via JavaParser extracting classes, methods, fields
+- [x] Python, C, C++, JS, TS files parsed via Tree-sitter
+- [x] Each chunk includes metadata: `language`, `entity_type`, `entity_name`, `source_file`, `byte_range`
+- [x] Parser correctly handles nested structures (inner classes, nested functions)
+- [x] Malformed files handled gracefully with partial parsing or skip
 - [ ] Parsing throughput meets NFR: >10,000 LOC per minute
 
 **Spec Reference:** FR-ING-02
@@ -62,12 +62,12 @@ This is the **foundation epic** upon which all other MegaBrain capabilities depe
 **As a** system administrator, **I want** incremental indexing based on git diff, **so that** daily updates are fast and don't require re-indexing the entire codebase.
 
 **Acceptance Criteria:**
-- [ ] Full index rebuild supported for initial ingestion
-- [ ] Incremental mode detects changed files via `git diff`
-- [ ] Only modified/added files are re-parsed and re-indexed
-- [ ] Deleted files are removed from the index
+- [x] Full index rebuild supported for initial ingestion
+- [x] Incremental mode detects changed files via `git diff`
+- [x] Only modified/added files are re-parsed and re-indexed
+- [x] Deleted files are removed from the index
 - [ ] Scheduler (Quartz) triggers jobs on configurable schedule
-- [ ] Manual trigger available via API
+- [x] Manual trigger available via API
 
 **Spec Reference:** FR-ING-03
 
@@ -78,10 +78,10 @@ This is the **foundation epic** upon which all other MegaBrain capabilities depe
 **As a** user, **I want** to see real-time progress during ingestion, **so that** I know the system is working and can estimate completion time.
 
 **Acceptance Criteria:**
-- [ ] SSE endpoint streams progress events
-- [ ] Events include: `stage` (Cloning/Parsing/Embedding/Storing/Complete), `message`, `percentage`
+- [x] SSE endpoint streams progress events
+- [x] Events include: `stage` (Cloning/Parsing/Embedding/Storing/Complete), `message`, `percentage`
 - [ ] Progress updates at least every 5 seconds during active processing
-- [ ] Error events streamed if ingestion fails
+- [x] Error events streamed if ingestion fails
 - [ ] Client can cancel in-progress ingestion
 
 **Spec Reference:** FR-ING-04
@@ -93,17 +93,17 @@ This is the **foundation epic** upon which all other MegaBrain capabilities depe
 **As a** developer working with Go/Rust/Kotlin/etc., **I want** my language to be supported, **so that** all our polyglot codebase is searchable.
 
 **Acceptance Criteria:**
-- [ ] Go files parsed via Tree-sitter
-- [ ] Rust files parsed via Tree-sitter
-- [ ] Kotlin files parsed via Tree-sitter (+ Kotlin Compiler API for advanced analysis)
-- [ ] Ruby files parsed via Tree-sitter
-- [ ] Scala files parsed via Tree-sitter
-- [ ] Swift files parsed via Tree-sitter
-- [ ] PHP files parsed via Tree-sitter
-- [ ] C# files parsed via Tree-sitter
-- [ ] Grammar downloading on-demand with local caching
-- [ ] Grammar version pinning for reproducibility
-- [ ] Grammar cold start <500ms per language
+- [x] Go files parsed via Tree-sitter
+- [x] Rust files parsed via Tree-sitter
+- [x] Kotlin files parsed via Tree-sitter (+ Kotlin Compiler API for advanced analysis)
+- [x] Ruby files parsed via Tree-sitter
+- [x] Scala files parsed via Tree-sitter
+- [x] Swift files parsed via Tree-sitter
+- [x] PHP files parsed via Tree-sitter
+- [x] C# files parsed via Tree-sitter
+- [x] Grammar downloading on-demand with local caching
+- [x] Grammar version pinning for reproducibility
+- [x] Grammar cold start <500ms per language
 
 **Spec Reference:** FR-ING-05
 
@@ -114,12 +114,12 @@ This is the **foundation epic** upon which all other MegaBrain capabilities depe
 **As a** system administrator, **I want** Tree-sitter grammars managed automatically, **so that** I don't need to manually bundle grammars for each language.
 
 **Acceptance Criteria:**
-- [ ] `ParserRegistry` dynamically loads grammars based on file extension
-- [ ] `GrammarManager` downloads grammars from official Tree-sitter repositories
-- [ ] Downloaded grammars cached locally
-- [ ] Version pinning configuration prevents unexpected grammar updates
-- [ ] Rollback capability if new grammar version causes issues
-- [ ] Health check verifies all required grammars are loaded
+- [x] `ParserRegistry` dynamically loads grammars based on file extension
+- [x] `GrammarManager` downloads grammars from official Tree-sitter repositories
+- [x] Downloaded grammars cached locally
+- [x] Version pinning configuration prevents unexpected grammar updates
+- [x] Rollback capability if new grammar version causes issues
+- [x] Health check verifies all required grammars are loaded
 
 **Spec Reference:** FR-ING-05 (Grammar Management)
 
@@ -195,15 +195,15 @@ record TextChunk(
 
 ## Definition of Done
 
-- [ ] All user stories complete and accepted
-- [ ] Unit tests for all parsers (>80% coverage)
-- [ ] Integration tests with real Git repositories
-- [ ] All 14 languages parsing correctly
-- [ ] SSE progress streaming verified end-to-end
-- [ ] Incremental indexing working with git diff
-- [ ] NFRs validated through performance tests
+- [ ] All user stories complete and accepted (missing: GitLab support, Quartz scheduling, client cancellation)
+- [x] Unit tests for all parsers (>80% coverage)
+- [x] Integration tests with real Git repositories
+- [x] All 14 languages parsing correctly
+- [ ] SSE progress streaming verified end-to-end (missing: client cancellation)
+- [x] Incremental indexing working with git diff
+- [ ] NFRs validated through performance tests (parsing throughput not verified)
 - [ ] Documentation updated (API docs, configuration guide)
-- [ ] Code reviewed and merged to main branch
+- [x] Code reviewed and merged to main branch
 
 ---
 
