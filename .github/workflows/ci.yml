@@ -84,7 +84,7 @@ jobs:
 
       - name: Test (Jest)
         working-directory: frontend
-        run: npm test -- --runInBand
+        run: npm test -- --runInBand --coverage
 
       - name: Build
         working-directory: frontend
