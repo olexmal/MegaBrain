@@ -13,13 +13,13 @@
 
 ## Acceptance Criteria
 
-- [ ] **AC1:** User can provide GitLab repository URL (gitlab.com or self-hosted)
-- [ ] **AC2:** System clones repository to temporary storage
-- [ ] **AC3:** System extracts all source files from the repository
-- [ ] **AC4:** Repository metadata captured (name, namespace, branch, commit SHA)
-- [ ] **AC5:** Private repository access works with GitLab token
-- [ ] **AC6:** Self-hosted GitLab instances supported via base URL config
-- [ ] **AC7:** Errors handled gracefully with clear messages
+- [x] **AC1:** User can provide GitLab repository URL (gitlab.com or self-hosted)
+- [x] **AC2:** System clones repository to temporary storage
+- [x] **AC3:** System extracts all source files from the repository
+- [x] **AC4:** Repository metadata captured (name, namespace, branch, commit SHA)
+- [x] **AC5:** Private repository access works with GitLab token
+- [x] **AC6:** Self-hosted GitLab instances supported via base URL config
+- [x] **AC7:** Errors handled gracefully with clear messages
 
 ---
 
@@ -33,9 +33,9 @@
 ### Demo Steps
 1. **Trigger Ingestion:** Call the ingestion API with GitLab repository URL
    ```bash
-   curl -X POST "http://localhost:8080/api/v1/ingest/gitlab" \
+   curl -X POST "http://localhost:8080/api/v1/ingestion/repositories" \
      -H "Content-Type: application/json" \
-     -d '{"repository": "gitlab-org/gitlab-foss", "branch": "master"}'
+     -d '{"repositoryUrl": "https://gitlab.com/gitlab-org/gitlab-foss", "branch": "master"}'
    ```
 2. **Show Progress:** Display clone progress events
 3. **Self-Hosted Demo:** Show configuration for self-hosted instance
@@ -50,11 +50,11 @@
 
 ## Technical Tasks
 
-- [ ] **T1:** Implement `GitLabSourceControlClient` class (backend)
-- [ ] **T2:** Create GitLab API integration for metadata (backend)
-- [ ] **T3:** Add self-hosted GitLab URL configuration (backend)
-- [ ] **T4:** Implement token-based authentication (backend)
-- [ ] **T5:** Write unit tests for GitLabSourceControlClient (test)
+- [x] **T1:** Implement `GitLabSourceControlClient` class (backend)
+- [x] **T2:** Create GitLab API integration for metadata (backend)
+- [x] **T3:** Add self-hosted GitLab URL configuration (backend)
+- [x] **T4:** Implement token-based authentication (backend)
+- [x] **T5:** Write unit tests for GitLabSourceControlClient (test)
 
 ---
 
@@ -92,4 +92,16 @@
 - [x] Test scenarios defined
 - [x] Demo script approved
 - [x] No blockers
+
+---
+
+## Definition of Done
+
+- [x] All acceptance criteria met (AC1-AC7)
+- [x] All technical tasks completed (T1-T5)
+- [x] Unit tests pass with >80% coverage
+- [x] Integration with CompositeSourceControlClient verified
+- [x] Self-hosted GitLab configuration tested
+- [x] Error handling validated for all scenarios
+- [x] Documentation updated with correct API endpoints
 
