@@ -184,6 +184,65 @@ public class GrammarHealthCheck implements HealthCheck {
 ### Phase 5: Commit & Review Preparation
 **Duration:** 30 minutes per task
 
+#### Git Workflow Practices
+
+##### Branch Creation Strategy
+Create feature branches with meaningful, descriptive names before starting development:
+
+```bash
+# Create and switch to feature branch
+git checkout -b feature/US-01-08-grammar-management
+git checkout -b fix/sonar-frontend-config
+git checkout -b refactor/grammar-registry-optimization
+git checkout -b ci/add-frontend-sonarqube-analysis
+
+# Branch naming conventions:
+# feature/ - New features or user stories
+# fix/ - Bug fixes
+# refactor/ - Code refactoring
+# ci/ - CI/CD pipeline changes
+# docs/ - Documentation updates
+# test/ - Test-related changes
+```
+
+**Branch Name Guidelines:**
+- Use lowercase with hyphens for readability
+- Include issue/story reference when applicable
+- Be descriptive but concise (max 50 characters)
+- Avoid generic names like "update" or "fix"
+
+##### Commit and Push Strategy
+Use interactive rebase with squash for clean commit history:
+
+```bash
+# Stage changes
+git add .
+
+# Commit with detailed message
+git commit -m "feat: implement dynamic grammar management
+
+- Add GrammarManager with download and caching capabilities
+- Implement version rollback and health check endpoints
+- Support 8 additional languages (Go, Rust, Kotlin, Ruby, Scala, Swift, PHP, C#)
+- Comprehensive unit and integration tests with >80% coverage
+- Performance monitoring with <500ms cold start requirement
+
+Resolves US-01-08: Dynamic Grammar Management"
+
+# Push feature branch
+git push origin feature/US-01-08-grammar-management
+
+# After PR approval, squash and merge
+git rebase -i main  # Squash commits interactively
+git push origin feature/US-01-08-grammar-management --force-with-lease
+```
+
+**Squash Strategy:**
+- Combine related commits into logical units
+- Maintain clean, readable history
+- Preserve important intermediate commits when they represent significant milestones
+- Use `git rebase -i` for interactive squashing
+
 #### Commit Message Standards
 ```bash
 git commit -m "feat: implement T3 - grammar download logic from GitHub releases
