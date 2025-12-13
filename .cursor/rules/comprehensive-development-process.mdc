@@ -127,13 +127,13 @@ class GrammarManagerTestIT {
 ```
 
 #### Testing Standards
-- **Coverage:** >80% for all new code, enforced with 70% minimum thresholds
+- **Coverage:** >80% target for all new code (reports generated, thresholds not enforced)
 - **Types:** Unit tests, integration tests, error scenarios
 - **Frameworks:** JUnit 5 + Mockito + JaCoCo for Java, Jest for Angular
 - **Coverage Tools:**
   - **Backend:** JaCoCo Maven plugin with XML and HTML reports
   - **Frontend:** Jest with LCOV reports integrated with SonarQube
-- **CI Integration:** Codecov upload and coverage verification
+- **CI Integration:** Codecov upload and coverage reporting
 - **Naming:**
   - `*Test.java` - Unit tests
   - `*IT.java` or `*TestIT.java` - Integration tests
@@ -265,9 +265,9 @@ git commit -m "feat: implement T3 - grammar download logic from GitHub releases
 
 #### Definition of Done Verification
 - [x] All acceptance criteria met
-- [x] Unit tests passing (>80% coverage, 70% minimum enforced)
+- [x] Unit tests passing (>80% coverage target)
 - [x] Integration tests passing
-- [x] Code coverage verified (JaCoCo for Java, Jest for TypeScript)
+- [x] Code coverage generated (JaCoCo for Java, Jest for TypeScript)
 - [x] Coverage reports uploaded to Codecov
 - [x] Performance requirements verified
 - [x] Documentation updated

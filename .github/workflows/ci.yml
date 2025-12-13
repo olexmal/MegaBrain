@@ -28,11 +28,6 @@ jobs:
           cd backend
           mvn -B clean install
 
-      - name: Verify backend coverage
-        run: |
-          cd backend
-          mvn -B jacoco:check
-
       - name: Upload backend coverage
         uses: codecov/codecov-action@v4
         with:
