@@ -1,0 +1,314 @@
+/*
+ * Copyright (c) 2025 MegaBrain Contributors
+ * Licensed under the MIT License - see LICENSE file for details.
+ */
+
+package io.megabrain.ingestion.parser.treesitter;
+
+import io.github.treesitter.jtreesitter.Node;
+import io.github.treesitter.jtreesitter.Tree;
+import io.megabrain.ingestion.parser.TextChunk;
+import org.jboss.logging.Logger;
+
+import java.nio.file.Path;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+
+/**
+ * Tree-sitter parser for PHP source code.
+ */
+public class PhpTreeSitterParser extends TreeSitterParser {
+
+    private static final Logger LOG = Logger.getLogger(PhpTreeSitterParser.class);
+    private static final String LANGUAGE = "php";
+    private static final Set<String> SUPPORTED_EXTENSIONS = Set.of("php");
+    private static final String LIBRARY_ENV = "TREE_SITTER_PHP_LIB";
+    private static final String LIBRARY_PROPERTY = "tree.sitter.php.library";
+    private static final String LANGUAGE_SYMBOL = "tree_sitter_php";
+
+    private static final Set<String> TYPE_NODE_TYPES = Set.of(
+            "class_declaration",
+            "interface_declaration",
+            "trait_declaration",
+            "enum_declaration"
+    );
+
+    public PhpTreeSitterParser() {
+        this(new io.megabrain.ingestion.parser.GrammarManager());
+    }
+
+    public PhpTreeSitterParser(io.megabrain.ingestion.parser.GrammarManager grammarManager) {
+        this(grammarManager.languageSupplier(PHP_SPEC), grammarManager.nativeLoader(PHP_SPEC));
+    }
+
+    PhpTreeSitterParser(java.util.function.Supplier<io.github.treesitter.jtreesitter.Language> languageSupplier, Runnable nativeLoader) {
+        super(LANGUAGE, SUPPORTED_EXTENSIONS, languageSupplier, nativeLoader);
+    }
+
+    @Override
+    protected List<QueryDefinition> languageQueries() {
+        return List.of(
+                new QueryDefinition("classes", """
+                        (class_declaration
+                            name: (name) @class.name)?
+                        """),
+                new QueryDefinition("interfaces", """
+                        (interface_declaration
+                            name: (name) @interface.name)?
+                        """),
+                new QueryDefinition("traits", """
+                        (trait_declaration
+                            name: (name) @trait.name)?
+                        """),
+                new QueryDefinition("enums", """
+                        (enum_declaration
+                            name: (name) @enum.name)?
+                        """),
+                new QueryDefinition("functions", """
+                        (function_definition
+                            name: (name) @function.name
+                            parameters: (formal_parameters)? @function.parameters
+                            return_type: (_)? @function.return_type)?
+                        """),
+                new QueryDefinition("methods", """
+                        (method_declaration
+                            name: (name) @method.name
+                            parameters: (formal_parameters)? @method.parameters
+                            return_type: (_)? @method.return_type)?
+                        """),
+                new QueryDefinition("properties", """
+                        (property_declaration
+                            (property_element
+                                name: (variable_name) @property.name
+                                type: (_)? @property.type)?)?
+                        """)
+        );
+    }
+
+    @Override
+    protected List<TextChunk> extractChunks(Node rootNode, Tree tree, TreeSitterSource source) {
+        PhpContext context = buildContext(rootNode, source);
+        List<TextChunk> chunks = new ArrayList<>();
+        walk(rootNode, source, context, new ArrayDeque<>(), new HashSet<>(), chunks);
+        return chunks;
+    }
+
+    private void walk(Node node,
+                      TreeSitterSource source,
+                      PhpContext context,
+                      ArrayDeque<String> typeStack,
+                      Set<String> seen,
+                      List<TextChunk> out) {
+        if (isTypeNode(node)) {
+            processType(node, source, context, typeStack, seen, out);
+            return;
+        }
+        if (isFunctionNode(node)) {
+            processFunction(node, source, context, typeStack, seen, out);
+        } else if (isMethodNode(node)) {
+            processMethod(node, source, context, typeStack, seen, out);
+        } else if (isPropertyNode(node)) {
+            processProperty(node, source, context, typeStack, seen, out);
+        }
+        node.getNamedChildren().forEach(child -> walk(child, source, context, typeStack, seen, out));
+    }
+
+    private void processType(Node node,
+                             TreeSitterSource source,
+                             PhpContext context,
+                             ArrayDeque<String> typeStack,
+                             Set<String> seen,
+                             List<TextChunk> out) {
+        Optional<String> name = extractName(node, source);
+        if (name.isEmpty()) {
+            return;
+        }
+        String entityType = typeEntity(node);
+        String qualifiedName = qualifyName(context.namespace(), typeStack, name.get());
+        Map<String, String> attributes = buildTypeAttributes(node, source, context);
+        addIfNotSeen(out, seen, toChunk(node, entityType, qualifiedName, source, attributes));
+
+        typeStack.push(name.get());
+        node.getNamedChildren().forEach(child -> walk(child, source, context, typeStack, seen, out));
+        typeStack.pop();
+    }
+
+    private void processFunction(Node node,
+                                 TreeSitterSource source,
+                                 PhpContext context,
+                                 ArrayDeque<String> typeStack,
+                                 Set<String> seen,
+                                 List<TextChunk> out) {
+        Optional<String> name = extractName(node, source);
+        if (name.isEmpty()) {
+            return;
+        }
+        String qualifiedName = qualifyName(context.namespace(), typeStack, name.get());
+        Map<String, String> attributes = buildCallableAttributes(node, source, context, typeStack);
+        addIfNotSeen(out, seen, toChunk(node, "function", qualifiedName, source, attributes));
+    }
+
+    private void processMethod(Node node,
+                               TreeSitterSource source,
+                               PhpContext context,
+                               ArrayDeque<String> typeStack,
+                               Set<String> seen,
+                               List<TextChunk> out) {
+        Optional<String> name = extractName(node, source);
+        if (name.isEmpty()) {
+            return;
+        }
+        String qualifiedName = qualifyName(context.namespace(), typeStack, name.get());
+        Map<String, String> attributes = buildCallableAttributes(node, source, context, typeStack);
+        addIfNotSeen(out, seen, toChunk(node, "method", qualifiedName, source, attributes));
+    }
+
+    private void processProperty(Node node,
+                                 TreeSitterSource source,
+                                 PhpContext context,
+                                 ArrayDeque<String> typeStack,
+                                 Set<String> seen,
+                                 List<TextChunk> out) {
+        // Properties are handled through property_declaration nodes
+        for (Node child : node.getNamedChildren()) {
+            if ("property_element".equals(child.getType())) {
+                Optional<String> name = extractPropertyName(child, source);
+                if (name.isPresent()) {
+                    String qualifiedName = qualifyName(context.namespace(), typeStack, name.get());
+                    Map<String, String> attributes = buildPropertyAttributes(child, source, context, typeStack);
+                    addIfNotSeen(out, seen, toChunk(child, "property", qualifiedName, source, attributes));
+                }
+            }
+        }
+    }
+
+    private Map<String, String> buildTypeAttributes(Node node, TreeSitterSource source, PhpContext context) {
+        Map<String, String> attributes = new LinkedHashMap<>();
+        context.namespace().ifPresent(ns -> attributes.put("namespace", ns));
+        sliceField(node, "base_clause", source).ifPresent(base -> attributes.put("extends", base));
+        sliceField(node, "class_interface_clause", source).ifPresent(interfaces -> attributes.put("implements", interfaces));
+        return attributes;
+    }
+
+    private Map<String, String> buildCallableAttributes(Node node,
+                                                        TreeSitterSource source,
+                                                        PhpContext context,
+                                                        ArrayDeque<String> typeStack) {
+        Map<String, String> attributes = new LinkedHashMap<>();
+        context.namespace().ifPresent(ns -> attributes.put("namespace", ns));
+        if (!typeStack.isEmpty()) {
+            attributes.put("enclosing_type", String.join("\\", typeStack));
+        }
+        sliceField(node, "visibility_modifier", source).ifPresent(vis -> attributes.put("visibility", vis));
+        sliceField(node, "parameters", source).ifPresent(params -> attributes.put("parameters", params));
+        sliceField(node, "return_type", source).ifPresent(ret -> attributes.put("return_type", ret));
+        return attributes;
+    }
+
+    private Map<String, String> buildPropertyAttributes(Node node,
+                                                        TreeSitterSource source,
+                                                        PhpContext context,
+                                                        ArrayDeque<String> typeStack) {
+        Map<String, String> attributes = new LinkedHashMap<>();
+        context.namespace().ifPresent(ns -> attributes.put("namespace", ns));
+        if (!typeStack.isEmpty()) {
+            attributes.put("enclosing_type", String.join("\\", typeStack));
+        }
+        sliceField(node, "visibility_modifier", source).ifPresent(vis -> attributes.put("visibility", vis));
+        sliceField(node, "type", source).ifPresent(type -> attributes.put("type", type));
+        return attributes;
+    }
+
+    private PhpContext buildContext(Node rootNode, TreeSitterSource source) {
+        String namespace = null;
+
+        for (Node child : rootNode.getNamedChildren()) {
+            if ("namespace_definition".equals(child.getType()) ||
+                "namespace_use_declaration".equals(child.getType())) {
+                namespace = extractNamespace(child, source).orElse(namespace);
+            }
+        }
+        return new PhpContext(Optional.ofNullable(namespace));
+    }
+
+    private Optional<String> extractName(Node node, TreeSitterSource source) {
+        return node.getChildByFieldName("name")
+                .map(nameNode -> source.slice(nameNode.getStartByte(), nameNode.getEndByte()).trim());
+    }
+
+    private Optional<String> extractPropertyName(Node propertyNode, TreeSitterSource source) {
+        return propertyNode.getChildByFieldName("name")
+                .map(nameNode -> source.slice(nameNode.getStartByte(), nameNode.getEndByte()).trim());
+    }
+
+    private Optional<String> extractNamespace(Node namespaceNode, TreeSitterSource source) {
+        return namespaceNode.getNamedChildren().stream()
+                .findFirst()
+                .map(node -> source.slice(node.getStartByte(), node.getEndByte()).trim());
+    }
+
+    private Optional<String> sliceField(Node node, String fieldName, TreeSitterSource source) {
+        return node.getChildByFieldName(fieldName)
+                .map(child -> source.slice(child.getStartByte(), child.getEndByte()).trim());
+    }
+
+    private String qualifyName(Optional<String> namespace, ArrayDeque<String> typeStack, String leaf) {
+        List<String> parts = new ArrayList<>();
+        namespace.ifPresent(parts::add);
+        parts.addAll(typeStack);
+        parts.add(leaf);
+        return String.join("\\", parts);
+    }
+
+    private void addIfNotSeen(List<TextChunk> out, Set<String> seen, TextChunk chunk) {
+        String key = chunk.entityName() + "|" + chunk.startByte() + "|" + chunk.endByte();
+        if (seen.add(key)) {
+            out.add(chunk);
+        }
+    }
+
+    private boolean isTypeNode(Node node) {
+        return TYPE_NODE_TYPES.contains(node.getType());
+    }
+
+    private boolean isFunctionNode(Node node) {
+        return "function_definition".equals(node.getType());
+    }
+
+    private boolean isMethodNode(Node node) {
+        return "method_declaration".equals(node.getType());
+    }
+
+    private boolean isPropertyNode(Node node) {
+        return "property_declaration".equals(node.getType());
+    }
+
+    private String typeEntity(Node node) {
+        return switch (node.getType()) {
+            case "interface_declaration" -> "interface";
+            case "trait_declaration" -> "trait";
+            case "enum_declaration" -> "enum";
+            default -> "class";
+        };
+    }
+
+    private static final io.megabrain.ingestion.parser.GrammarSpec PHP_SPEC =
+            new io.megabrain.ingestion.parser.GrammarSpec(
+                    LANGUAGE,
+                    LANGUAGE_SYMBOL,
+                    "tree-sitter-php",
+                    LIBRARY_PROPERTY,
+                    LIBRARY_ENV,
+                    "tree-sitter-php",
+                    "0.23.0"
+            );
+
+    private record PhpContext(Optional<String> namespace) {
+    }
+}

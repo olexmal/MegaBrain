@@ -119,14 +119,14 @@
 - **Description:** Integrate Tree-sitter grammars for Scala, Swift, PHP, and C# languages. Create parser implementations for each language following the TreeSitterParser pattern. Define queries to extract functions, classes, and other entities.
 - **Estimated Hours:** 8 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed ✅
 - **Dependencies:** T1, T2 (needs ParserRegistry and GrammarManager), US-01-05 (needs base TreeSitterParser)
 - **Acceptance Criteria:**
-  - [ ] Scala grammar integrated and parser implemented
-  - [ ] Swift grammar integrated and parser implemented
-  - [ ] PHP grammar integrated and parser implemented
-  - [ ] C# grammar integrated and parser implemented
-  - [ ] All languages extract functions and classes correctly
+  - [x] Scala grammar integrated and parser implemented
+  - [x] Swift grammar integrated and parser implemented
+  - [x] PHP grammar integrated and parser implemented
+  - [x] C# grammar integrated and parser implemented
+  - [x] All languages extract functions and classes correctly
 - **Technical Notes:** Use tree-sitter-scala, tree-sitter-swift, tree-sitter-php, tree-sitter-csharp grammars. Create language-specific queries for each. Handle language-specific constructs (e.g., C# properties, Swift extensions).
 
 ### T10: Write unit tests for grammar management

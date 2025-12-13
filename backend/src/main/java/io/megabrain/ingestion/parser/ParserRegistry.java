@@ -7,13 +7,17 @@ package io.megabrain.ingestion.parser;
 
 import io.megabrain.ingestion.parser.java.JavaParserService;
 import io.megabrain.ingestion.parser.treesitter.CTreeSitterParser;
+import io.megabrain.ingestion.parser.treesitter.CSharpTreeSitterParser;
 import io.megabrain.ingestion.parser.treesitter.CppTreeSitterParser;
 import io.megabrain.ingestion.parser.treesitter.GoTreeSitterParser;
 import io.megabrain.ingestion.parser.treesitter.JavaScriptTreeSitterParser;
 import io.megabrain.ingestion.parser.treesitter.KotlinTreeSitterParser;
+import io.megabrain.ingestion.parser.treesitter.PhpTreeSitterParser;
 import io.megabrain.ingestion.parser.treesitter.PythonTreeSitterParser;
 import io.megabrain.ingestion.parser.treesitter.RubyTreeSitterParser;
 import io.megabrain.ingestion.parser.treesitter.RustTreeSitterParser;
+import io.megabrain.ingestion.parser.treesitter.ScalaTreeSitterParser;
+import io.megabrain.ingestion.parser.treesitter.SwiftTreeSitterParser;
 import io.megabrain.ingestion.parser.treesitter.TypeScriptTreeSitterParser;
 import jakarta.enterprise.context.ApplicationScoped;
 
@@ -162,6 +166,10 @@ public class ParserRegistry {
         registerParser(new RustParserFactory(), List.of("rs"));
         registerParser(new KotlinParserFactory(), List.of("kt", "kts"));
         registerParser(new RubyParserFactory(), List.of("rb"));
+        registerParser(new ScalaParserFactory(), List.of("scala", "sc"));
+        registerParser(new SwiftParserFactory(), List.of("swift"));
+        registerParser(new PhpParserFactory(), List.of("php"));
+        registerParser(new CSharpParserFactory(), List.of("cs"));
 
         // Register Java parser
         registerParser(new JavaParserFactory(), List.of("java"));
@@ -299,6 +307,66 @@ public class ParserRegistry {
         @Override
         public String language() {
             return "ruby";
+        }
+    }
+
+    /**
+     * Factory for Scala Tree-sitter parsers.
+     */
+    private static class ScalaParserFactory implements ParserFactory {
+        @Override
+        public CodeParser createParser() {
+            return new ScalaTreeSitterParser(new GrammarManager());
+        }
+
+        @Override
+        public String language() {
+            return "scala";
+        }
+    }
+
+    /**
+     * Factory for Swift Tree-sitter parsers.
+     */
+    private static class SwiftParserFactory implements ParserFactory {
+        @Override
+        public CodeParser createParser() {
+            return new SwiftTreeSitterParser(new GrammarManager());
+        }
+
+        @Override
+        public String language() {
+            return "swift";
+        }
+    }
+
+    /**
+     * Factory for PHP Tree-sitter parsers.
+     */
+    private static class PhpParserFactory implements ParserFactory {
+        @Override
+        public CodeParser createParser() {
+            return new PhpTreeSitterParser(new GrammarManager());
+        }
+
+        @Override
+        public String language() {
+            return "php";
+        }
+    }
+
+    /**
+     * Factory for C# Tree-sitter parsers.
+     */
+    private static class CSharpParserFactory implements ParserFactory {
+        @Override
+        public CodeParser createParser() {
+            return new CSharpTreeSitterParser(new GrammarManager());
+        }
+
+        @Override
+        public String language() {
+            return "csharp";
         }
     }
 
