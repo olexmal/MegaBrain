@@ -32,6 +32,10 @@ public class RustTreeSitterParser extends TreeSitterParser {
     private static final String LIBRARY_PROPERTY = "tree.sitter.rust.library";
     private static final String LANGUAGE_SYMBOL = "tree_sitter_rust";
 
+    // Node types and attributes
+    private static final String NODE_TRAIT_ITEM = "trait_item";
+    private static final String ATTR_TRAIT = "trait";
+
     private static final Set<String> TYPE_NODE_TYPES = Set.of(
             "struct_item",
             "enum_item",
@@ -152,7 +156,7 @@ public class RustTreeSitterParser extends TreeSitterParser {
     private Map<String, String> buildTypeAttributes(Node node, TreeSitterSource source, RustContext context) {
         Map<String, String> attributes = new LinkedHashMap<>();
         sliceField(node, "fields", source).ifPresent(fields -> attributes.put("fields", fields));
-        sliceField(node, "trait", source).ifPresent(trait -> attributes.put("trait", trait));
+        sliceField(node, ATTR_TRAIT, source).ifPresent(trait -> attributes.put(ATTR_TRAIT, trait));
         sliceField(node, "type", source).ifPresent(type -> attributes.put("type", type));
         return attributes;
     }
@@ -206,7 +210,7 @@ public class RustTreeSitterParser extends TreeSitterParser {
             case "struct_item" -> "struct";
             case "enum_item" -> "enum";
             case "union_item" -> "union";
-            case "trait_item" -> "trait";
+            case NODE_TRAIT_ITEM -> ATTR_TRAIT;
             case "impl_item" -> "impl";
             case "type_item" -> "type";
             default -> "type";

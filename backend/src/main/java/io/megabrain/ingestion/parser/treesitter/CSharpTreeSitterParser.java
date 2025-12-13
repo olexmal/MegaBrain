@@ -32,6 +32,11 @@ public class CSharpTreeSitterParser extends TreeSitterParser {
     private static final String LIBRARY_PROPERTY = "tree.sitter.csharp.library";
     private static final String LANGUAGE_SYMBOL = "tree_sitter_csharp";
 
+    // Attribute keys
+    private static final String ATTR_NAMESPACE = "namespace";
+    private static final String ATTR_MODIFIERS = "modifiers";
+    private static final String ATTR_ENCLOSING_TYPE = "enclosing_type";
+
     private static final Set<String> TYPE_NODE_TYPES = Set.of(
             "class_declaration",
             "interface_declaration",
@@ -194,8 +199,8 @@ public class CSharpTreeSitterParser extends TreeSitterParser {
 
     private Map<String, String> buildTypeAttributes(Node node, TreeSitterSource source, CSharpContext context) {
         Map<String, String> attributes = new LinkedHashMap<>();
-        context.namespace().ifPresent(ns -> attributes.put("namespace", ns));
-        sliceField(node, "modifiers", source).ifPresent(mods -> attributes.put("modifiers", mods));
+        context.namespace().ifPresent(ns -> attributes.put(ATTR_NAMESPACE, ns));
+        sliceField(node, "modifiers", source).ifPresent(mods -> attributes.put(ATTR_MODIFIERS, mods));
         sliceField(node, "type_parameters", source).ifPresent(tp -> attributes.put("type_parameters", tp));
         sliceField(node, "base_list", source).ifPresent(base -> attributes.put("base_list", base));
         return attributes;
@@ -206,11 +211,11 @@ public class CSharpTreeSitterParser extends TreeSitterParser {
                                                         CSharpContext context,
                                                         ArrayDeque<String> typeStack) {
         Map<String, String> attributes = new LinkedHashMap<>();
-        context.namespace().ifPresent(ns -> attributes.put("namespace", ns));
+        context.namespace().ifPresent(ns -> attributes.put(ATTR_NAMESPACE, ns));
         if (!typeStack.isEmpty()) {
-            attributes.put("enclosing_type", String.join(".", typeStack));
+            attributes.put(ATTR_ENCLOSING_TYPE, String.join(".", typeStack));
         }
-        sliceField(node, "modifiers", source).ifPresent(mods -> attributes.put("modifiers", mods));
+        sliceField(node, "modifiers", source).ifPresent(mods -> attributes.put(ATTR_MODIFIERS, mods));
         sliceField(node, "parameter_list", source).ifPresent(params -> attributes.put("parameters", params));
         sliceField(node, "return_type", source).ifPresent(ret -> attributes.put("return_type", ret));
         return attributes;
@@ -221,11 +226,11 @@ public class CSharpTreeSitterParser extends TreeSitterParser {
                                                         CSharpContext context,
                                                         ArrayDeque<String> typeStack) {
         Map<String, String> attributes = new LinkedHashMap<>();
-        context.namespace().ifPresent(ns -> attributes.put("namespace", ns));
+        context.namespace().ifPresent(ns -> attributes.put(ATTR_NAMESPACE, ns));
         if (!typeStack.isEmpty()) {
-            attributes.put("enclosing_type", String.join(".", typeStack));
+            attributes.put(ATTR_ENCLOSING_TYPE, String.join(".", typeStack));
         }
-        sliceField(node, "modifiers", source).ifPresent(mods -> attributes.put("modifiers", mods));
+        sliceField(node, "modifiers", source).ifPresent(mods -> attributes.put(ATTR_MODIFIERS, mods));
         sliceField(node, "type", source).ifPresent(type -> attributes.put("type", type));
         return attributes;
     }
@@ -235,9 +240,9 @@ public class CSharpTreeSitterParser extends TreeSitterParser {
                                                      CSharpContext context,
                                                      ArrayDeque<String> typeStack) {
         Map<String, String> attributes = new LinkedHashMap<>();
-        context.namespace().ifPresent(ns -> attributes.put("namespace", ns));
+        context.namespace().ifPresent(ns -> attributes.put(ATTR_NAMESPACE, ns));
         if (!typeStack.isEmpty()) {
-            attributes.put("enclosing_type", String.join(".", typeStack));
+            attributes.put(ATTR_ENCLOSING_TYPE, String.join(".", typeStack));
         }
         sliceField(node, "type", source).ifPresent(type -> attributes.put("type", type));
         return attributes;

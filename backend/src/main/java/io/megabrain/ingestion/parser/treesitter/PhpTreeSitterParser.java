@@ -32,6 +32,9 @@ public class PhpTreeSitterParser extends TreeSitterParser {
     private static final String LIBRARY_PROPERTY = "tree.sitter.php.library";
     private static final String LANGUAGE_SYMBOL = "tree_sitter_php";
 
+    // Attribute keys
+    private static final String ATTR_NAMESPACE = "namespace";
+
     private static final Set<String> TYPE_NODE_TYPES = Set.of(
             "class_declaration",
             "interface_declaration",
@@ -190,7 +193,7 @@ public class PhpTreeSitterParser extends TreeSitterParser {
 
     private Map<String, String> buildTypeAttributes(Node node, TreeSitterSource source, PhpContext context) {
         Map<String, String> attributes = new LinkedHashMap<>();
-        context.namespace().ifPresent(ns -> attributes.put("namespace", ns));
+        context.namespace().ifPresent(ns -> attributes.put(ATTR_NAMESPACE, ns));
         sliceField(node, "base_clause", source).ifPresent(base -> attributes.put("extends", base));
         sliceField(node, "class_interface_clause", source).ifPresent(interfaces -> attributes.put("implements", interfaces));
         return attributes;
@@ -201,7 +204,7 @@ public class PhpTreeSitterParser extends TreeSitterParser {
                                                         PhpContext context,
                                                         ArrayDeque<String> typeStack) {
         Map<String, String> attributes = new LinkedHashMap<>();
-        context.namespace().ifPresent(ns -> attributes.put("namespace", ns));
+        context.namespace().ifPresent(ns -> attributes.put(ATTR_NAMESPACE, ns));
         if (!typeStack.isEmpty()) {
             attributes.put("enclosing_type", String.join("\\", typeStack));
         }
@@ -216,7 +219,7 @@ public class PhpTreeSitterParser extends TreeSitterParser {
                                                         PhpContext context,
                                                         ArrayDeque<String> typeStack) {
         Map<String, String> attributes = new LinkedHashMap<>();
-        context.namespace().ifPresent(ns -> attributes.put("namespace", ns));
+        context.namespace().ifPresent(ns -> attributes.put(ATTR_NAMESPACE, ns));
         if (!typeStack.isEmpty()) {
             attributes.put("enclosing_type", String.join("\\", typeStack));
         }

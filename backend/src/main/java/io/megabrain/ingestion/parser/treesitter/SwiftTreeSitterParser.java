@@ -27,7 +27,7 @@ public class SwiftTreeSitterParser extends TreeSitterParser {
 
     private static final Logger LOG = Logger.getLogger(SwiftTreeSitterParser.class);
     private static final String LANGUAGE = "swift";
-    private static final Set<String> SUPPORTED_EXTENSIONS = Set.of("swift");
+    private static final Set<String> SUPPORTED_EXTENSIONS = Set.of(LANGUAGE);
     private static final String LIBRARY_ENV = "TREE_SITTER_SWIFT_LIB";
     private static final String LIBRARY_PROPERTY = "tree.sitter.swift.library";
     private static final String LANGUAGE_SYMBOL = "tree_sitter_swift";

@@ -27,7 +27,7 @@ public class ScalaTreeSitterParser extends TreeSitterParser {
 
     private static final Logger LOG = Logger.getLogger(ScalaTreeSitterParser.class);
     private static final String LANGUAGE = "scala";
-    private static final Set<String> SUPPORTED_EXTENSIONS = Set.of("scala", "sc");
+    private static final Set<String> SUPPORTED_EXTENSIONS = Set.of(LANGUAGE, "sc");
     private static final String LIBRARY_ENV = "TREE_SITTER_SCALA_LIB";
     private static final String LIBRARY_PROPERTY = "tree.sitter.scala.library";
     private static final String LANGUAGE_SYMBOL = "tree_sitter_scala";

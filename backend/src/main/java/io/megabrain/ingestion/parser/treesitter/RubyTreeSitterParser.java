@@ -32,10 +32,14 @@ public class RubyTreeSitterParser extends TreeSitterParser {
     private static final String LIBRARY_PROPERTY = "tree.sitter.ruby.library";
     private static final String LANGUAGE_SYMBOL = "tree_sitter_ruby";
 
+    // Node types
+    private static final String NODE_MODULE = "module";
+    private static final String NODE_SINGLETON_CLASS = "singleton_class";
+
     private static final Set<String> TYPE_NODE_TYPES = Set.of(
             "class",
-            "module",
-            "singleton_class"
+            NODE_MODULE,
+            NODE_SINGLETON_CLASS
     );
 
     public RubyTreeSitterParser() {
@@ -277,8 +281,8 @@ public class RubyTreeSitterParser extends TreeSitterParser {
 
     private String typeEntity(Node node) {
         return switch (node.getType()) {
-            case "module" -> "module";
-            case "singleton_class" -> "singleton_class";
+            case NODE_MODULE -> NODE_MODULE;
+            case NODE_SINGLETON_CLASS -> NODE_SINGLETON_CLASS;
             default -> "class";
         };
     }

@@ -32,6 +32,11 @@ public class KotlinTreeSitterParser extends TreeSitterParser {
     private static final String LIBRARY_PROPERTY = "tree.sitter.kotlin.library";
     private static final String LANGUAGE_SYMBOL = "tree_sitter_kotlin";
 
+    // Attribute keys
+    private static final String ATTR_PACKAGE = "package";
+    private static final String ATTR_IMPORTS = "imports";
+    private static final String ATTR_MODIFIERS = "modifiers";
+
     private static final Set<String> TYPE_NODE_TYPES = Set.of(
             "class_declaration",
             "interface_declaration",
@@ -169,11 +174,11 @@ public class KotlinTreeSitterParser extends TreeSitterParser {
 
     private Map<String, String> buildTypeAttributes(Node node, TreeSitterSource source, KotlinContext context) {
         Map<String, String> attributes = new LinkedHashMap<>();
-        context.packageName().ifPresent(pkg -> attributes.put("package", pkg));
+        context.packageName().ifPresent(pkg -> attributes.put(ATTR_PACKAGE, pkg));
         if (!context.imports().isEmpty()) {
-            attributes.put("imports", String.join(",", context.imports()));
+            attributes.put(ATTR_IMPORTS, String.join(",", context.imports()));
         }
-        sliceField(node, "modifiers", source).ifPresent(mods -> attributes.put("modifiers", mods));
+        sliceField(node, "modifiers", source).ifPresent(mods -> attributes.put(ATTR_MODIFIERS, mods));
         return attributes;
     }
 
@@ -182,14 +187,14 @@ public class KotlinTreeSitterParser extends TreeSitterParser {
                                                         KotlinContext context,
                                                         ArrayDeque<String> typeStack) {
         Map<String, String> attributes = new LinkedHashMap<>();
-        context.packageName().ifPresent(pkg -> attributes.put("package", pkg));
+        context.packageName().ifPresent(pkg -> attributes.put(ATTR_PACKAGE, pkg));
         if (!context.imports().isEmpty()) {
-            attributes.put("imports", String.join(",", context.imports()));
+            attributes.put(ATTR_IMPORTS, String.join(",", context.imports()));
         }
         if (!typeStack.isEmpty()) {
             attributes.put("enclosing_type", String.join(".", typeStack));
         }
-        sliceField(node, "modifiers", source).ifPresent(mods -> attributes.put("modifiers", mods));
+        sliceField(node, "modifiers", source).ifPresent(mods -> attributes.put(ATTR_MODIFIERS, mods));
         sliceField(node, "parameters", source).ifPresent(params -> attributes.put("parameters", params));
         sliceField(node, "return_type", source).ifPresent(ret -> attributes.put("return_type", ret));
         return attributes;
@@ -200,14 +205,14 @@ public class KotlinTreeSitterParser extends TreeSitterParser {
                                                         KotlinContext context,
                                                         ArrayDeque<String> typeStack) {
         Map<String, String> attributes = new LinkedHashMap<>();
-        context.packageName().ifPresent(pkg -> attributes.put("package", pkg));
+        context.packageName().ifPresent(pkg -> attributes.put(ATTR_PACKAGE, pkg));
         if (!context.imports().isEmpty()) {
-            attributes.put("imports", String.join(",", context.imports()));
+            attributes.put(ATTR_IMPORTS, String.join(",", context.imports()));
         }
         if (!typeStack.isEmpty()) {
             attributes.put("enclosing_type", String.join(".", typeStack));
         }
-        sliceField(node, "modifiers", source).ifPresent(mods -> attributes.put("modifiers", mods));
+        sliceField(node, "modifiers", source).ifPresent(mods -> attributes.put(ATTR_MODIFIERS, mods));
         sliceField(node, "type", source).ifPresent(type -> attributes.put("type", type));
         return attributes;
     }
