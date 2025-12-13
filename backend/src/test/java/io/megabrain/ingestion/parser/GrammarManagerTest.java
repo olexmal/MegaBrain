@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
@@ -317,8 +318,8 @@ class GrammarManagerTest {
         GrammarManager.DownloadProgressCallback callback = GrammarManager.NO_PROGRESS;
 
         // Should not throw any exceptions
-        callback.onProgress(100, 1000, "test message");
-        callback.onProgress(0, -1, "another message");
+        assertThatCode(() -> callback.onProgress(100, 1000, "test message")).doesNotThrowAnyException();
+        assertThatCode(() -> callback.onProgress(0, -1, "another message")).doesNotThrowAnyException();
     }
 
     @Test

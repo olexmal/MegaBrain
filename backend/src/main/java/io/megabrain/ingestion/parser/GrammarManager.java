@@ -700,13 +700,15 @@ public class GrammarManager {
                 Path cacheDir = resolveCacheDir();
                 Path langDir = cacheDir.resolve(language);
                 if (Files.exists(langDir)) {
-                    Optional<String> latestVersion = Files.list(langDir)
-                            .filter(Files::isDirectory)
-                            .map(Path::getFileName)
-                            .map(Path::toString)
-                            .max(String::compareTo);
-                    if (latestVersion.isPresent()) {
-                        version = latestVersion.get();
+                    try (java.util.stream.Stream<Path> paths = Files.list(langDir)) {
+                        Optional<String> latestVersion = paths
+                                .filter(Files::isDirectory)
+                                .map(Path::getFileName)
+                                .map(Path::toString)
+                                .max(String::compareTo);
+                        if (latestVersion.isPresent()) {
+                            version = latestVersion.get();
+                        }
                     }
                 }
             } catch (Exception e) {
@@ -740,12 +742,14 @@ public class GrammarManager {
             Path cacheDir = resolveCacheDir();
             Path langDir = cacheDir.resolve(language);
             if (Files.exists(langDir)) {
-                Files.list(langDir)
-                        .filter(Files::isDirectory)
-                        .map(Path::getFileName)
-                        .map(Path::toString)
-                        .sorted(java.util.Comparator.reverseOrder()) // newest first
-                        .forEach(versions::add);
+                try (java.util.stream.Stream<Path> paths = Files.list(langDir)) {
+                    paths
+                            .filter(Files::isDirectory)
+                            .map(Path::getFileName)
+                            .map(Path::toString)
+                            .sorted(java.util.Comparator.reverseOrder()) // newest first
+                            .forEach(versions::add);
+                }
             }
         } catch (Exception e) {
             LOG.debugf(e, "Failed to list cached versions for %s", language);
@@ -775,10 +779,13 @@ public class GrammarManager {
                 return 0;
             }
 
-            java.util.List<Path> versionDirs = Files.list(langDir)
-                    .filter(Files::isDirectory)
-                    .sorted((a, b) -> b.getFileName().compareTo(a.getFileName())) // newest first
-                    .collect(java.util.stream.Collectors.toList());
+            java.util.List<Path> versionDirs;
+            try (java.util.stream.Stream<Path> paths = Files.list(langDir)) {
+                versionDirs = paths
+                        .filter(Files::isDirectory)
+                        .sorted((a, b) -> b.getFileName().compareTo(a.getFileName())) // newest first
+                        .collect(java.util.stream.Collectors.toList());
+            }
 
             // Keep the first maxVersions, remove the rest
             for (int i = maxVersions; i < versionDirs.size(); i++) {
@@ -834,11 +841,14 @@ public class GrammarManager {
                 return 0;
             }
 
-            java.util.List<String> languages = Files.list(cacheDir)
-                    .filter(Files::isDirectory)
-                    .map(Path::getFileName)
-                    .map(Path::toString)
-                    .collect(java.util.stream.Collectors.toList());
+            java.util.List<String> languages;
+            try (java.util.stream.Stream<Path> paths = Files.list(cacheDir)) {
+                languages = paths
+                        .filter(Files::isDirectory)
+                        .map(Path::getFileName)
+                        .map(Path::toString)
+                        .collect(java.util.stream.Collectors.toList());
+            }
 
             for (String language : languages) {
                 totalRemoved += cleanupOldVersions(language, maxVersionsPerLanguage);
@@ -877,38 +887,44 @@ public class GrammarManager {
                 return stats;
             }
 
-            Files.walk(cacheDir)
-                    .filter(Files::isRegularFile)
-                    .forEach(file -> {
-                        try {
-                            long size = Files.size(file);
-                            stats.totalSizeBytes += size;
-                            stats.totalFiles++;
+            try (java.util.stream.Stream<Path> files = Files.walk(cacheDir)) {
+                files
+                        .filter(Files::isRegularFile)
+                        .forEach(file -> {
+                            try {
+                                long size = Files.size(file);
+                                stats.totalSizeBytes += size;
+                                stats.totalFiles++;
 
-                            if (file.getFileName().toString().endsWith(platformLibraryExtension())) {
-                                stats.libraryFiles++;
-                                stats.librarySizeBytes += size;
-                            } else if (file.getFileName().toString().equals("metadata.json")) {
-                                stats.metadataFiles++;
+                                if (file.getFileName().toString().endsWith(platformLibraryExtension())) {
+                                    stats.libraryFiles++;
+                                    stats.librarySizeBytes += size;
+                                } else if (file.getFileName().toString().equals("metadata.json")) {
+                                    stats.metadataFiles++;
+                                }
+                            } catch (Exception e) {
+                                LOG.debugf(e, "Failed to get size for file %s", file);
                             }
-                        } catch (Exception e) {
-                            LOG.debugf(e, "Failed to get size for file %s", file);
-                        }
-                    });
+                        });
+            }
 
             // Count languages and versions
-            Files.list(cacheDir)
-                    .filter(Files::isDirectory)
-                    .forEach(langDir -> {
-                        stats.totalLanguages++;
-                        try {
-                            stats.totalVersions += (int) Files.list(langDir)
-                                    .filter(Files::isDirectory)
-                                    .count();
-                        } catch (Exception e) {
-                            LOG.debugf(e, "Failed to count versions for language %s", langDir.getFileName());
-                        }
-                    });
+            try (java.util.stream.Stream<Path> langDirs = Files.list(cacheDir)) {
+                langDirs
+                        .filter(Files::isDirectory)
+                        .forEach(langDir -> {
+                            stats.totalLanguages++;
+                            try {
+                                try (java.util.stream.Stream<Path> versionDirs = Files.list(langDir)) {
+                                    stats.totalVersions += (int) versionDirs
+                                            .filter(Files::isDirectory)
+                                            .count();
+                                }
+                            } catch (Exception e) {
+                                LOG.debugf(e, "Failed to count versions for language %s", langDir.getFileName());
+                            }
+                        });
+            }
 
         } catch (Exception e) {
             LOG.warnf(e, "Failed to collect cache statistics");
@@ -942,15 +958,17 @@ public class GrammarManager {
         }
 
         // Walk the tree in reverse order and delete
-        Files.walk(path)
-                .sorted(java.util.Comparator.reverseOrder())
-                .forEach(p -> {
-                    try {
-                        Files.delete(p);
-                    } catch (java.io.IOException e) {
-                        LOG.warnf(e, "Failed to delete %s during cleanup", p);
-                    }
-                });
+        try (java.util.stream.Stream<Path> paths = Files.walk(path)) {
+            paths
+                    .sorted(java.util.Comparator.reverseOrder())
+                    .forEach(p -> {
+                        try {
+                            Files.delete(p);
+                        } catch (java.io.IOException e) {
+                            LOG.warnf(e, "Failed to delete %s during cleanup", p);
+                        }
+                    });
+        }
     }
 
     /**
