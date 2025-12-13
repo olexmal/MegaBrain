@@ -8,8 +8,12 @@ package io.megabrain.ingestion.parser;
 import io.megabrain.ingestion.parser.java.JavaParserService;
 import io.megabrain.ingestion.parser.treesitter.CTreeSitterParser;
 import io.megabrain.ingestion.parser.treesitter.CppTreeSitterParser;
+import io.megabrain.ingestion.parser.treesitter.GoTreeSitterParser;
 import io.megabrain.ingestion.parser.treesitter.JavaScriptTreeSitterParser;
+import io.megabrain.ingestion.parser.treesitter.KotlinTreeSitterParser;
 import io.megabrain.ingestion.parser.treesitter.PythonTreeSitterParser;
+import io.megabrain.ingestion.parser.treesitter.RubyTreeSitterParser;
+import io.megabrain.ingestion.parser.treesitter.RustTreeSitterParser;
 import io.megabrain.ingestion.parser.treesitter.TypeScriptTreeSitterParser;
 import jakarta.enterprise.context.ApplicationScoped;
 
@@ -154,6 +158,10 @@ public class ParserRegistry {
         registerParser(new TypeScriptParserFactory(), List.of("ts", "tsx"));
         registerParser(new CParserFactory(), List.of("c", "h")); // prefer C for .h
         registerParser(new CppParserFactory(), List.of("cpp", "cc", "cxx", "hpp", "hh"));
+        registerParser(new GoParserFactory(), List.of("go"));
+        registerParser(new RustParserFactory(), List.of("rs"));
+        registerParser(new KotlinParserFactory(), List.of("kt", "kts"));
+        registerParser(new RubyParserFactory(), List.of("rb"));
 
         // Register Java parser
         registerParser(new JavaParserFactory(), List.of("java"));
@@ -231,6 +239,66 @@ public class ParserRegistry {
         @Override
         public String language() {
             return "cpp";
+        }
+    }
+
+    /**
+     * Factory for Go Tree-sitter parsers.
+     */
+    private static class GoParserFactory implements ParserFactory {
+        @Override
+        public CodeParser createParser() {
+            return new GoTreeSitterParser(new GrammarManager());
+        }
+
+        @Override
+        public String language() {
+            return "go";
+        }
+    }
+
+    /**
+     * Factory for Rust Tree-sitter parsers.
+     */
+    private static class RustParserFactory implements ParserFactory {
+        @Override
+        public CodeParser createParser() {
+            return new RustTreeSitterParser(new GrammarManager());
+        }
+
+        @Override
+        public String language() {
+            return "rust";
+        }
+    }
+
+    /**
+     * Factory for Kotlin Tree-sitter parsers.
+     */
+    private static class KotlinParserFactory implements ParserFactory {
+        @Override
+        public CodeParser createParser() {
+            return new KotlinTreeSitterParser(new GrammarManager());
+        }
+
+        @Override
+        public String language() {
+            return "kotlin";
+        }
+    }
+
+    /**
+     * Factory for Ruby Tree-sitter parsers.
+     */
+    private static class RubyParserFactory implements ParserFactory {
+        @Override
+        public CodeParser createParser() {
+            return new RubyTreeSitterParser(new GrammarManager());
+        }
+
+        @Override
+        public String language() {
+            return "ruby";
         }
     }
 

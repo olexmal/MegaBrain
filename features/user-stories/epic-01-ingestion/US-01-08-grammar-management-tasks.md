@@ -105,14 +105,14 @@
 - **Description:** Integrate Tree-sitter grammars for Go, Rust, Kotlin, and Ruby languages. Create parser implementations for each language following the TreeSitterParser pattern. Define queries to extract functions, classes, and other entities.
 - **Estimated Hours:** 8 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed ✅
 - **Dependencies:** T1, T2 (needs ParserRegistry and GrammarManager), US-01-05 (needs base TreeSitterParser)
 - **Acceptance Criteria:**
-  - [ ] Go grammar integrated and parser implemented
-  - [ ] Rust grammar integrated and parser implemented
-  - [ ] Kotlin grammar integrated and parser implemented
-  - [ ] Ruby grammar integrated and parser implemented
-  - [ ] All languages extract functions and classes correctly
+  - [x] Go grammar integrated and parser implemented
+  - [x] Rust grammar integrated and parser implemented
+  - [x] Kotlin grammar integrated and parser implemented
+  - [x] Ruby grammar integrated and parser implemented
+  - [x] All languages extract functions and classes correctly
 - **Technical Notes:** Use tree-sitter-go, tree-sitter-rust, tree-sitter-kotlin, tree-sitter-ruby grammars. Create language-specific queries for each. Handle language-specific constructs (e.g., Rust traits, Go interfaces).
 
 ### T9: Add grammars: Scala, Swift, PHP, C#
