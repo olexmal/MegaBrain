@@ -149,8 +149,7 @@ jobs:
         run: npm ci
 
       - name: SonarQube Scan
-        working-directory: frontend
-        uses: SonarSource/sonarqube-scan-action@v6
+        run: cd frontend && sonar-scanner
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
