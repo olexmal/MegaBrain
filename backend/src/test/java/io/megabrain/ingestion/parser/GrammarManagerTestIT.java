@@ -21,7 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * and end-to-end functionality.
  */
 @QuarkusTest
-class GrammarManagerIntegrationTest {
+class GrammarManagerTestIT {
 
     @TempDir
     Path tempDir;
