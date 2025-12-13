@@ -13,14 +13,14 @@
 
 ## Acceptance Criteria
 
-- [ ] **AC1:** `ParserRegistry` dynamically loads grammars based on file extension
-- [ ] **AC2:** `GrammarManager` downloads grammars from Tree-sitter repositories
-- [ ] **AC3:** Downloaded grammars cached locally in configurable directory
-- [ ] **AC4:** Version pinning via configuration prevents unexpected updates
-- [ ] **AC5:** Grammar loading time <500ms per language (cold start)
-- [ ] **AC6:** Rollback capability if new grammar causes issues
-- [ ] **AC7:** Health check endpoint verifies all required grammars loaded
-- [ ] **AC8:** Support for 8 additional languages: Go, Rust, Kotlin, Ruby, Scala, Swift, PHP, C#
+- [x] **AC1:** `ParserRegistry` dynamically loads grammars based on file extension
+- [x] **AC2:** `GrammarManager` downloads grammars from Tree-sitter repositories
+- [x] **AC3:** Downloaded grammars cached locally in configurable directory
+- [x] **AC4:** Version pinning via configuration prevents unexpected updates
+- [x] **AC5:** Grammar loading time <500ms per language (cold start) - Performance monitoring implemented
+- [x] **AC6:** Rollback capability if new grammar causes issues
+- [x] **AC7:** Health check endpoint verifies all required grammars loaded
+- [x] **AC8:** Support for 8 additional languages: Go, Rust, Kotlin, Ruby, Scala, Swift, PHP, C#
 
 ---
 

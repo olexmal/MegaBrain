@@ -37,14 +37,20 @@ public class GrammarHealthCheck implements HealthCheck {
 
     @Override
     public HealthCheckResponse call() {
+        long checkStartTime = System.nanoTime();
+
         HealthCheckResponseBuilder builder = HealthCheckResponse.named("grammar-status")
                 .up();
 
         try {
             GrammarHealthStatus status = checkGrammarHealth();
+            long totalCheckTime = (System.nanoTime() - checkStartTime) / 1_000_000;
+
             builder.withData("totalGrammars", status.totalGrammars())
                    .withData("loadedGrammars", status.loadedGrammars())
-                   .withData("failedGrammars", status.failedGrammars());
+                   .withData("failedGrammars", status.failedGrammars())
+                   .withData("totalCheckTimeMs", totalCheckTime)
+                   .withData("averageCheckTimeMs", String.format("%.2f", totalCheckTime / (double) status.totalGrammars()));
 
             // Add details for each grammar
             for (GrammarDetail detail : status.grammarDetails()) {
@@ -62,11 +68,17 @@ public class GrammarHealthCheck implements HealthCheck {
                        .withData("error", status.failedGrammars() + " grammars failed to load");
             }
 
-            LOG.debugf("Grammar health check: %d/%d grammars loaded, %d failed",
-                      status.loadedGrammars(), status.totalGrammars(), status.failedGrammars());
+            // Performance check: health check should complete within reasonable time
+            if (totalCheckTime > 2000) { // 2 second threshold for health check
+                LOG.warnf("Grammar health check exceeded 2000ms threshold: %d ms", totalCheckTime);
+            }
+
+            LOG.debugf("Grammar health check: %d/%d grammars loaded, %d failed, %d ms total",
+                      status.loadedGrammars(), status.totalGrammars(), status.failedGrammars(), totalCheckTime);
 
         } catch (Exception e) {
-            LOG.errorf(e, "Failed to perform grammar health check");
+            long totalCheckTime = (System.nanoTime() - checkStartTime) / 1_000_000;
+            LOG.errorf(e, "Failed to perform grammar health check after %d ms", totalCheckTime);
             builder.down()
                    .withData("error", "Health check failed: " + e.getMessage());
         }
@@ -89,6 +101,8 @@ public class GrammarHealthCheck implements HealthCheck {
         int failedCount = 0;
 
         for (String language : expectedLanguages) {
+            long languageStartTime = System.nanoTime();
+
             GrammarStatus status = GrammarStatus.NOT_CONFIGURED;
             String version = null;
             String errorMessage = null;
@@ -107,6 +121,12 @@ public class GrammarHealthCheck implements HealthCheck {
                         if (languageObj != null) {
                             status = GrammarStatus.LOADED;
                             loadedCount++;
+
+                            // Performance check: AC5 requirement (<500ms cold start)
+                            long loadTimeMs = (System.nanoTime() - languageStartTime) / 1_000_000;
+                            if (loadTimeMs > 500) {
+                                LOG.warnf("Grammar loading for %s exceeded 500ms threshold: %d ms (AC5 violation)", language, loadTimeMs);
+                            }
                         } else {
                             status = GrammarStatus.FAILED;
                             errorMessage = "Failed to load grammar";
@@ -122,10 +142,11 @@ public class GrammarHealthCheck implements HealthCheck {
                     status = GrammarStatus.NOT_CACHED;
                 }
             } catch (Exception e) {
+                long languageCheckTime = (System.nanoTime() - languageStartTime) / 1_000_000;
                 status = GrammarStatus.FAILED;
                 errorMessage = e.getMessage();
                 failedCount++;
-                LOG.debugf(e, "Failed to check grammar status for %s", language);
+                LOG.debugf("Failed to check grammar status for %s after %d ms: %s", language, languageCheckTime, errorMessage);
             }
 
             grammarDetails.put(language, new GrammarDetail(language, status, version, errorMessage));

@@ -180,37 +180,54 @@ public class GrammarManager {
      * @return loaded Language or null if loading failed
      */
     public Language loadLanguage(GrammarSpec spec) {
-        // Apply version pinning first
-        GrammarSpec pinnedSpec = applyVersionPinning(spec);
+        long startTime = System.nanoTime();
 
-        Objects.requireNonNull(pinnedSpec, "pinnedSpec");
-        Language cached = loadedLanguages.get(pinnedSpec.symbol());
-        if (cached != null) {
-            // Record successful usage of cached language
-            recordVersionUsage(pinnedSpec.language(), pinnedSpec.version(), true, null);
-            return cached;
-        }
-
-        // Record attempt to load this version
-        recordVersionUsage(pinnedSpec.language(), pinnedSpec.version(), false, null);
-
-        if (!ensureNativeLibraryLoaded(pinnedSpec)) {
-            // Record failure
-            recordVersionUsage(pinnedSpec.language(), pinnedSpec.version(), false, "Failed to load native library");
-            return null;
-        }
         try {
-            Language lang = Language.load(SymbolLookup.loaderLookup(), pinnedSpec.symbol());
-            loadedLanguages.put(pinnedSpec.symbol(), lang);
-            // Record success
-            recordVersionUsage(pinnedSpec.language(), pinnedSpec.version(), true, null);
-            LOG.debugf("Loaded Tree-sitter language %s via symbol %s", pinnedSpec.language(), pinnedSpec.symbol());
-            return lang;
-        } catch (Exception | UnsatisfiedLinkError e) {
-            LOG.errorf(e, "Failed to load grammar for %s via symbol %s", pinnedSpec.language(), pinnedSpec.symbol());
-            // Record failure and attempt automatic rollback
-            recordVersionUsage(pinnedSpec.language(), pinnedSpec.version(), false, e.getMessage());
-            return tryAutomaticRollback(pinnedSpec);
+            // Apply version pinning first
+            GrammarSpec pinnedSpec = applyVersionPinning(spec);
+
+            Objects.requireNonNull(pinnedSpec, "pinnedSpec");
+            Language cached = loadedLanguages.get(pinnedSpec.symbol());
+            if (cached != null) {
+                // Record successful usage of cached language
+                recordVersionUsage(pinnedSpec.language(), pinnedSpec.version(), true, null);
+                return cached;
+            }
+
+            // Record attempt to load this version
+            recordVersionUsage(pinnedSpec.language(), pinnedSpec.version(), false, null);
+
+            if (!ensureNativeLibraryLoaded(pinnedSpec)) {
+                // Record failure
+                recordVersionUsage(pinnedSpec.language(), pinnedSpec.version(), false, "Failed to load native library");
+                return null;
+            }
+            try {
+                Language lang = Language.load(SymbolLookup.loaderLookup(), pinnedSpec.symbol());
+                loadedLanguages.put(pinnedSpec.symbol(), lang);
+                // Record success
+                recordVersionUsage(pinnedSpec.language(), pinnedSpec.version(), true, null);
+
+                // Performance monitoring: AC5 requirement (<500ms cold start)
+                long loadTimeMs = (System.nanoTime() - startTime) / 1_000_000;
+                LOG.infof("Loaded Tree-sitter language %s via symbol %s in %d ms", pinnedSpec.language(), pinnedSpec.symbol(), loadTimeMs);
+
+                if (loadTimeMs > 500) {
+                    LOG.warnf("Grammar loading for %s exceeded 500ms threshold: %d ms (AC5 violation)", pinnedSpec.language(), loadTimeMs);
+                }
+
+                return lang;
+            } catch (Exception | UnsatisfiedLinkError e) {
+                long loadTimeMs = (System.nanoTime() - startTime) / 1_000_000;
+                LOG.errorf(e, "Failed to load grammar for %s via symbol %s after %d ms", pinnedSpec.language(), pinnedSpec.symbol(), loadTimeMs);
+                // Record failure and attempt automatic rollback
+                recordVersionUsage(pinnedSpec.language(), pinnedSpec.version(), false, e.getMessage());
+                return tryAutomaticRollback(pinnedSpec);
+            }
+        } catch (Exception e) {
+            long loadTimeMs = (System.nanoTime() - startTime) / 1_000_000;
+            LOG.errorf(e, "Unexpected error loading grammar for %s after %d ms", spec.language(), loadTimeMs);
+            throw e;
         }
     }
 
