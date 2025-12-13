@@ -6,12 +6,19 @@
 package io.megabrain.ingestion.gitlab;
 
 import io.quarkus.test.junit.QuarkusTest;
+import io.smallrye.mutiny.helpers.test.UniAssertSubscriber;
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response.StatusType;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @QuarkusTest
 class GitLabSourceControlClientTest {
@@ -61,7 +68,7 @@ class GitLabSourceControlClientTest {
     void canHandle_shouldReturnFalse_forNonGitLabUrls() {
         // Given
         GitLabSourceControlClient client = new GitLabSourceControlClient();
-        List<String> nonGitLabUrls = List.of(
+        List<String> nonGitLabUrls = Arrays.asList(
             "https://github.com/owner/repo",
             "https://bitbucket.org/owner/repo",
             "https://example.com/repo",
@@ -72,5 +79,62 @@ class GitLabSourceControlClientTest {
         for (String url : nonGitLabUrls) {
             assertThat(client.canHandle(url)).isFalse();
         }
+    }
+
+    @Test
+    void rateLimitHandling_shouldRetryAfter429Error() throws Exception {
+        // Given
+        GitLabSourceControlClient client = new GitLabSourceControlClient();
+
+        // Create a proper response for 429 error
+        Response response = Response.status(429).header("Retry-After", "2").build();
+        WebApplicationException rateLimitException = new WebApplicationException(response);
+
+        // Use reflection to test the private method
+        var method = GitLabSourceControlClient.class.getDeclaredMethod("fetchWithRateLimitHandling", java.util.function.Supplier.class);
+        method.setAccessible(true);
+
+        // Mock a supplier that throws rate limit exception on first call, succeeds on second
+        java.util.concurrent.atomic.AtomicInteger callCount = new java.util.concurrent.atomic.AtomicInteger(0);
+        java.util.function.Supplier<String> mockSupplier = () -> {
+            if (callCount.incrementAndGet() == 1) {
+                throw rateLimitException;
+            }
+            return "success";
+        };
+
+        // When
+        long startTime = System.currentTimeMillis();
+        String result = (String) method.invoke(client, mockSupplier);
+        long endTime = System.currentTimeMillis();
+
+        // Then
+        assertThat(result).isEqualTo("success");
+        assertThat(callCount.get()).isEqualTo(2); // Should have been called twice
+        assertThat(endTime - startTime).isGreaterThanOrEqualTo(2000); // Should have waited at least 2 seconds
+    }
+
+    @Test
+    void rateLimitHandling_shouldHandleAuthErrors() throws Exception {
+        // Given
+        GitLabSourceControlClient client = new GitLabSourceControlClient();
+
+        // Create a proper response for 401 error
+        Response response = Response.status(401).build();
+        WebApplicationException authException = new WebApplicationException(response);
+
+        // Use reflection to test the private method
+        var method = GitLabSourceControlClient.class.getDeclaredMethod("fetchWithRateLimitHandling", java.util.function.Supplier.class);
+        method.setAccessible(true);
+
+        // Mock a supplier that throws auth exception
+        java.util.function.Supplier<String> mockSupplier = () -> {
+            throw authException;
+        };
+
+        // When & Then
+        assertThatThrownBy(() -> method.invoke(client, mockSupplier))
+            .isInstanceOf(java.lang.reflect.InvocationTargetException.class)
+            .hasCauseInstanceOf(io.megabrain.ingestion.IngestionException.class);
     }
 }

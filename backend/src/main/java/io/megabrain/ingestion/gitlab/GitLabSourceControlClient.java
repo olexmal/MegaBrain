@@ -13,6 +13,8 @@ import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.Response;
 import org.eclipse.jgit.api.CloneCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -76,12 +78,16 @@ public class GitLabSourceControlClient implements SourceControlClient {
                 // URL encode the project path for GitLab API
                 String encodedProjectPath = URLEncoder.encode(urlParts.namespace() + "/" + urlParts.project(), StandardCharsets.UTF_8);
 
-                // Fetch project info
-                GitLabRepositoryInfo project = gitlabApiClient.getProject(encodedProjectPath);
+                // Fetch project info with rate limiting handling
+                GitLabRepositoryInfo project = fetchWithRateLimitHandling(() ->
+                    gitlabApiClient.getProject(encodedProjectPath)
+                );
 
                 // Fetch latest commit for default branch
                 String defaultBranch = project.defaultBranch();
-                GitLabCommitInfo[] commits = gitlabApiClient.getCommits(encodedProjectPath, defaultBranch, 1);
+                GitLabCommitInfo[] commits = fetchWithRateLimitHandling(() ->
+                    gitlabApiClient.getCommits(encodedProjectPath, defaultBranch, 1)
+                );
 
                 if (commits.length == 0) {
                     throw new IngestionException("No commits found for project: " + urlParts.namespace() + "/" + urlParts.project());
@@ -395,5 +401,77 @@ public class GitLabSourceControlClient implements SourceControlClient {
             }
         }
         Files.delete(path);
+    }
+
+    /**
+     * Executes an API call with GitLab rate limiting handling.
+     * Implements exponential backoff for 429 responses.
+     *
+     * @param apiCall the API call to execute
+     * @return the API response
+     * @param <T> the response type
+     */
+    private <T> T fetchWithRateLimitHandling(java.util.function.Supplier<T> apiCall) {
+        int attempt = 0;
+        int maxAttempts = 5;
+        long backoffMs = 1000; // Start with 1 second
+
+        while (attempt < maxAttempts) {
+            try {
+                return apiCall.get();
+            } catch (WebApplicationException e) {
+                Response response = e.getResponse();
+                int statusCode = response.getStatus();
+
+                if (statusCode == 429) { // Too Many Requests
+                    attempt++;
+
+                    if (attempt >= maxAttempts) {
+                        LOG.warnf("GitLab API rate limit exceeded, giving up after %d attempts", maxAttempts);
+                        throw new IngestionException("GitLab API rate limit exceeded", e);
+                    }
+
+                    // Check for Retry-After header (GitLab may provide this)
+                    String retryAfter = response.getHeaderString("Retry-After");
+                    long waitMs = backoffMs;
+
+                    if (retryAfter != null) {
+                        try {
+                            waitMs = Long.parseLong(retryAfter) * 1000; // Convert seconds to milliseconds
+                            LOG.infof("GitLab API rate limited, waiting %d seconds as requested", waitMs / 1000);
+                        } catch (NumberFormatException nfe) {
+                            LOG.warnf("Invalid Retry-After header: %s, using exponential backoff", retryAfter);
+                        }
+                    } else {
+                        LOG.infof("GitLab API rate limited, attempt %d/%d, waiting %d ms", attempt, maxAttempts, waitMs);
+                    }
+
+                    try {
+                        Thread.sleep(waitMs);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        throw new IngestionException("Interrupted while waiting for rate limit", ie);
+                    }
+
+                    // Exponential backoff for next attempt
+                    backoffMs = Math.min(backoffMs * 2, 30000); // Max 30 seconds
+
+                } else if (statusCode == 401) {
+                    throw new IngestionException("GitLab authentication failed. Please check your token.", e);
+                } else if (statusCode == 403) {
+                    throw new IngestionException("GitLab access forbidden. You may not have permission to access this repository.", e);
+                } else if (statusCode == 404) {
+                    throw new IngestionException("GitLab repository not found. Please check the URL.", e);
+                } else {
+                    // For other errors, don't retry
+                    throw e;
+                }
+            } catch (Exception e) {
+                // For non-HTTP exceptions, don't retry
+                throw new IngestionException("GitLab API call failed: " + e.getMessage(), e);
+            }
+        }
+
+        throw new IngestionException("GitLab API call failed after maximum retry attempts");
     }
 }

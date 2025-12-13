@@ -28,10 +28,10 @@
 - **Status:** Not Started
 - **Dependencies:** T1 (needs GitLabSourceControlClient structure)
 - **Acceptance Criteria:**
-  - [ ] Fetches repository name, namespace, branch information
-  - [ ] Retrieves latest commit SHA
-  - [ ] Handles GitLab API rate limiting with backoff
-  - [ ] Works with both authenticated and unauthenticated requests
+  - [x] Fetches repository name, namespace, branch information
+  - [x] Retrieves latest commit SHA
+  - [x] Handles GitLab API rate limiting with backoff
+  - [x] Works with both authenticated and unauthenticated requests
 - **Technical Notes:** Use GitLab REST API v4. Support custom base URL for self-hosted instances. Implement exponential backoff for rate limit handling.
 
 ### T3: Add self-hosted GitLab URL configuration
