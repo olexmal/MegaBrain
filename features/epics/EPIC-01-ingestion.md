@@ -30,7 +30,7 @@ This is the **foundation epic** upon which all other MegaBrain capabilities depe
 
 **Acceptance Criteria:**
 - [x] Support GitHub repositories via GitHub API/clone
-- [ ] Support GitLab repositories via GitLab API/clone
+- [x] Support GitLab repositories via GitLab API/clone (basic client implemented)
 - [x] Support Bitbucket repositories via Bitbucket API/clone
 - [ ] Support local Git repositories via filesystem path
 - [x] Unified `SourceControlClient` interface abstracts provider differences
