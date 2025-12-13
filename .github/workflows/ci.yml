@@ -28,6 +28,19 @@ jobs:
           cd backend
           mvn -B clean install
 
+      - name: Verify backend coverage
+        run: |
+          cd backend
+          mvn -B jacoco:check
+
+      - name: Upload backend coverage
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./backend/target/site/jacoco/jacoco.xml
+          flags: backend
+          name: Backend Coverage
+        if: success()
+
   benchmark:
     name: Benchmark (optional)
     runs-on: ubuntu-latest
@@ -89,6 +102,14 @@ jobs:
       - name: Build
         working-directory: frontend
         run: npm run build -- --configuration=production
+
+      - name: Upload frontend coverage
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./frontend/coverage/lcov.info
+          flags: frontend
+          name: Frontend Coverage
+        if: success()
 
   sonar:
     name: SonarQube Analysis
