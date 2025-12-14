@@ -40,7 +40,7 @@ public class RustTreeSitterParser extends TreeSitterParser {
             "struct_item",
             "enum_item",
             "union_item",
-            "trait_item",
+            NODE_TRAIT_ITEM,
             "impl_item",
             "type_item"
     );

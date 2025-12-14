@@ -37,6 +37,9 @@ public class KotlinTreeSitterParser extends TreeSitterParser {
     private static final String ATTR_IMPORTS = "imports";
     private static final String ATTR_MODIFIERS = "modifiers";
 
+    // AST field names
+    private static final String FIELD_MODIFIERS = "modifiers";
+
     private static final Set<String> TYPE_NODE_TYPES = Set.of(
             "class_declaration",
             "interface_declaration",
@@ -178,7 +181,7 @@ public class KotlinTreeSitterParser extends TreeSitterParser {
         if (!context.imports().isEmpty()) {
             attributes.put(ATTR_IMPORTS, String.join(",", context.imports()));
         }
-        sliceField(node, "modifiers", source).ifPresent(mods -> attributes.put(ATTR_MODIFIERS, mods));
+        sliceField(node, FIELD_MODIFIERS, source).ifPresent(mods -> attributes.put(ATTR_MODIFIERS, mods));
         return attributes;
     }
 
@@ -194,7 +197,7 @@ public class KotlinTreeSitterParser extends TreeSitterParser {
         if (!typeStack.isEmpty()) {
             attributes.put("enclosing_type", String.join(".", typeStack));
         }
-        sliceField(node, "modifiers", source).ifPresent(mods -> attributes.put(ATTR_MODIFIERS, mods));
+        sliceField(node, FIELD_MODIFIERS, source).ifPresent(mods -> attributes.put(ATTR_MODIFIERS, mods));
         sliceField(node, "parameters", source).ifPresent(params -> attributes.put("parameters", params));
         sliceField(node, "return_type", source).ifPresent(ret -> attributes.put("return_type", ret));
         return attributes;
@@ -212,7 +215,7 @@ public class KotlinTreeSitterParser extends TreeSitterParser {
         if (!typeStack.isEmpty()) {
             attributes.put("enclosing_type", String.join(".", typeStack));
         }
-        sliceField(node, "modifiers", source).ifPresent(mods -> attributes.put(ATTR_MODIFIERS, mods));
+        sliceField(node, FIELD_MODIFIERS, source).ifPresent(mods -> attributes.put(ATTR_MODIFIERS, mods));
         sliceField(node, "type", source).ifPresent(type -> attributes.put("type", type));
         return attributes;
     }
