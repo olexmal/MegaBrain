@@ -8,6 +8,7 @@ package io.megabrain.ingestion.parser;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
 import java.util.List;
@@ -150,7 +151,7 @@ class ParserRegistryTest {
         ParserRegistry dynamicRegistry = new ParserRegistry();
         ParserFactory factory = new FakeParserFactory("test", ".test");
 
-        assertThatThrownBy(() -> dynamicRegistry.registerParser(factory, java.util.Arrays.asList("test", null)))
+        assertThatThrownBy(() -> dynamicRegistry.registerParser(factory, Arrays.asList("test", null)))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("extension cannot be null or blank");
     }
@@ -180,7 +181,7 @@ class ParserRegistryTest {
         // Should be the same instance (cached)
         assertThat(parser1).isPresent();
         assertThat(parser2).isPresent();
-        assertThat(parser1.get()).isSameAs(parser2.get());
+        assertThat(parser1).containsSame(parser2.get());
     }
 
     @Test
@@ -240,8 +241,7 @@ class ParserRegistryTest {
 
         List<String> extensions = dynamicRegistry.supportedExtensions();
 
-        assertThat(extensions).contains("ext1", "ext2", "ext3a", "ext3b");
-        assertThat(extensions).hasSize(4);
+        assertThat(extensions).contains("ext1", "ext2", "ext3a", "ext3b").hasSize(4);
     }
 
     @Test
@@ -296,7 +296,7 @@ class ParserRegistryTest {
         }
 
         @Override
-        public List<io.megabrain.ingestion.parser.TextChunk> parse(Path filePath) {
+        public List<TextChunk> parse(Path filePath) {
             return List.of();
         }
 

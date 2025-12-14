@@ -133,11 +133,7 @@ class StreamEventTest {
         String json = objectMapper.writeValueAsString(event);
 
         // Then
-        assertThat(json).contains("\"stage\":\"CLONING\"");
-        assertThat(json).contains("\"message\":\"Starting clone\"");
-        assertThat(json).contains("\"percentage\":0");
-        assertThat(json).contains("\"timestamp\"");
-        assertThat(json).contains("\"metadata\":{}");
+        assertThat(json).contains("\"stage\":\"CLONING\"").contains("\"message\":\"Starting clone\"").contains("\"percentage\":0").contains("\"timestamp\"").contains("\"metadata\":{}");
     }
 
     @Test

@@ -17,9 +17,12 @@ import uk.org.webcompere.systemstubs.jupiter.SystemStubsExtension;
 import uk.org.webcompere.systemstubs.properties.SystemProperties;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -29,6 +32,9 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 @ExtendWith(SystemStubsExtension.class)
 class GrammarManagerTest {
@@ -84,7 +90,7 @@ class GrammarManagerTest {
 
         GrammarManager customManager = new GrammarManager();
         // Access private method via reflection for testing
-        java.lang.reflect.Method method = GrammarManager.class.getDeclaredMethod("resolveCacheDir");
+        Method method = GrammarManager.class.getDeclaredMethod("resolveCacheDir");
         method.setAccessible(true);
         Path result = (Path) method.invoke(customManager);
 
@@ -101,7 +107,7 @@ class GrammarManagerTest {
 
         GrammarManager customManager = new GrammarManager();
         // Access private method via reflection for testing
-        java.lang.reflect.Method method = GrammarManager.class.getDeclaredMethod("resolveCacheDir");
+        Method method = GrammarManager.class.getDeclaredMethod("resolveCacheDir");
         method.setAccessible(true);
         Path result = (Path) method.invoke(customManager);
 
@@ -115,7 +121,7 @@ class GrammarManagerTest {
         System.clearProperty("MEGABRAIN_GRAMMAR_CACHE_DIR");
 
         try {
-            java.lang.reflect.Method method = GrammarManager.class.getDeclaredMethod("resolveCacheDir");
+            Method method = GrammarManager.class.getDeclaredMethod("resolveCacheDir");
             method.setAccessible(true);
             Path result = (Path) method.invoke(grammarManager);
 
@@ -129,7 +135,7 @@ class GrammarManagerTest {
     void platformLibraryExtension_detectsLinux() {
         // This test assumes we're running on Linux (common for CI)
         try {
-            java.lang.reflect.Method method = GrammarManager.class.getDeclaredMethod("platformLibraryExtension");
+            Method method = GrammarManager.class.getDeclaredMethod("platformLibraryExtension");
             method.setAccessible(true);
             String result = (String) method.invoke(grammarManager);
 
@@ -168,8 +174,8 @@ class GrammarManagerTest {
 
         // Test serialization
         Path metadataPath = tempDir.resolve("test-metadata.json");
-        com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-        mapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule());
         mapper.writeValue(metadataPath.toFile(), metadata);
 
         // Test deserialization
@@ -226,7 +232,7 @@ class GrammarManagerTest {
         String expectedHash = "dffd6021bb2bd5b0af676290809ec3a53191dd81c7f70a4b28688a362182986f";
 
         // Access private method via reflection
-        java.lang.reflect.Method method = GrammarManager.class.getDeclaredMethod("calculateSha256", Path.class);
+        Method method = GrammarManager.class.getDeclaredMethod("calculateSha256", Path.class);
         method.setAccessible(true);
         String actualHash = (String) method.invoke(grammarManager, testFile);
 
@@ -238,11 +244,11 @@ class GrammarManagerTest {
         Path nonExistentFile = tempDir.resolve("nonexistent.txt");
 
         // Access private method via reflection
-        java.lang.reflect.Method method = GrammarManager.class.getDeclaredMethod("calculateSha256", Path.class);
+        Method method = GrammarManager.class.getDeclaredMethod("calculateSha256", Path.class);
         method.setAccessible(true);
 
         assertThatThrownBy(() -> method.invoke(grammarManager, nonExistentFile))
-                .isInstanceOf(java.lang.reflect.InvocationTargetException.class)
+                .isInstanceOf(InvocationTargetException.class)
                 .hasCauseInstanceOf(IOException.class);
     }
 
@@ -254,15 +260,13 @@ class GrammarManagerTest {
         Files.writeString(testFile, testContent);
 
         // Track progress callback invocations
-        java.util.List<String> progressMessages = new java.util.ArrayList<>();
-        GrammarManager.DownloadProgressCallback callback = (downloaded, total, message) -> {
-            progressMessages.add(message);
-        };
+        List<String> progressMessages = new ArrayList<>();
+        GrammarManager.DownloadProgressCallback callback = (downloaded, total, message) -> progressMessages.add(message);
 
         GrammarSpec spec = new GrammarSpec("test", "symbol", "lib", "prop", "env", "repo", "1.0.0");
 
         // Access private method via reflection
-        java.lang.reflect.Method method = GrammarManager.class.getDeclaredMethod("verifyDownloadedFile",
+        Method method = GrammarManager.class.getDeclaredMethod("verifyDownloadedFile",
                 GrammarSpec.class, Path.class, GrammarManager.DownloadProgressCallback.class);
         method.setAccessible(true);
 
@@ -271,7 +275,7 @@ class GrammarManagerTest {
 
         // Should have received progress messages
         assertThat(progressMessages).isNotEmpty();
-        assertThat(progressMessages.get(progressMessages.size() - 1)).contains("bytes");
+        assertThat(progressMessages.getLast()).contains("bytes");
     }
 
     @Test
@@ -284,12 +288,12 @@ class GrammarManagerTest {
         GrammarSpec spec = new GrammarSpec("test", "symbol", "lib", "prop", "env", "repo", "1.0.0");
 
         // Access private method via reflection
-        java.lang.reflect.Method method = GrammarManager.class.getDeclaredMethod("verifyDownloadedFile",
+        Method method = GrammarManager.class.getDeclaredMethod("verifyDownloadedFile",
                 GrammarSpec.class, Path.class, GrammarManager.DownloadProgressCallback.class);
         method.setAccessible(true);
 
         assertThatThrownBy(() -> method.invoke(grammarManager, spec, emptyFile, callback))
-                .isInstanceOf(java.lang.reflect.InvocationTargetException.class)
+                .isInstanceOf(InvocationTargetException.class)
                 .hasCauseInstanceOf(IOException.class)
                 .hasRootCauseMessage("Downloaded file is empty: %s", emptyFile.toString());
     }
@@ -302,12 +306,12 @@ class GrammarManagerTest {
         GrammarSpec spec = new GrammarSpec("test", "symbol", "lib", "prop", "env", "repo", "1.0.0");
 
         // Access private method via reflection
-        java.lang.reflect.Method method = GrammarManager.class.getDeclaredMethod("verifyDownloadedFile",
+        Method method = GrammarManager.class.getDeclaredMethod("verifyDownloadedFile",
                 GrammarSpec.class, Path.class, GrammarManager.DownloadProgressCallback.class);
         method.setAccessible(true);
 
         assertThatThrownBy(() -> method.invoke(grammarManager, spec, nonExistentFile, callback))
-                .isInstanceOf(java.lang.reflect.InvocationTargetException.class)
+                .isInstanceOf(InvocationTargetException.class)
                 .hasCauseInstanceOf(IOException.class)
                 .hasRootCauseMessage("Downloaded file does not exist: %s", nonExistentFile.toString());
     }
@@ -324,7 +328,7 @@ class GrammarManagerTest {
 
     @Test
     void getCachedVersions_returnsEmptyListForNonExistentLanguage() {
-        java.util.List<String> versions = grammarManager.getCachedVersions("nonexistent");
+        List<String> versions = grammarManager.getCachedVersions("nonexistent");
 
         assertThat(versions).isEmpty();
     }
@@ -341,7 +345,7 @@ class GrammarManagerTest {
         Files.createDirectories(version2Dir);
         Files.createDirectories(version3Dir);
 
-        java.util.List<String> versions = grammarManager.getCachedVersions("testlang");
+        List<String> versions = grammarManager.getCachedVersions("testlang");
 
         // Should be sorted newest first
         assertThat(versions).containsExactly("2.0.0", "1.1.0", "1.0.0");
@@ -372,7 +376,7 @@ class GrammarManagerTest {
         assertThat(removed).isEqualTo(2); // Should remove 2 oldest versions
 
         // Check that only the 2 newest versions remain
-        java.util.List<String> remainingVersions = grammarManager.getCachedVersions("testlang");
+        List<String> remainingVersions = grammarManager.getCachedVersions("testlang");
         assertThat(remainingVersions).containsExactly("2.1.0", "2.0.0");
 
         // Verify directories were actually deleted
@@ -430,11 +434,11 @@ class GrammarManagerTest {
 
         GrammarManager.CacheStats stats = grammarManager.getCacheStats();
 
-        assertThat(stats.totalLanguages).isEqualTo(1);
-        assertThat(stats.totalVersions).isEqualTo(1);
+        assertThat(stats.totalLanguages).isOne();
+        assertThat(stats.totalVersions).isOne();
         assertThat(stats.totalFiles).isEqualTo(2);
-        assertThat(stats.libraryFiles).isEqualTo(1);
-        assertThat(stats.metadataFiles).isEqualTo(1);
+        assertThat(stats.libraryFiles).isOne();
+        assertThat(stats.metadataFiles).isOne();
         assertThat(stats.totalSizeBytes).isGreaterThan(0);
         assertThat(stats.librarySizeBytes).isGreaterThan(0);
     }
@@ -443,13 +447,13 @@ class GrammarManagerTest {
     void getCacheStats_returnsEmptyStatsForEmptyCache() {
         GrammarManager.CacheStats stats = grammarManager.getCacheStats();
 
-        assertThat(stats.totalLanguages).isEqualTo(0);
-        assertThat(stats.totalVersions).isEqualTo(0);
-        assertThat(stats.totalFiles).isEqualTo(0);
-        assertThat(stats.libraryFiles).isEqualTo(0);
-        assertThat(stats.metadataFiles).isEqualTo(0);
-        assertThat(stats.totalSizeBytes).isEqualTo(0);
-        assertThat(stats.librarySizeBytes).isEqualTo(0);
+        assertThat(stats.totalLanguages).isZero();
+        assertThat(stats.totalVersions).isZero();
+        assertThat(stats.totalFiles).isZero();
+        assertThat(stats.libraryFiles).isZero();
+        assertThat(stats.metadataFiles).isZero();
+        assertThat(stats.totalSizeBytes).isZero();
+        assertThat(stats.librarySizeBytes).isZero();
     }
 
     @Test
@@ -465,11 +469,11 @@ class GrammarManagerTest {
         int removed = grammarManager.cleanupOldVersions("testlang");
 
         // Should keep 5 most recent (DEFAULT_MAX_VERSIONS_PER_LANGUAGE), remove 0 oldest
-        assertThat(removed).isEqualTo(0);
-        java.util.List<String> remainingVersions = grammarManager.getCachedVersions("testlang");
-        assertThat(remainingVersions).hasSize(5);
-        // Should keep all 5 versions since default is now 5
-        assertThat(remainingVersions).containsExactly("1.5.0", "1.4.0", "1.3.0", "1.2.0", "1.1.0");
+        assertThat(removed).isZero();
+        List<String> remainingVersions = grammarManager.getCachedVersions("testlang");
+        assertThat(remainingVersions).hasSize(5)
+                // Should keep all 5 versions since default is now 5
+                .containsExactly("1.5.0", "1.4.0", "1.3.0", "1.2.0", "1.1.0");
     }
 
     @Test
@@ -495,7 +499,7 @@ class GrammarManagerTest {
         int removed = grammarManager.cleanupAllOldVersions();
 
         // Should remove 0 from lang1 (4-5) + 0 from lang2 (5-5) = 0 total (since default is now 5)
-        assertThat(removed).isEqualTo(0);
+        assertThat(removed).isZero();
 
         // Verify both languages have all versions remaining (up to the default limit of 5)
         assertThat(grammarManager.getCachedVersions("lang1")).hasSize(4);
@@ -521,22 +525,13 @@ class GrammarManagerTest {
         String toString = stats.toString();
 
         // Verify the toString format
-        assertThat(toString).contains("CacheStats{");
-        assertThat(toString).contains("languages=1");
-        assertThat(toString).contains("versions=1");
-        assertThat(toString).contains("files=");
-        assertThat(toString).contains("libs=");
-        assertThat(toString).contains("meta=");
-        assertThat(toString).contains("size=");
-        assertThat(toString).contains("bytes");
-        assertThat(toString).contains("libs=");
-        assertThat(toString).contains("bytes");
+        assertThat(toString).contains("CacheStats{").contains("languages=1").contains("versions=1").contains("files=").contains("libs=").contains("meta=").contains("size=").contains("bytes").contains("libs=").contains("bytes");
     }
 
     @Test
     void getVersionInfo_withNullVersion_returnsLatestVersion() throws Exception {
         // Get the actual platform name used by the system
-        java.lang.reflect.Method platformMethod = GrammarManager.class.getDeclaredMethod("platformName");
+        Method platformMethod = GrammarManager.class.getDeclaredMethod("platformName");
         platformMethod.setAccessible(true);
         String platform = (String) platformMethod.invoke(grammarManager);
 
@@ -555,7 +550,7 @@ class GrammarManagerTest {
         createMockMetadataFile(version2Dir, "1.1.0");
         createMockMetadataFile(version3Dir, "2.0.0");
 
-        java.util.Optional<GrammarManager.GrammarVersionMetadata> result = grammarManager.getVersionInfo("testlang", null);
+        Optional<GrammarManager.GrammarVersionMetadata> result = grammarManager.getVersionInfo("testlang", null);
 
         assertThat(result).isPresent();
         assertThat(result.get().version()).isEqualTo("2.0.0"); // Should return latest version
@@ -563,7 +558,7 @@ class GrammarManagerTest {
 
     @Test
     void getVersionInfo_withNullVersion_returnsEmptyWhenNoVersionsExist() {
-        java.util.Optional<GrammarManager.GrammarVersionMetadata> result = grammarManager.getVersionInfo("nonexistent", null);
+        Optional<GrammarManager.GrammarVersionMetadata> result = grammarManager.getVersionInfo("nonexistent", null);
 
         assertThat(result).isEmpty();
     }
@@ -571,7 +566,7 @@ class GrammarManagerTest {
     @Test
     void getVersionInfo_withSpecificVersion_returnsCorrectVersion() throws Exception {
         // Get the actual platform name used by the system
-        java.lang.reflect.Method platformMethod = GrammarManager.class.getDeclaredMethod("platformName");
+        Method platformMethod = GrammarManager.class.getDeclaredMethod("platformName");
         platformMethod.setAccessible(true);
         String platform = (String) platformMethod.invoke(grammarManager);
 
@@ -583,7 +578,7 @@ class GrammarManagerTest {
         // Create metadata file
         createMockMetadataFile(versionDir, "1.5.0");
 
-        java.util.Optional<GrammarManager.GrammarVersionMetadata> result = grammarManager.getVersionInfo("testlang", "1.5.0");
+        Optional<GrammarManager.GrammarVersionMetadata> result = grammarManager.getVersionInfo("testlang", "1.5.0");
 
         assertThat(result).isPresent();
         assertThat(result.get().version()).isEqualTo("1.5.0");
@@ -591,7 +586,7 @@ class GrammarManagerTest {
 
     private void createMockMetadataFile(Path versionDir, String version) throws Exception {
         // Get the actual platform name
-        java.lang.reflect.Method platformMethod = GrammarManager.class.getDeclaredMethod("platformName");
+        Method platformMethod = GrammarManager.class.getDeclaredMethod("platformName");
         platformMethod.setAccessible(true);
         String platform = (String) platformMethod.invoke(grammarManager);
 
@@ -599,14 +594,14 @@ class GrammarManagerTest {
                 "testlang",
                 version,
                 "tree-sitter-testlang",
-                java.time.Instant.now(),
+                Instant.now(),
                 platform,
                 1024L
         );
 
         Path metadataPath = versionDir.resolve("metadata.json");
-        com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-        mapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule());
         mapper.writeValue(metadataPath.toFile(), metadata);
     }
 
@@ -806,7 +801,7 @@ class GrammarManagerTest {
     @Test
     void getVersionInfo_withNullVersion_handlesNonExistentLanguageGracefully() {
         // Test that null version with non-existent language returns empty
-        java.util.Optional<GrammarManager.GrammarVersionMetadata> result = grammarManager.getVersionInfo("completely-non-existent-language", null);
+        Optional<GrammarManager.GrammarVersionMetadata> result = grammarManager.getVersionInfo("completely-non-existent-language", null);
 
         assertThat(result).isEmpty();
     }
@@ -818,7 +813,7 @@ class GrammarManagerTest {
         Path versionDir = langDir.resolve("1.0.0").resolve("linux-amd64");
         Files.createDirectories(versionDir);
 
-        java.util.List<String> versions = grammarManager.getCachedVersions("special.lang-name_123");
+        List<String> versions = grammarManager.getCachedVersions("special.lang-name_123");
 
         assertThat(versions).contains("1.0.0");
     }
@@ -828,7 +823,7 @@ class GrammarManagerTest {
         // Test cleanup on language with no versions
         int removed = grammarManager.cleanupOldVersions("empty-language", 3);
 
-        assertThat(removed).isEqualTo(0);
+        assertThat(removed).isZero();
     }
 
     @Test
@@ -836,7 +831,7 @@ class GrammarManagerTest {
         // Test cleanup when all languages have no cached versions
         int removed = grammarManager.cleanupAllOldVersions();
 
-        assertThat(removed).isEqualTo(0);
+        assertThat(removed).isZero();
     }
 
     @Test
@@ -861,45 +856,45 @@ class GrammarManagerTest {
     @Test
     void recordVersionUsage_tracksSuccessAndFailure() throws Exception {
         // Test recording successful usage
-        java.lang.reflect.Method recordMethod = GrammarManager.class.getDeclaredMethod("recordVersionUsage", String.class, String.class, boolean.class, String.class);
+        Method recordMethod = GrammarManager.class.getDeclaredMethod("recordVersionUsage", String.class, String.class, boolean.class, String.class);
         recordMethod.setAccessible(true);
         recordMethod.invoke(grammarManager, "testlang", "1.0.0", true, null);
 
-        java.util.List<GrammarManager.VersionHistoryEntry> history = grammarManager.getVersionHistory("testlang");
+        List<GrammarManager.VersionHistoryEntry> history = grammarManager.getVersionHistory("testlang");
         assertThat(history).hasSize(1);
-        assertThat(history.get(0).language()).isEqualTo("testlang");
-        assertThat(history.get(0).version()).isEqualTo("1.0.0");
-        assertThat(history.get(0).success()).isTrue();
-        assertThat(history.get(0).errorMessage()).isNull();
+        assertThat(history.getFirst().language()).isEqualTo("testlang");
+        assertThat(history.getFirst().version()).isEqualTo("1.0.0");
+        assertThat(history.getFirst().success()).isTrue();
+        assertThat(history.getFirst().errorMessage()).isNull();
 
         // Test recording failed usage
         recordMethod.invoke(grammarManager, "testlang", "2.0.0", false, "Load failed");
 
         history = grammarManager.getVersionHistory("testlang");
         assertThat(history).hasSize(2);
-        assertThat(history.get(0).language()).isEqualTo("testlang");
-        assertThat(history.get(0).version()).isEqualTo("2.0.0");
-        assertThat(history.get(0).success()).isFalse();
-        assertThat(history.get(0).errorMessage()).isEqualTo("Load failed");
+        assertThat(history.getFirst().language()).isEqualTo("testlang");
+        assertThat(history.getFirst().version()).isEqualTo("2.0.0");
+        assertThat(history.getFirst().success()).isFalse();
+        assertThat(history.getFirst().errorMessage()).isEqualTo("Load failed");
     }
 
     @Test
     void recordVersionUsage_limitsHistorySize() throws Exception {
         // Record more entries than the limit
-        java.lang.reflect.Method recordMethod = GrammarManager.class.getDeclaredMethod("recordVersionUsage", String.class, String.class, boolean.class, String.class);
+        Method recordMethod = GrammarManager.class.getDeclaredMethod("recordVersionUsage", String.class, String.class, boolean.class, String.class);
         recordMethod.setAccessible(true);
         for (int i = 0; i < 120; i++) {
             recordMethod.invoke(grammarManager, "testlang", "v" + i, true, null);
         }
 
-        java.util.List<GrammarManager.VersionHistoryEntry> history = grammarManager.getVersionHistory("testlang");
+        List<GrammarManager.VersionHistoryEntry> history = grammarManager.getVersionHistory("testlang");
         // Should be limited to MAX_VERSION_HISTORY_ENTRIES
-        assertThat(history.size()).isLessThanOrEqualTo(100);
+        assertThat(history).hasSizeLessThanOrEqualTo(100);
     }
 
     @Test
     void getVersionHistory_returnsEmptyListForUnknownLanguage() {
-        java.util.List<GrammarManager.VersionHistoryEntry> history = grammarManager.getVersionHistory("unknown-lang");
+        List<GrammarManager.VersionHistoryEntry> history = grammarManager.getVersionHistory("unknown-lang");
         assertThat(history).isEmpty();
     }
 
@@ -924,12 +919,12 @@ class GrammarManagerTest {
         Files.write(libFile, "fake library content".getBytes());
 
         // Save metadata
-        java.lang.reflect.Method saveMethod = GrammarManager.class.getDeclaredMethod("saveVersionMetadata", GrammarSpec.class, String.class, Path.class);
+        Method saveMethod = GrammarManager.class.getDeclaredMethod("saveVersionMetadata", GrammarSpec.class, String.class, Path.class);
         saveMethod.setAccessible(true);
         saveMethod.invoke(grammarManager, testSpec, "linux-amd64", libFile);
 
         // Test that rollback recognizes the cached version exists
-        java.util.List<String> cachedVersions = grammarManager.getCachedVersions("testlang");
+        List<String> cachedVersions = grammarManager.getCachedVersions("testlang");
         assertThat(cachedVersions).contains("1.0.0");
 
         // The rollback method will try to load the cached version, but since it's not a real library,
@@ -946,7 +941,7 @@ class GrammarManagerTest {
     @Test
     void rollbackToPrevious_findsMostRecentSuccessfulVersion() throws Exception {
         // Record version history: success, failure, success
-        java.lang.reflect.Method recordMethod = GrammarManager.class.getDeclaredMethod("recordVersionUsage", String.class, String.class, boolean.class, String.class);
+        Method recordMethod = GrammarManager.class.getDeclaredMethod("recordVersionUsage", String.class, String.class, boolean.class, String.class);
         recordMethod.setAccessible(true);
         recordMethod.invoke(grammarManager, "testlang", "1.0.0", true, null);
         recordMethod.invoke(grammarManager, "testlang", "2.0.0", false, "Failed to load");
@@ -958,12 +953,12 @@ class GrammarManagerTest {
         Files.createDirectories(versionDir);
         Path libFile = versionDir.resolve("libtree-sitter-testlang.so");
         Files.write(libFile, "fake library content".getBytes());
-        java.lang.reflect.Method saveMethod = GrammarManager.class.getDeclaredMethod("saveVersionMetadata", GrammarSpec.class, String.class, Path.class);
+        Method saveMethod = GrammarManager.class.getDeclaredMethod("saveVersionMetadata", GrammarSpec.class, String.class, Path.class);
         saveMethod.setAccessible(true);
         saveMethod.invoke(grammarManager, testSpec, "linux-amd64", libFile);
 
         // Verify that version history is recorded correctly
-        java.util.List<GrammarManager.VersionHistoryEntry> history = grammarManager.getVersionHistory("testlang");
+        List<GrammarManager.VersionHistoryEntry> history = grammarManager.getVersionHistory("testlang");
         assertThat(history).hasSize(3);
         assertThat(history.get(0).version()).isEqualTo("3.0.0"); // Most recent
         assertThat(history.get(0).success()).isTrue();
@@ -993,7 +988,7 @@ class GrammarManagerTest {
     @Test
     void rollbackToPrevious_failsWithNoSuccessfulVersions() throws Exception {
         // Record only failures
-        java.lang.reflect.Method recordMethod = GrammarManager.class.getDeclaredMethod("recordVersionUsage", String.class, String.class, boolean.class, String.class);
+        Method recordMethod = GrammarManager.class.getDeclaredMethod("recordVersionUsage", String.class, String.class, boolean.class, String.class);
         recordMethod.setAccessible(true);
         recordMethod.invoke(grammarManager, "testlang", "1.0.0", false, "Failed");
         recordMethod.invoke(grammarManager, "testlang", "2.0.0", false, "Failed");
@@ -1008,15 +1003,15 @@ class GrammarManagerTest {
     void markVersionAsFailed_recordsFailure() {
         grammarManager.markVersionAsFailed("testlang", "1.0.0", "Test failure");
 
-        java.util.List<GrammarManager.VersionHistoryEntry> history = grammarManager.getVersionHistory("testlang");
+        List<GrammarManager.VersionHistoryEntry> history = grammarManager.getVersionHistory("testlang");
         assertThat(history).hasSize(1);
-        assertThat(history.get(0).success()).isFalse();
-        assertThat(history.get(0).errorMessage()).isEqualTo("Test failure");
+        assertThat(history.getFirst().success()).isFalse();
+        assertThat(history.getFirst().errorMessage()).isEqualTo("Test failure");
     }
 
     @Test
     void createGrammarSpecForVersion_createsBasicSpec() throws Exception {
-        java.lang.reflect.Method createMethod = GrammarManager.class.getDeclaredMethod("createGrammarSpecForVersion", String.class, String.class);
+        Method createMethod = GrammarManager.class.getDeclaredMethod("createGrammarSpecForVersion", String.class, String.class);
         createMethod.setAccessible(true);
         GrammarSpec result = (GrammarSpec) createMethod.invoke(grammarManager, "testlang", "2.0.0");
 
@@ -1039,8 +1034,8 @@ class GrammarManagerTest {
         // Cleanup should preserve 10 versions (ROLLBACK_MAX_VERSIONS_PER_LANGUAGE)
         int removed = grammarManager.cleanupOldVersions("testlang", 10);
 
-        java.util.List<String> remainingVersions = grammarManager.getCachedVersions("testlang");
-        assertThat(remainingVersions.size()).isEqualTo(10);
+        List<String> remainingVersions = grammarManager.getCachedVersions("testlang");
+        assertThat(remainingVersions).hasSize(10);
         assertThat(removed).isEqualTo(5); // 15 - 10 = 5 removed
     }
 
@@ -1082,14 +1077,14 @@ class GrammarManagerTest {
         Files.writeString(version2Dir.resolve("lib.so"), "lib2");
 
         // Record some version usage using reflection
-        java.lang.reflect.Method recordMethod = GrammarManager.class.getDeclaredMethod("recordVersionUsage", String.class, String.class, boolean.class, String.class);
+        Method recordMethod = GrammarManager.class.getDeclaredMethod("recordVersionUsage", String.class, String.class, boolean.class, String.class);
         recordMethod.setAccessible(true);
         recordMethod.invoke(grammarManager, "threadtest", "v1", true, null);
         recordMethod.invoke(grammarManager, "threadtest", "v2", true, null);
 
         // These operations should be thread-safe
-        java.util.List<String> versions1 = grammarManager.getCachedVersions("threadtest");
-        java.util.List<GrammarManager.VersionHistoryEntry> history1 = grammarManager.getVersionHistory("threadtest");
+        List<String> versions1 = grammarManager.getCachedVersions("threadtest");
+        List<GrammarManager.VersionHistoryEntry> history1 = grammarManager.getVersionHistory("threadtest");
 
         assertThat(versions1).contains("v1", "v2");
         assertThat(history1).hasSize(2);
@@ -1119,9 +1114,8 @@ class GrammarManagerTest {
         grammarManager.markVersionAsFailed("idempotent", "1.0.0", "Test failure");
         grammarManager.markVersionAsFailed("idempotent", "1.0.0", "Test failure");
 
-        java.util.List<GrammarManager.VersionHistoryEntry> history = grammarManager.getVersionHistory("idempotent");
-        assertThat(history).hasSize(3);
-        assertThat(history).allMatch(entry -> !entry.success());
+        List<GrammarManager.VersionHistoryEntry> history = grammarManager.getVersionHistory("idempotent");
+        assertThat(history).hasSize(3).allMatch(entry -> !entry.success());
     }
 
     @Test
@@ -1131,11 +1125,10 @@ class GrammarManagerTest {
         systemProperties.set("os.arch", "unknown");
 
         // Should not crash, should return a reasonable default
-        java.lang.reflect.Method extensionMethod = GrammarManager.class.getDeclaredMethod("platformLibraryExtension");
+        Method extensionMethod = GrammarManager.class.getDeclaredMethod("platformLibraryExtension");
         extensionMethod.setAccessible(true);
         String extension = (String) extensionMethod.invoke(grammarManager);
-        assertThat(extension).isNotNull();
-        assertThat(extension).isNotEmpty();
+        assertThat(extension).isNotNull().isNotEmpty();
     }
 
 

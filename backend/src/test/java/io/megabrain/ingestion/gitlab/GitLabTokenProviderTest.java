@@ -8,8 +8,6 @@ package io.megabrain.ingestion.gitlab;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
 
-import java.util.Optional;
-
 import static org.assertj.core.api.Assertions.assertThat;
 
 @QuarkusTest

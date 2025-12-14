@@ -5,13 +5,6 @@
 
 package io.megabrain.ingestion.parser;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.json.JsonMapper;
-import io.github.treesitter.jtreesitter.Language;
-import org.jboss.logging.Logger;
-
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.foreign.SymbolLookup;
@@ -26,13 +19,31 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Deque;
 import java.util.HexFormat;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
+import java.util.stream.Stream;
+
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+
+import org.jboss.logging.Logger;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+
+import io.github.treesitter.jtreesitter.Language;
 
 /**
  * Manages Tree-sitter grammar loading and native library lifecycle.
@@ -43,6 +54,8 @@ import java.util.concurrent.atomic.AtomicLong;
 @ApplicationScoped
 public class GrammarManager {
 
+    private static final String LANGUAGE = "language";
+    private static final String VERSION = "version";
     @Inject
     GrammarConfig grammarConfig;
 
@@ -67,8 +80,8 @@ public class GrammarManager {
             long fileSize
     ) {
         public GrammarVersionMetadata {
-            Objects.requireNonNull(language, "language");
-            Objects.requireNonNull(version, "version");
+            Objects.requireNonNull(language, LANGUAGE);
+            Objects.requireNonNull(version, VERSION);
             Objects.requireNonNull(repository, "repository");
             Objects.requireNonNull(downloadedAt, "downloadedAt");
             Objects.requireNonNull(platform, "platform");
@@ -86,8 +99,8 @@ public class GrammarManager {
             String errorMessage
     ) {
         public VersionHistoryEntry {
-            Objects.requireNonNull(language, "language");
-            Objects.requireNonNull(version, "version");
+            Objects.requireNonNull(language, LANGUAGE);
+            Objects.requireNonNull(version, VERSION);
             Objects.requireNonNull(usedAt, "usedAt");
         }
     }
@@ -103,7 +116,7 @@ public class GrammarManager {
             String errorMessage
     ) {
         public RollbackResult {
-            Objects.requireNonNull(language, "language");
+            Objects.requireNonNull(language, LANGUAGE);
             Objects.requireNonNull(fromVersion, "fromVersion");
             Objects.requireNonNull(toVersion, "toVersion");
         }
@@ -132,13 +145,13 @@ public class GrammarManager {
     private static final int ROLLBACK_MAX_VERSIONS_PER_LANGUAGE = 10; // Keep more for rollback
     private static final int MAX_VERSION_HISTORY_ENTRIES = 100; // Limit history size
     private static final ObjectMapper OBJECT_MAPPER = JsonMapper.builder()
-            .addModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())
+            .addModule(new JavaTimeModule())
             .build();
 
     private final Map<String, Language> loadedLanguages = new ConcurrentHashMap<>();
     private final Map<String, Boolean> nativeLoaded = new ConcurrentHashMap<>();
     private final Map<String, GrammarVersionMetadata> versionCache = new ConcurrentHashMap<>();
-    private final Map<String, java.util.Deque<VersionHistoryEntry>> versionHistory = new ConcurrentHashMap<>();
+    private final Map<String, Deque<VersionHistoryEntry>> versionHistory = new ConcurrentHashMap<>();
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(HTTP_TIMEOUT)
             .followRedirects(HttpClient.Redirect.NORMAL)
@@ -235,8 +248,8 @@ public class GrammarManager {
      * Record version usage in history for rollback tracking.
      */
     private void recordVersionUsage(String language, String version, boolean success, String errorMessage) {
-        Objects.requireNonNull(language, "language");
-        Objects.requireNonNull(version, "version");
+        Objects.requireNonNull(language, LANGUAGE);
+        Objects.requireNonNull(version, VERSION);
 
         VersionHistoryEntry entry = new VersionHistoryEntry(
                 language,
@@ -246,10 +259,10 @@ public class GrammarManager {
                 errorMessage
         );
 
-        versionHistory.computeIfAbsent(language, k -> new java.util.LinkedList<>()).addFirst(entry);
+        versionHistory.computeIfAbsent(language, k -> new LinkedList<>()).addFirst(entry);
 
         // Limit history size to prevent memory leaks
-        java.util.Deque<VersionHistoryEntry> history = versionHistory.get(language);
+        Deque<VersionHistoryEntry> history = versionHistory.get(language);
         while (history.size() > MAX_VERSION_HISTORY_ENTRIES) {
             history.removeLast();
         }
@@ -265,7 +278,7 @@ public class GrammarManager {
     private Language tryAutomaticRollback(GrammarSpec failedSpec) {
         Objects.requireNonNull(failedSpec, "failedSpec");
 
-        java.util.Deque<VersionHistoryEntry> history = versionHistory.get(failedSpec.language());
+        Deque<VersionHistoryEntry> history = versionHistory.get(failedSpec.language());
         if (history == null || history.isEmpty()) {
             LOG.debugf("No version history available for %s, cannot rollback", failedSpec.language());
             return null;
@@ -348,7 +361,7 @@ public class GrammarManager {
     /**
      * Provides a supplier suitable for TreeSitterParser constructors.
      */
-    public java.util.function.Supplier<Language> languageSupplier(GrammarSpec spec) {
+    public Supplier<Language> languageSupplier(GrammarSpec spec) {
         return () -> loadLanguage(spec);
     }
 
@@ -486,7 +499,6 @@ public class GrammarManager {
         }
 
         long contentLength = response.headers().firstValueAsLong("content-length").orElse(-1L);
-        AtomicLong bytesDownloaded = new AtomicLong(0);
 
         try (InputStream inputStream = response.body()) {
             Files.copy(inputStream, target, StandardCopyOption.REPLACE_EXISTING);
@@ -691,7 +703,7 @@ public class GrammarManager {
      * @return optional metadata if available
      */
     public Optional<GrammarVersionMetadata> getVersionInfo(String language, String version) {
-        Objects.requireNonNull(language, "language");
+        Objects.requireNonNull(language, LANGUAGE);
         String platform = platformName();
 
         if (version == null) {
@@ -700,7 +712,7 @@ public class GrammarManager {
                 Path cacheDir = resolveCacheDir();
                 Path langDir = cacheDir.resolve(language);
                 if (Files.exists(langDir)) {
-                    try (java.util.stream.Stream<Path> paths = Files.list(langDir)) {
+                    try (Stream<Path> paths = Files.list(langDir)) {
                         Optional<String> latestVersion = paths
                                 .filter(Files::isDirectory)
                                 .map(Path::getFileName)
@@ -734,20 +746,20 @@ public class GrammarManager {
      * @param language the language name
      * @return list of cached versions
      */
-    public java.util.List<String> getCachedVersions(String language) {
-        Objects.requireNonNull(language, "language");
-        java.util.List<String> versions = new java.util.ArrayList<>();
+    public List<String> getCachedVersions(String language) {
+        Objects.requireNonNull(language, LANGUAGE);
+        List<String> versions = new ArrayList<>();
 
         try {
             Path cacheDir = resolveCacheDir();
             Path langDir = cacheDir.resolve(language);
             if (Files.exists(langDir)) {
-                try (java.util.stream.Stream<Path> paths = Files.list(langDir)) {
+                try (Stream<Path> paths = Files.list(langDir)) {
                     paths
                             .filter(Files::isDirectory)
                             .map(Path::getFileName)
                             .map(Path::toString)
-                            .sorted(java.util.Comparator.reverseOrder()) // newest first
+                            .sorted(Comparator.reverseOrder()) // newest first
                             .forEach(versions::add);
                 }
             }
@@ -766,7 +778,7 @@ public class GrammarManager {
      * @return number of versions removed
      */
     public int cleanupOldVersions(String language, int maxVersions) {
-        Objects.requireNonNull(language, "language");
+        Objects.requireNonNull(language, LANGUAGE);
         if (maxVersions < 1) {
             throw new IllegalArgumentException("maxVersions must be at least 1");
         }
@@ -779,12 +791,12 @@ public class GrammarManager {
                 return 0;
             }
 
-            java.util.List<Path> versionDirs;
-            try (java.util.stream.Stream<Path> paths = Files.list(langDir)) {
+            List<Path> versionDirs;
+            try (Stream<Path> paths = Files.list(langDir)) {
                 versionDirs = paths
                         .filter(Files::isDirectory)
                         .sorted((a, b) -> b.getFileName().compareTo(a.getFileName())) // newest first
-                        .collect(java.util.stream.Collectors.toList());
+                        .toList();
             }
 
             // Keep the first maxVersions, remove the rest
@@ -841,13 +853,13 @@ public class GrammarManager {
                 return 0;
             }
 
-            java.util.List<String> languages;
-            try (java.util.stream.Stream<Path> paths = Files.list(cacheDir)) {
+            List<String> languages;
+            try (Stream<Path> paths = Files.list(cacheDir)) {
                 languages = paths
                         .filter(Files::isDirectory)
                         .map(Path::getFileName)
                         .map(Path::toString)
-                        .collect(java.util.stream.Collectors.toList());
+                        .toList();
             }
 
             for (String language : languages) {
@@ -887,7 +899,7 @@ public class GrammarManager {
                 return stats;
             }
 
-            try (java.util.stream.Stream<Path> files = Files.walk(cacheDir)) {
+            try (Stream<Path> files = Files.walk(cacheDir)) {
                 files
                         .filter(Files::isRegularFile)
                         .forEach(file -> {
@@ -909,13 +921,13 @@ public class GrammarManager {
             }
 
             // Count languages and versions
-            try (java.util.stream.Stream<Path> langDirs = Files.list(cacheDir)) {
+            try (Stream<Path> langDirs = Files.list(cacheDir)) {
                 langDirs
                         .filter(Files::isDirectory)
                         .forEach(langDir -> {
                             stats.totalLanguages++;
                             try {
-                                try (java.util.stream.Stream<Path> versionDirs = Files.list(langDir)) {
+                                try (Stream<Path> versionDirs = Files.list(langDir)) {
                                     stats.totalVersions += (int) versionDirs
                                             .filter(Files::isDirectory)
                                             .count();
@@ -952,19 +964,19 @@ public class GrammarManager {
         }
     }
 
-    private void deleteDirectoryRecursively(Path path) throws java.io.IOException {
+    private void deleteDirectoryRecursively(Path path) throws IOException {
         if (!Files.exists(path)) {
             return;
         }
 
         // Walk the tree in reverse order and delete
-        try (java.util.stream.Stream<Path> paths = Files.walk(path)) {
+        try (Stream<Path> paths = Files.walk(path)) {
             paths
-                    .sorted(java.util.Comparator.reverseOrder())
+                    .sorted(Comparator.reverseOrder())
                     .forEach(p -> {
                         try {
                             Files.delete(p);
-                        } catch (java.io.IOException e) {
+                        } catch (IOException e) {
                             LOG.warnf(e, "Failed to delete %s during cleanup", p);
                         }
                     });
@@ -979,13 +991,13 @@ public class GrammarManager {
      * @return rollback result information
      */
     public RollbackResult rollbackToVersion(String language, String version) {
-        Objects.requireNonNull(language, "language");
-        Objects.requireNonNull(version, "version");
+        Objects.requireNonNull(language, LANGUAGE);
+        Objects.requireNonNull(version, VERSION);
 
         LOG.infof("Manual rollback requested for %s to version %s", language, version);
 
         // Check if the version exists in cache
-        java.util.List<String> cachedVersions = getCachedVersions(language);
+        List<String> cachedVersions = getCachedVersions(language);
         if (!cachedVersions.contains(version)) {
             String error = String.format("Version %s not found in cache for language %s", version, language);
             LOG.errorf(error);
@@ -1027,11 +1039,11 @@ public class GrammarManager {
      * @return rollback result information
      */
     public RollbackResult rollbackToPrevious(String language) {
-        Objects.requireNonNull(language, "language");
+        Objects.requireNonNull(language, LANGUAGE);
 
         LOG.infof("Rolling back %s to previous working version", language);
 
-        java.util.Deque<VersionHistoryEntry> history = versionHistory.get(language);
+        Deque<VersionHistoryEntry> history = versionHistory.get(language);
         if (history == null || history.isEmpty()) {
             String error = String.format("No version history available for language %s", language);
             LOG.errorf(error);
@@ -1042,7 +1054,7 @@ public class GrammarManager {
 
         // Find the most recent successful version that's different from current
         for (VersionHistoryEntry entry : history) {
-            if (entry.success() && (currentVersion == null || !entry.version().equals(currentVersion))) {
+            if (entry.success() && (!entry.version().equals(currentVersion))) {
                 return rollbackToVersion(language, entry.version());
             }
         }
@@ -1060,8 +1072,8 @@ public class GrammarManager {
      * @param errorMessage optional error message
      */
     public void markVersionAsFailed(String language, String version, String errorMessage) {
-        Objects.requireNonNull(language, "language");
-        Objects.requireNonNull(version, "version");
+        Objects.requireNonNull(language, LANGUAGE);
+        Objects.requireNonNull(version, VERSION);
 
         recordVersionUsage(language, version, false, errorMessage);
         LOG.infof("Marked version %s as failed for language %s%s", version, language,
@@ -1074,15 +1086,15 @@ public class GrammarManager {
      * @param language the language name
      * @return list of version history entries (most recent first)
      */
-    public java.util.List<VersionHistoryEntry> getVersionHistory(String language) {
-        Objects.requireNonNull(language, "language");
+    public List<VersionHistoryEntry> getVersionHistory(String language) {
+        Objects.requireNonNull(language, LANGUAGE);
 
-        java.util.Deque<VersionHistoryEntry> history = versionHistory.get(language);
+        Deque<VersionHistoryEntry> history = versionHistory.get(language);
         if (history == null) {
-            return java.util.Collections.emptyList();
+            return Collections.emptyList();
         }
 
-        return java.util.List.copyOf(history);
+        return List.copyOf(history);
     }
 
     /**
@@ -1092,7 +1104,7 @@ public class GrammarManager {
         // This is a simplified approach - in a real implementation,
         // we might need to track which version is currently active per language
         // For now, we'll look at the most recent successful history entry
-        java.util.Deque<VersionHistoryEntry> history = versionHistory.get(language);
+        Deque<VersionHistoryEntry> history = versionHistory.get(language);
         if (history != null) {
             for (VersionHistoryEntry entry : history) {
                 if (entry.success()) {

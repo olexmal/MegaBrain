@@ -5,12 +5,6 @@
 
 package io.megabrain.ingestion.parser.treesitter;
 
-import io.github.treesitter.jtreesitter.Node;
-import io.github.treesitter.jtreesitter.Tree;
-import io.megabrain.ingestion.parser.TextChunk;
-import org.jboss.logging.Logger;
-
-import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -19,13 +13,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Supplier;
+
+import io.github.treesitter.jtreesitter.Language;
+import io.github.treesitter.jtreesitter.Node;
+import io.github.treesitter.jtreesitter.Tree;
+import io.megabrain.ingestion.parser.GrammarManager;
+import io.megabrain.ingestion.parser.GrammarSpec;
+import io.megabrain.ingestion.parser.TextChunk;
 
 /**
  * Tree-sitter parser for Go source code.
  */
 public class GoTreeSitterParser extends TreeSitterParser {
 
-    private static final Logger LOG = Logger.getLogger(GoTreeSitterParser.class);
     private static final String LANGUAGE = "go";
     private static final Set<String> SUPPORTED_EXTENSIONS = Set.of("go");
     private static final String LIBRARY_ENV = "TREE_SITTER_GO_LIB";
@@ -39,14 +40,14 @@ public class GoTreeSitterParser extends TreeSitterParser {
     );
 
     public GoTreeSitterParser() {
-        this(new io.megabrain.ingestion.parser.GrammarManager());
+        this(new GrammarManager());
     }
 
-    public GoTreeSitterParser(io.megabrain.ingestion.parser.GrammarManager grammarManager) {
+    public GoTreeSitterParser(GrammarManager grammarManager) {
         this(grammarManager.languageSupplier(GO_SPEC), grammarManager.nativeLoader(GO_SPEC));
     }
 
-    GoTreeSitterParser(java.util.function.Supplier<io.github.treesitter.jtreesitter.Language> languageSupplier, Runnable nativeLoader) {
+    GoTreeSitterParser(Supplier<Language> languageSupplier, Runnable nativeLoader) {
         super(LANGUAGE, SUPPORTED_EXTENSIONS, languageSupplier, nativeLoader);
     }
 
@@ -280,8 +281,8 @@ public class GoTreeSitterParser extends TreeSitterParser {
         };
     }
 
-    private static final io.megabrain.ingestion.parser.GrammarSpec GO_SPEC =
-            new io.megabrain.ingestion.parser.GrammarSpec(
+    private static final GrammarSpec GO_SPEC =
+            new GrammarSpec(
                     LANGUAGE,
                     LANGUAGE_SYMBOL,
                     "tree-sitter-go",

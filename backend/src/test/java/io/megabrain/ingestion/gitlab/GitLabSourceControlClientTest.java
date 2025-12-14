@@ -11,30 +11,33 @@ import io.megabrain.ingestion.RepositoryMetadata;
 import io.quarkus.test.junit.QuarkusTest;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
-import io.smallrye.mutiny.helpers.test.UniAssertSubscriber;
+
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @QuarkusTest
+@ExtendWith(MockitoExtension.class)
 class GitLabSourceControlClientTest {
 
     @Mock
@@ -51,8 +54,6 @@ class GitLabSourceControlClientTest {
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
-
         // Default mock configurations
         when(config.apiUrl()).thenReturn("https://gitlab.com");
         when(config.connectTimeout()).thenReturn(10000);
@@ -198,7 +199,7 @@ class GitLabSourceControlClientTest {
         // When & Then
         Uni<RepositoryMetadata> result = client.fetchMetadata(repositoryUrl);
         assertThatThrownBy(() -> result.subscribe().asCompletionStage().join())
-            .isInstanceOf(java.util.concurrent.CompletionException.class)
+            .isInstanceOf(CompletionException.class)
             .hasCauseInstanceOf(IngestionException.class)
             .hasMessageContaining("Failed to fetch repository metadata");
     }
@@ -238,12 +239,12 @@ class GitLabSourceControlClientTest {
         WebApplicationException rateLimitException = new WebApplicationException(response);
 
         // Use reflection to test the private method
-        var method = GitLabSourceControlClient.class.getDeclaredMethod("fetchWithRateLimitHandling", java.util.function.Supplier.class);
+        var method = GitLabSourceControlClient.class.getDeclaredMethod("fetchWithRateLimitHandling", Supplier.class);
         method.setAccessible(true);
 
         // Mock a supplier that throws rate limit exception on first call, succeeds on second
-        java.util.concurrent.atomic.AtomicInteger callCount = new java.util.concurrent.atomic.AtomicInteger(0);
-        java.util.function.Supplier<String> mockSupplier = () -> {
+        AtomicInteger callCount = new AtomicInteger(0);
+        Supplier<String> mockSupplier = () -> {
             if (callCount.incrementAndGet() == 1) {
                 throw rateLimitException;
             }
@@ -269,17 +270,17 @@ class GitLabSourceControlClientTest {
         WebApplicationException authException = new WebApplicationException(response);
 
         // Use reflection to test the private method
-        var method = GitLabSourceControlClient.class.getDeclaredMethod("fetchWithRateLimitHandling", java.util.function.Supplier.class);
+        var method = GitLabSourceControlClient.class.getDeclaredMethod("fetchWithRateLimitHandling", Supplier.class);
         method.setAccessible(true);
 
         // Mock a supplier that throws auth exception
-        java.util.function.Supplier<String> mockSupplier = () -> {
+        Supplier<String> mockSupplier = () -> {
             throw authException;
         };
 
         // When & Then
         assertThatThrownBy(() -> method.invoke(client, mockSupplier))
-            .isInstanceOf(java.lang.reflect.InvocationTargetException.class)
+            .isInstanceOf(InvocationTargetException.class)
             .hasCauseInstanceOf(IngestionException.class);
     }
 

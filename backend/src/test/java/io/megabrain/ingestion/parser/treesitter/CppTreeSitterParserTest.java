@@ -209,7 +209,7 @@ class CppTreeSitterParserTest {
         return node;
     }
 
-    private static final class TestCppTreeSitterParser extends io.megabrain.ingestion.parser.treesitter.CppTreeSitterParser {
+    private static final class TestCppTreeSitterParser extends CppTreeSitterParser {
         TestCppTreeSitterParser(Supplier<Language> languageSupplier, Runnable loader) {
             super(languageSupplier, loader);
         }

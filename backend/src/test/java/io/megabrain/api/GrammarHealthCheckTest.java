@@ -10,6 +10,9 @@ import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Arrays;
+import java.util.List;
+
 @QuarkusTest
 class GrammarHealthCheckTest {
 
@@ -47,7 +50,7 @@ class GrammarHealthCheckTest {
         var values = GrammarHealthCheck.GrammarStatus.values();
         assertThat(values).hasSize(4);
 
-        var descriptions = java.util.Arrays.stream(values)
+        var descriptions = Arrays.stream(values)
                 .map(GrammarHealthCheck.GrammarStatus::getDescription)
                 .distinct()
                 .toArray(String[]::new);
@@ -79,7 +82,7 @@ class GrammarHealthCheckTest {
 
     @Test
     void grammarHealthStatus_record_aggregatesCorrectly() {
-        var details = java.util.List.of(
+        var details = List.of(
                 new GrammarHealthCheck.GrammarDetail("lang1", GrammarHealthCheck.GrammarStatus.LOADED, "1.0", null),
                 new GrammarHealthCheck.GrammarDetail("lang2", GrammarHealthCheck.GrammarStatus.FAILED, null, "error"),
                 new GrammarHealthCheck.GrammarDetail("lang3", GrammarHealthCheck.GrammarStatus.NOT_CACHED, null, null)
@@ -88,18 +91,18 @@ class GrammarHealthCheckTest {
         var status = new GrammarHealthCheck.GrammarHealthStatus(3, 1, 1, details);
 
         assertThat(status.totalGrammars()).isEqualTo(3);
-        assertThat(status.loadedGrammars()).isEqualTo(1);
-        assertThat(status.failedGrammars()).isEqualTo(1);
+        assertThat(status.loadedGrammars()).isOne();
+        assertThat(status.failedGrammars()).isOne();
         assertThat(status.grammarDetails()).hasSize(3);
     }
 
     @Test
     void grammarHealthStatus_record_handlesEmptyList() {
-        var status = new GrammarHealthCheck.GrammarHealthStatus(0, 0, 0, java.util.List.of());
+        var status = new GrammarHealthCheck.GrammarHealthStatus(0, 0, 0, List.of());
 
-        assertThat(status.totalGrammars()).isEqualTo(0);
-        assertThat(status.loadedGrammars()).isEqualTo(0);
-        assertThat(status.failedGrammars()).isEqualTo(0);
+        assertThat(status.totalGrammars()).isZero();
+        assertThat(status.loadedGrammars()).isZero();
+        assertThat(status.failedGrammars()).isZero();
         assertThat(status.grammarDetails()).isEmpty();
     }
 }

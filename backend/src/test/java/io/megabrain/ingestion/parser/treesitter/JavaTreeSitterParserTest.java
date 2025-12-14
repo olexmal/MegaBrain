@@ -152,17 +152,17 @@ class JavaTreeSitterParserTest {
                     assertThat(chunk.entityType()).isEqualTo("constructor");
                     assertThat(chunk.entityName()).isEqualTo("com.example.Foo.Foo");
                     assertThat(chunk.language()).isEqualTo("java");
-                    assertThat(chunk.attributes().get("enclosing_type")).isEqualTo("Foo");
+                    assertThat(chunk.attributes()).containsEntry("enclosing_type", "Foo");
                     assertThat(chunk.attributes().get("modifiers")).contains("public");
                     assertThat(chunk.attributes().get("annotations")).contains("@Inject");
-                    assertThat(chunk.attributes().get("parameters")).isEqualTo("()");
-                    assertThat(chunk.attributes().get("return_type")).isEqualTo("");
+                    assertThat(chunk.attributes()).containsEntry("parameters", "()");
+                    assertThat(chunk.attributes()).isEmpty();
                 })
                 .anySatisfy(chunk -> {
                     assertThat(chunk.entityType()).isEqualTo("method");
                     assertThat(chunk.entityName()).isEqualTo("com.example.Foo.bar");
                     assertThat(chunk.language()).isEqualTo("java");
-                    assertThat(chunk.attributes().get("enclosing_type")).isEqualTo("Foo");
+                    assertThat(chunk.attributes()).containsEntry("enclosing_type", "Foo");
                     assertThat(chunk.attributes().get("modifiers")).contains("public");
                     assertThat(chunk.attributes().get("annotations")).contains("@Deprecated");
                     assertThat(chunk.attributes().get("parameters")).contains("(String input)");
@@ -247,7 +247,7 @@ class JavaTreeSitterParserTest {
         return node;
     }
 
-    private static final class TestJavaTreeSitterParser extends io.megabrain.ingestion.parser.treesitter.JavaTreeSitterParser {
+    private static final class TestJavaTreeSitterParser extends JavaTreeSitterParser {
         TestJavaTreeSitterParser(Supplier<Language> languageSupplier, Runnable loader) {
             super(languageSupplier, loader);
         }

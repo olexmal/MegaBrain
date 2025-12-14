@@ -5,6 +5,8 @@
 
 package io.megabrain.ingestion.github;
 
+import java.util.Optional;
+
 import jakarta.enterprise.context.ApplicationScoped;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
@@ -16,7 +18,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 public class GitHubTokenProvider {
 
     @ConfigProperty(name = "megabrain.github.token")
-    java.util.Optional<String> token;
+    Optional<String> token;
 
     /**
      * Gets the GitHub token if configured.

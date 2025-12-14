@@ -11,9 +11,9 @@ import io.smallrye.mutiny.helpers.test.UniAssertSubscriber;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -28,13 +28,7 @@ class RepositoryIndexStateServiceTest {
     private static final String TEST_REPO_URL = "https://github.com/test/repo";
     private static final String TEST_COMMIT_SHA = "abc123def456";
 
-    private String uniqueId = java.util.UUID.randomUUID().toString().substring(0, 8);
-
-    @BeforeEach
-    void setUp() {
-        // Note: In a real test, we'd use @InjectMock, but since we're using file-based storage,
-        // we'll test the actual service. For now, we'll create a minimal test.
-    }
+    private String uniqueId = UUID.randomUUID().toString().substring(0, 8);
 
     @Test
     void updateLastIndexedCommitSha_shouldCreateNewState() {

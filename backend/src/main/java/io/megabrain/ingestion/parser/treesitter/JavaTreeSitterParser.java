@@ -8,10 +8,11 @@ package io.megabrain.ingestion.parser.treesitter;
 import io.github.treesitter.jtreesitter.Language;
 import io.github.treesitter.jtreesitter.Node;
 import io.github.treesitter.jtreesitter.Tree;
+import io.megabrain.ingestion.parser.GrammarManager;
+import io.megabrain.ingestion.parser.GrammarSpec;
 import io.megabrain.ingestion.parser.TextChunk;
 import org.jboss.logging.Logger;
 
-import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -43,10 +44,10 @@ public class JavaTreeSitterParser extends TreeSitterParser {
     );
 
     public JavaTreeSitterParser() {
-        this(new io.megabrain.ingestion.parser.GrammarManager());
+        this(new GrammarManager());
     }
 
-    public JavaTreeSitterParser(io.megabrain.ingestion.parser.GrammarManager grammarManager) {
+    public JavaTreeSitterParser(GrammarManager grammarManager) {
         this(grammarManager.languageSupplier(JAVA_SPEC), grammarManager.nativeLoader(JAVA_SPEC));
     }
 
@@ -296,8 +297,8 @@ public class JavaTreeSitterParser extends TreeSitterParser {
         };
     }
 
-    private static final io.megabrain.ingestion.parser.GrammarSpec JAVA_SPEC =
-            new io.megabrain.ingestion.parser.GrammarSpec(
+    private static final GrammarSpec JAVA_SPEC =
+            new GrammarSpec(
                     LANGUAGE,
                     LANGUAGE_SYMBOL,
                     "tree-sitter-java",

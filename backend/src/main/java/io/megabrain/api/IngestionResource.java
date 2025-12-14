@@ -10,6 +10,7 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
+import java.time.Instant;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -91,12 +92,12 @@ public class IngestionResource {
             } catch (Exception e) {
                 LOG.error("Failed to serialize StreamEvent to JSON", e);
                 return "data: {\"stage\":\"FAILED\",\"message\":\"Serialization error\",\"percentage\":0,\"timestamp\":\"" +
-                       java.time.Instant.now() + "\",\"metadata\":{}}\n\n";
+                       Instant.now() + "\",\"metadata\":{}}\n\n";
             }
         }).onFailure().recoverWithItem(throwable -> {
             LOG.error("Streaming ingestion failed", throwable);
             return "data: {\"stage\":\"FAILED\",\"message\":\"" + throwable.getMessage().replace("\"", "\\\"") +
-                   "\",\"percentage\":0,\"timestamp\":\"" + java.time.Instant.now() + "\",\"metadata\":{}}\n\n";
+                   "\",\"percentage\":0,\"timestamp\":\"" + Instant.now() + "\",\"metadata\":{}}\n\n";
         });
     }
 

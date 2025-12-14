@@ -164,7 +164,7 @@ class CTreeSitterParserTest {
         return node;
     }
 
-    private static final class TestCTreeSitterParser extends io.megabrain.ingestion.parser.treesitter.CTreeSitterParser {
+    private static final class TestCTreeSitterParser extends CTreeSitterParser {
         TestCTreeSitterParser(Supplier<Language> languageSupplier, Runnable loader) {
             super(languageSupplier, loader);
         }

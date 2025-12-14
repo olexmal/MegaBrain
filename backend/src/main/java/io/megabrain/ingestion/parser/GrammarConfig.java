@@ -6,7 +6,6 @@
 package io.megabrain.ingestion.parser;
 
 import io.smallrye.config.ConfigMapping;
-import io.smallrye.config.WithDefault;
 import io.smallrye.config.WithName;
 import java.util.Map;
 import java.util.Optional;

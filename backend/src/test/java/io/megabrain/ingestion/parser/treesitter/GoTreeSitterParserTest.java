@@ -10,6 +10,7 @@ import io.megabrain.ingestion.parser.TextChunk;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -52,16 +53,16 @@ class GoTreeSitterParserTest {
         // Create a temporary file
         Path tempFile = Path.of("/tmp/test.go");
         try {
-            java.nio.file.Files.writeString(tempFile, goCode);
+            Files.writeString(tempFile, goCode);
             List<TextChunk> chunks = parser.parse(tempFile);
             // Should return empty list if grammar fails to load
             assertThat(chunks).isNotNull();
-        } catch (Exception e) {
+        } catch (Exception _) {
             // Expected if grammar not available in test environment
         } finally {
             try {
-                java.nio.file.Files.deleteIfExists(tempFile);
-            } catch (Exception e) {
+                Files.deleteIfExists(tempFile);
+            } catch (Exception _) {
                 // Ignore cleanup errors
             }
         }

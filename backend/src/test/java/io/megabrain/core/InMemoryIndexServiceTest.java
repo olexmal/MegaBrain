@@ -93,7 +93,7 @@ class InMemoryIndexServiceTest {
                 .awaitItem().getItem();
 
         // Verify
-        assertThat(removedCount).isEqualTo(1);
+        assertThat(removedCount).isOne();
         assertThat(indexService.getChunksForFile("Test.java")).isEmpty();
     }
 
@@ -103,7 +103,7 @@ class InMemoryIndexServiceTest {
                 .subscribe().withSubscriber(UniAssertSubscriber.create())
                 .awaitItem().getItem();
 
-        assertThat(removedCount).isEqualTo(0);
+        assertThat(removedCount).isZero();
     }
 
     @Test

@@ -22,7 +22,6 @@ import io.megabrain.ingestion.parser.treesitter.TypeScriptTreeSitterParser;
 import jakarta.enterprise.context.ApplicationScoped;
 
 import java.nio.file.Path;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;

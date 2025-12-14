@@ -169,8 +169,8 @@ class TreeSitterParserTest {
         }
 
         @Override
-        protected List<TextChunk> extractChunks(io.github.treesitter.jtreesitter.Node rootNode,
-                                                io.github.treesitter.jtreesitter.Tree tree,
+        protected List<TextChunk> extractChunks(Node rootNode,
+                                                Tree tree,
                                                 TreeSitterSource source) {
             return List.of();
         }

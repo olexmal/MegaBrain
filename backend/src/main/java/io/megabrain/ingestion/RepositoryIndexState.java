@@ -5,6 +5,8 @@
 
 package io.megabrain.ingestion;
 
+import java.time.Instant;
+
 /**
  * Tracks the indexing state for a repository, specifically the last commit SHA that was successfully indexed.
  * This enables incremental indexing by comparing the current HEAD with the last indexed commit.
@@ -37,7 +39,7 @@ public record RepositoryIndexState(
         return new RepositoryIndexState(
                 repositoryUrl,
                 lastIndexedCommitSha,
-                java.time.Instant.now().toString()
+                Instant.now().toString()
         );
     }
 }

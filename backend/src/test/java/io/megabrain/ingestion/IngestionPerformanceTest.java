@@ -8,13 +8,12 @@ package io.megabrain.ingestion;
 import io.megabrain.core.InMemoryIndexService;
 import io.quarkus.test.junit.QuarkusTest;
 import io.smallrye.mutiny.Multi;
-import io.smallrye.mutiny.helpers.test.UniAssertSubscriber;
+
 import jakarta.inject.Inject;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -42,7 +41,7 @@ class IngestionPerformanceTest {
 
     @BeforeEach
     void setUp() throws IOException, GitAPIException {
-        tempDir = java.nio.file.Files.createTempDirectory("ingestion-performance-test");
+        tempDir = Files.createTempDirectory("ingestion-performance-test");
         repoPath = tempDir.resolve("test-repo");
         Files.createDirectories(repoPath);
 
@@ -75,7 +74,7 @@ class IngestionPerformanceTest {
         // First, do a full ingestion using the local repository path
         Instant fullStart = Instant.now();
         Multi<String> fullResult = ingestionService.ingestRepository(repoPath.toString())
-                .map(event -> event.toJson());
+                .map(ProgressEvent::toJson);
 
         // Collect all events to complete the operation
         fullResult.collect().asList().await().indefinitely();
@@ -86,12 +85,14 @@ class IngestionPerformanceTest {
 
         // Now make a small change and do incremental ingestion
         Path modifiedFile = repoPath.resolve("Test0.java");
-        String modifiedContent = "public class Test0 {\n" +
-                "    public void method0() {}\n" +
-                "    public void anotherMethod0() {}\n" +
-                "    public void thirdMethod0() {}\n" +
-                "    public void newMethod() {} // Added new method\n" +
-                "}\n";
+        String modifiedContent = """
+                public class Test0 {
+                    public void method0() {}
+                    public void anotherMethod0() {}
+                    public void thirdMethod0() {}
+                    public void newMethod() {} // Added new method
+                }
+                """;
         Files.writeString(modifiedFile, modifiedContent);
 
         try (Git git = Git.open(repoPath.toFile())) {
@@ -104,7 +105,7 @@ class IngestionPerformanceTest {
 
         Instant incrementalStart = Instant.now();
         Multi<String> incrementalResult = ingestionService.ingestRepositoryIncrementally(repoPath.toString())
-                .map(event -> event.toJson());
+                .map(ProgressEvent::toJson);
 
         // Collect all events to complete the operation
         incrementalResult.collect().asList().await().indefinitely();

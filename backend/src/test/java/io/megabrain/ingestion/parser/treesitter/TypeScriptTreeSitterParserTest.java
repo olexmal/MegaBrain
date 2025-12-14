@@ -145,7 +145,7 @@ class TypeScriptTreeSitterParserTest {
                     assertThat(chunk.language()).isEqualTo("typescript");
                     assertThat(chunk.attributes().get("parameters")).contains("(v: number)");
                     assertThat(chunk.attributes().get("return_type")).contains("Promise<number>");
-                    assertThat(chunk.attributes().get("async")).isEqualTo("true");
+                    assertThat(chunk.attributes()).containsEntry("async", "true");
                 });
     }
 
@@ -213,7 +213,7 @@ class TypeScriptTreeSitterParserTest {
         return node;
     }
 
-    private static final class TestTypeScriptTreeSitterParser extends io.megabrain.ingestion.parser.treesitter.TypeScriptTreeSitterParser {
+    private static final class TestTypeScriptTreeSitterParser extends TypeScriptTreeSitterParser {
         TestTypeScriptTreeSitterParser(Supplier<Language> languageSupplier, Runnable loader) {
             super(languageSupplier, loader);
         }

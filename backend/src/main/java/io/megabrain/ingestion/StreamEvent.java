@@ -5,10 +5,10 @@
 
 package io.megabrain.ingestion;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -91,7 +91,7 @@ public record StreamEvent(
      */
     public StreamEvent withMetadata(String key, Object value) {
         Map<String, Object> newMetadata = Map.copyOf(metadata);
-        Map<String, Object> updatedMetadata = new java.util.HashMap<>(newMetadata);
+        Map<String, Object> updatedMetadata = new HashMap<>(newMetadata);
         updatedMetadata.put(key, value);
         return new StreamEvent(stage, message, percentage, timestamp, Map.copyOf(updatedMetadata));
     }
