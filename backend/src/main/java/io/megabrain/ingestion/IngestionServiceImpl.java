@@ -5,8 +5,7 @@ import io.megabrain.ingestion.parser.CodeParser;
 import io.megabrain.ingestion.parser.ParserRegistry;
 import io.megabrain.ingestion.parser.TextChunk;
 import io.smallrye.mutiny.Multi;
-import io.smallrye.mutiny.Uni;
-import java.util.function.Consumer;
+
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -16,7 +15,6 @@ import org.slf4j.LoggerFactory;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.function.Consumer;
 
 import java.io.IOException;
@@ -111,8 +109,7 @@ public class IngestionServiceImpl implements IngestionService {
                     emitter.emit(ProgressEvent.of("Starting repository clone", 0.0));
 
                     Multi<ProgressEvent> cloneMulti = sourceControlClient.cloneRepository(finalRepositoryUrl, null);
-                    cloneMulti.subscribe().with(
-                        progress -> emitter.emit(progress),
+                    cloneMulti.subscribe().with(emitter::emit,
                         error -> {
                             LOG.error("Failed to clone repository: {}", finalRepositoryUrl, error);
                             emitter.fail(error);
@@ -131,8 +128,7 @@ public class IngestionServiceImpl implements IngestionService {
                                 emitter.emit(ProgressEvent.of("Extracting source files", 30.0));
 
                                 Multi<ProgressEvent> extractMulti = sourceControlClient.extractFiles(repoPath);
-                                extractMulti.subscribe().with(
-                                    progress -> emitter.emit(progress),
+                                extractMulti.subscribe().with(emitter::emit,
                                     error -> {
                                         LOG.error("Failed to extract files from repository: {}", finalRepositoryUrl, error);
                                         emitter.fail(error);
@@ -209,8 +205,7 @@ public class IngestionServiceImpl implements IngestionService {
                 } else {
                     // Clone remote repository for incremental ingestion
                     Multi<ProgressEvent> cloneMulti = sourceControlClient.cloneRepository(finalRepositoryUrl, null);
-                    cloneMulti.subscribe().with(
-                        progress -> emitter.emit(progress),
+                    cloneMulti.subscribe().with(emitter::emit,
                         error -> {
                             LOG.error("Failed to clone repository for incremental ingestion: {}", finalRepositoryUrl, error);
                             emitter.fail(error);

@@ -97,13 +97,13 @@ class JavaScriptTreeSitterParserTest {
                     assertThat(chunk.entityName()).isEqualTo("Foo.bar");
                     assertThat(chunk.language()).isEqualTo("javascript");
                     assertThat(chunk.attributes().get("parameters")).contains("(x)");
-                    assertThat(chunk.attributes().get("async")).isEqualTo("false");
+                    assertThat(chunk.attributes()).containsEntry("async", "false");
                 })
                 .anySatisfy(chunk -> {
                     assertThat(chunk.entityType()).isEqualTo("function");
                     assertThat(chunk.entityName()).isEqualTo("baz");
                     assertThat(chunk.language()).isEqualTo("javascript");
-                    assertThat(chunk.attributes().get("async")).isEqualTo("true");
+                    assertThat(chunk.attributes()).containsEntry("async", "true");
                     assertThat(chunk.attributes().get("parameters")).contains("(y)");
                 });
     }
@@ -172,7 +172,7 @@ class JavaScriptTreeSitterParserTest {
         return node;
     }
 
-    private static final class TestJavaScriptTreeSitterParser extends io.megabrain.ingestion.parser.treesitter.JavaScriptTreeSitterParser {
+    private static final class TestJavaScriptTreeSitterParser extends JavaScriptTreeSitterParser {
         TestJavaScriptTreeSitterParser(Supplier<Language> languageSupplier, Runnable loader) {
             super(languageSupplier, loader);
         }

@@ -5,10 +5,7 @@
 
 package io.megabrain.ingestion;
 
-import io.megabrain.core.IndexService;
 import io.megabrain.core.InMemoryIndexService;
-import io.megabrain.ingestion.parser.CodeParser;
-import io.megabrain.ingestion.parser.ParserRegistry;
 import io.megabrain.ingestion.parser.TextChunk;
 import io.quarkus.test.junit.QuarkusTest;
 import io.smallrye.mutiny.helpers.test.UniAssertSubscriber;
@@ -17,19 +14,15 @@ import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 @QuarkusTest
 class IncrementalIndexingServiceTest {
@@ -49,7 +42,7 @@ class IncrementalIndexingServiceTest {
 
     @BeforeEach
     void setUp() throws IOException, GitAPIException {
-        tempDir = java.nio.file.Files.createTempDirectory("incremental-indexing-test");
+        tempDir = Files.createTempDirectory("incremental-indexing-test");
         repoPath = tempDir.resolve("test-repo");
         Files.createDirectories(repoPath);
 
@@ -90,7 +83,7 @@ class IncrementalIndexingServiceTest {
                 .awaitItem().getItem();
 
         // Verify
-        assertThat(processedFiles).isEqualTo(1);
+        assertThat(processedFiles).isOne();
 
         // Check that chunks were indexed
         List<TextChunk> indexedChunks = indexService.getAllChunks();
@@ -154,7 +147,7 @@ class IncrementalIndexingServiceTest {
                 .awaitItem().getItem();
 
         // Verify - file should be processed (attempted) but no chunks indexed
-        assertThat(processedFiles).isEqualTo(1);
+        assertThat(processedFiles).isOne();
         assertThat(indexService.getChunksForFile("test.txt")).isEmpty();
     }
 
@@ -170,7 +163,7 @@ class IncrementalIndexingServiceTest {
                 .awaitItem().getItem();
 
         // Should still count as processed (attempted)
-        assertThat(processedFiles).isEqualTo(1);
+        assertThat(processedFiles).isOne();
         assertThat(indexService.getChunksForFile("nonexistent.java")).isEmpty();
     }
 
@@ -180,7 +173,7 @@ class IncrementalIndexingServiceTest {
                 .subscribe().withSubscriber(UniAssertSubscriber.create())
                 .awaitItem().getItem();
 
-        assertThat(processedFiles).isEqualTo(0);
+        assertThat(processedFiles).isZero();
     }
 
     @Test
@@ -237,7 +230,7 @@ class IncrementalIndexingServiceTest {
                 .awaitItem().getItem();
 
         // Verify
-        assertThat(processedFiles).isEqualTo(1);
+        assertThat(processedFiles).isOne();
 
         // Check that chunks were updated (should have new methods and the class)
         List<TextChunk> updatedChunks = indexService.getAllChunks();
@@ -262,7 +255,7 @@ class IncrementalIndexingServiceTest {
                 .awaitItem().getItem();
 
         assertThat(lastSha).isPresent();
-        assertThat(lastSha.get()).isEqualTo("HEAD");
+        assertThat(lastSha).contains("HEAD");
     }
 
     @Test
@@ -313,7 +306,7 @@ class IncrementalIndexingServiceTest {
                 .awaitItem().getItem();
 
         // Verify
-        assertThat(processedFiles).isEqualTo(1);
+        assertThat(processedFiles).isOne();
 
         // Check that chunks were removed
         List<TextChunk> chunksAfter = indexService.getAllChunks();
@@ -334,23 +327,16 @@ class IncrementalIndexingServiceTest {
         // Commit the original file
         try (Git git = Git.open(repoPath.toFile())) {
             git.add().addFilepattern("Original.java").call();
-            git.commit()
-                    .setMessage("Add Original.java")
-                    .setAuthor("Test", "test@example.com")
-                    .call();
+            git.commit().setMessage("Add Original.java").setAuthor("Test", "test@example.com").call();
         }
 
         // Index the original file
         FileChange addChange = FileChange.of(ChangeType.ADDED, "Original.java");
-        indexingService.processFileChanges(repoPath, repoUrl, List.of(addChange))
-                .await().indefinitely();
+        indexingService.processFileChanges(repoPath, repoUrl, List.of(addChange)).await().indefinitely();
 
         // Verify chunks exist at original path
         List<TextChunk> chunksBefore = indexService.getAllChunks();
-        assertThat(chunksBefore.stream().map(TextChunk::sourceFile))
-                .anyMatch(path -> path.endsWith("Original.java"));
-        assertThat(chunksBefore.stream().map(TextChunk::sourceFile))
-                .noneMatch(path -> path.endsWith("Renamed.java"));
+        assertThat(chunksBefore.stream().map(TextChunk::sourceFile)).anyMatch(path -> path.endsWith("Original.java")).noneMatch(path -> path.endsWith("Renamed.java"));
 
         // Rename the file
         Path renamedFile = repoPath.resolve("Renamed.java");
@@ -360,30 +346,24 @@ class IncrementalIndexingServiceTest {
         try (Git git = Git.open(repoPath.toFile())) {
             git.rm().addFilepattern("Original.java").call();
             git.add().addFilepattern("Renamed.java").call();
-            git.commit()
-                    .setMessage("Rename Original.java to Renamed.java")
-                    .setAuthor("Test", "test@example.com")
-                    .call();
+            git.commit().setMessage("Rename Original.java to Renamed.java").setAuthor("Test", "test@example.com").call();
         }
 
         // Process the rename
         FileChange renameChange = FileChange.renamed("Original.java", "Renamed.java");
-        Integer processedFiles = indexingService.processFileChanges(repoPath, repoUrl, List.of(renameChange))
-                .subscribe().withSubscriber(UniAssertSubscriber.create())
-                .awaitItem().getItem();
+        Integer processedFiles = indexingService.processFileChanges(repoPath, repoUrl, List.of(renameChange)).subscribe().withSubscriber(UniAssertSubscriber.create()).awaitItem().getItem();
 
         // Verify
-        assertThat(processedFiles).isEqualTo(1);
+        assertThat(processedFiles).isOne();
 
         // Check that chunks moved from old path to new path
         List<TextChunk> chunksAfter = indexService.getAllChunks();
-        assertThat(chunksAfter.stream().map(TextChunk::sourceFile))
-                .noneMatch(path -> path.endsWith("Original.java"));
-        assertThat(chunksAfter.stream().map(TextChunk::sourceFile))
+        assertThat(chunksAfter.stream().map(TextChunk::sourceFile)).noneMatch(path -> path.endsWith("Original.java"))
+
                 .anyMatch(path -> path.endsWith("Renamed.java"));
 
         // Verify the same number of chunks exist
-        assertThat(chunksAfter.size()).isEqualTo(chunksBefore.size());
+        assertThat(chunksAfter).hasSameSizeAs(chunksBefore);
     }
 
     @Test
@@ -420,32 +400,16 @@ class IncrementalIndexingServiceTest {
         // Commit all initial files
         try (Git git = Git.open(repoPath.toFile())) {
             git.add().addFilepattern(".").call();
-            git.commit()
-                    .setMessage("Add all test files")
-                    .setAuthor("Test", "test@example.com")
-                    .call();
+            git.commit().setMessage("Add all test files").setAuthor("Test", "test@example.com").call();
         }
 
         // Index all files initially
-        List<FileChange> initialChanges = List.of(
-                FileChange.of(ChangeType.ADDED, "Add.java"),
-                FileChange.of(ChangeType.ADDED, "Modify.java"),
-                FileChange.of(ChangeType.ADDED, "Delete.java"),
-                FileChange.of(ChangeType.ADDED, "Rename.java")
-        );
-        indexingService.processFileChanges(repoPath, repoUrl, initialChanges)
-                .await().indefinitely();
+        List<FileChange> initialChanges = List.of(FileChange.of(ChangeType.ADDED, "Add.java"), FileChange.of(ChangeType.ADDED, "Modify.java"), FileChange.of(ChangeType.ADDED, "Delete.java"), FileChange.of(ChangeType.ADDED, "Rename.java"));
+        indexingService.processFileChanges(repoPath, repoUrl, initialChanges).await().indefinitely();
 
         // Verify initial state
         List<TextChunk> initialChunks = indexService.getAllChunks();
-        assertThat(initialChunks.stream().map(TextChunk::sourceFile))
-                .anyMatch(path -> path.endsWith("Add.java"));
-        assertThat(initialChunks.stream().map(TextChunk::sourceFile))
-                .anyMatch(path -> path.endsWith("Modify.java"));
-        assertThat(initialChunks.stream().map(TextChunk::sourceFile))
-                .anyMatch(path -> path.endsWith("Delete.java"));
-        assertThat(initialChunks.stream().map(TextChunk::sourceFile))
-                .anyMatch(path -> path.endsWith("Rename.java"));
+        assertThat(initialChunks.stream().map(TextChunk::sourceFile)).anyMatch(path -> path.endsWith("Add.java")).anyMatch(path -> path.endsWith("Modify.java")).anyMatch(path -> path.endsWith("Delete.java")).anyMatch(path -> path.endsWith("Rename.java"));
 
         // Make mixed changes:
         // 1. Add a new file
@@ -478,23 +442,13 @@ class IncrementalIndexingServiceTest {
             git.rm().addFilepattern("Delete.java").call();
             git.rm().addFilepattern("Rename.java").call();
             git.add().addFilepattern("Renamed.java").call();
-            git.commit()
-                    .setMessage("Mixed changes: add, modify, delete, rename")
-                    .setAuthor("Test", "test@example.com")
-                    .call();
+            git.commit().setMessage("Mixed changes: add, modify, delete, rename").setAuthor("Test", "test@example.com").call();
         }
 
         // Process mixed changes
-        List<FileChange> mixedChanges = List.of(
-                FileChange.of(ChangeType.ADDED, "NewAdd.java"),
-                FileChange.of(ChangeType.MODIFIED, "Modify.java"),
-                FileChange.of(ChangeType.DELETED, "Delete.java"),
-                FileChange.renamed("Rename.java", "Renamed.java")
-        );
+        List<FileChange> mixedChanges = List.of(FileChange.of(ChangeType.ADDED, "NewAdd.java"), FileChange.of(ChangeType.MODIFIED, "Modify.java"), FileChange.of(ChangeType.DELETED, "Delete.java"), FileChange.renamed("Rename.java", "Renamed.java"));
 
-        Integer processedFiles = indexingService.processFileChanges(repoPath, repoUrl, mixedChanges)
-                .subscribe().withSubscriber(UniAssertSubscriber.create())
-                .awaitItem().getItem();
+        Integer processedFiles = indexingService.processFileChanges(repoPath, repoUrl, mixedChanges).subscribe().withSubscriber(UniAssertSubscriber.create()).awaitItem().getItem();
 
         // Verify
         assertThat(processedFiles).isEqualTo(4);
@@ -503,32 +457,26 @@ class IncrementalIndexingServiceTest {
         List<TextChunk> finalChunks = indexService.getAllChunks();
 
         // New file should be indexed
-        assertThat(finalChunks.stream().map(TextChunk::sourceFile))
-                .anyMatch(path -> path.endsWith("NewAdd.java"));
-        assertThat(finalChunks.stream().map(TextChunk::entityName))
-                .contains("NewAdd");
+        assertThat(finalChunks.stream().map(TextChunk::sourceFile)).anyMatch(path -> path.endsWith("NewAdd.java"));
+        assertThat(finalChunks.stream().map(TextChunk::entityName)).contains("NewAdd");
 
         // Modified file should have updated chunks
-        assertThat(finalChunks.stream().map(TextChunk::sourceFile))
-                .anyMatch(path -> path.endsWith("Modify.java"));
-        assertThat(finalChunks.stream().map(TextChunk::entityName))
-                .contains("Modify#newMethod()", "Modify#anotherMethod()");
+        assertThat(finalChunks.stream().map(TextChunk::sourceFile)).anyMatch(path -> path.endsWith("Modify.java"));
+        assertThat(finalChunks.stream().map(TextChunk::entityName)).contains("Modify#newMethod()", "Modify#anotherMethod()");
 
         // Deleted file should have no chunks
-        assertThat(finalChunks.stream().map(TextChunk::sourceFile))
-                .noneMatch(path -> path.endsWith("Delete.java"));
 
-        // Renamed file should have chunks at new path
-        assertThat(finalChunks.stream().map(TextChunk::sourceFile))
-                .noneMatch(path -> path.endsWith("Rename.java"));
-        assertThat(finalChunks.stream().map(TextChunk::sourceFile))
+        assertThat(finalChunks.stream().map(TextChunk::sourceFile)).noneMatch(path -> path.endsWith("Delete.java"))
+                // Renamed file should have chunks at new path
+                .noneMatch(path -> path.endsWith("Rename.java"))
+
                 .anyMatch(path -> path.endsWith("Renamed.java"));
     }
 
     @Test
     void processFileChanges_withLargeNumberOfChanges_shouldHandleEfficiently() throws IOException, GitAPIException {
         // Create many files for a bulk operation test
-        List<FileChange> changes = new java.util.ArrayList<>();
+        List<FileChange> changes = new ArrayList<>();
 
         for (int i = 0; i < 10; i++) {
             String fileName = "Bulk" + i + ".java";
@@ -577,7 +525,7 @@ class IncrementalIndexingServiceTest {
                 .subscribe().withSubscriber(UniAssertSubscriber.create())
                 .awaitItem().getItem();
 
-        assertThat(processedFiles).isEqualTo(0);
+        assertThat(processedFiles).isZero();
     }
 
     @Test

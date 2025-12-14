@@ -10,6 +10,7 @@ import io.megabrain.ingestion.parser.TextChunk;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -52,7 +53,7 @@ class SwiftTreeSitterParserTest {
         // Create a temporary file
         Path tempFile = Path.of("/tmp/test.swift");
         try {
-            java.nio.file.Files.writeString(tempFile, swiftCode);
+            Files.writeString(tempFile, swiftCode);
             List<TextChunk> chunks = parser.parse(tempFile);
             // Should return empty list if grammar fails to load
             assertThat(chunks).isNotNull();
@@ -60,7 +61,7 @@ class SwiftTreeSitterParserTest {
             // Expected if grammar not available in test environment
         } finally {
             try {
-                java.nio.file.Files.deleteIfExists(tempFile);
+                Files.deleteIfExists(tempFile);
             } catch (Exception e) {
                 // Ignore cleanup errors
             }

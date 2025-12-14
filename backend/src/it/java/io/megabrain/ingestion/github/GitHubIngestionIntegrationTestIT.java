@@ -69,7 +69,7 @@ class GitHubIngestionIntegrationTestIT {
         assertThat(metadata.owner()).isEqualTo("octocat");
         assertThat(metadata.branch()).isNotBlank();
         assertThat(metadata.commitSha()).isNotBlank();
-        assertThat(metadata.cloneUrl()).isEqualTo("https://github.com/octocat/Hello-World");
+        assertThat(metadata.cloneUrl()).isEqualTo(TEST_REPO_URL);
     }
 
     @Test
@@ -80,11 +80,11 @@ class GitHubIngestionIntegrationTestIT {
         // Then
         List<ProgressEvent> events = progress.collect().asList().await().atMost(TIMEOUT);
         assertThat(events).isNotEmpty();
-        assertThat(events.get(0).stage()).isEqualTo("CLONING");
+        assertThat(events.get(0).stage()).isEqualTo(CLONING);
         assertThat(events.get(0).message()).isEqualTo("Starting repository clone");
 
         ProgressEvent lastEvent = events.get(events.size() - 1);
-        assertThat(lastEvent.stage()).isEqualTo("CLONING");
+        assertThat(lastEvent.stage()).isEqualTo(CLONING);
         assertThat(lastEvent.message()).isEqualTo("Repository cloned successfully");
         assertThat(lastEvent.percentage()).isEqualTo(100);
 

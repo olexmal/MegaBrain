@@ -5,29 +5,29 @@
 
 package io.megabrain.ingestion.parser.treesitter;
 
-import io.github.treesitter.jtreesitter.Language;
-import io.github.treesitter.jtreesitter.Node;
-import io.github.treesitter.jtreesitter.Tree;
-import io.megabrain.ingestion.parser.TextChunk;
-import org.jboss.logging.Logger;
-
-import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
+
+import io.github.treesitter.jtreesitter.Language;
+import io.github.treesitter.jtreesitter.Node;
+import io.github.treesitter.jtreesitter.Tree;
+import io.megabrain.ingestion.parser.GrammarManager;
+import io.megabrain.ingestion.parser.GrammarSpec;
+import io.megabrain.ingestion.parser.TextChunk;
 
 /**
  * Tree-sitter parser for C++ source code.
  */
 public class CppTreeSitterParser extends TreeSitterParser {
 
-    private static final Logger LOG = Logger.getLogger(CppTreeSitterParser.class);
     private static final String LANGUAGE = "cpp";
     private static final Set<String> SUPPORTED_EXTENSIONS = Set.of("cpp", "cc", "cxx", "hpp", "hh", "h");
     private static final String LIBRARY_ENV = "TREE_SITTER_CPP_LIB";
@@ -35,10 +35,10 @@ public class CppTreeSitterParser extends TreeSitterParser {
     private static final String LANGUAGE_SYMBOL = "tree_sitter_cpp";
 
     public CppTreeSitterParser() {
-        this(new io.megabrain.ingestion.parser.GrammarManager());
+        this(new GrammarManager());
     }
 
-    public CppTreeSitterParser(io.megabrain.ingestion.parser.GrammarManager grammarManager) {
+    public CppTreeSitterParser(GrammarManager grammarManager) {
         this(grammarManager.languageSupplier(CPP_SPEC), grammarManager.nativeLoader(CPP_SPEC));
     }
 
@@ -71,7 +71,7 @@ public class CppTreeSitterParser extends TreeSitterParser {
         List<TextChunk> chunks = new ArrayList<>();
         ArrayDeque<String> namespaceStack = new ArrayDeque<>();
         ArrayDeque<String> classStack = new ArrayDeque<>();
-        Set<String> seen = java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
+        Set<String> seen = Collections.newSetFromMap(new ConcurrentHashMap<>());
         walk(rootNode, source, chunks, namespaceStack, classStack, null, seen);
         return chunks;
     }
@@ -185,7 +185,7 @@ public class CppTreeSitterParser extends TreeSitterParser {
 
     private String qualify(ArrayDeque<String> namespaceStack, ArrayDeque<String> classStack, String leaf) {
         List<String> parts = new ArrayList<>();
-        parts.addAll(namespaceStack.stream().collect(Collectors.toCollection(ArrayDeque::new)));
+        parts.addAll(new ArrayDeque<>(namespaceStack));
         parts.addAll(classStack);
         parts.add(leaf);
         return String.join(".", parts);
@@ -198,8 +198,8 @@ public class CppTreeSitterParser extends TreeSitterParser {
         }
     }
 
-    private static final io.megabrain.ingestion.parser.GrammarSpec CPP_SPEC =
-            new io.megabrain.ingestion.parser.GrammarSpec(
+    private static final GrammarSpec CPP_SPEC =
+            new GrammarSpec(
                     LANGUAGE,
                     LANGUAGE_SYMBOL,
                     "tree-sitter-cpp",

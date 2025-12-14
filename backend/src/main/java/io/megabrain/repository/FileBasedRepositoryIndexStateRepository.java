@@ -11,7 +11,6 @@ import jakarta.enterprise.context.ApplicationScoped;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
 
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -156,7 +155,7 @@ public class FileBasedRepositoryIndexStateRepository implements RepositoryIndexS
         );
     }
 
-    private RepositoryIndexState parseFromJson(String json) throws IOException {
+    private RepositoryIndexState parseFromJson(String json) {
         // Simple JSON parsing - in production, use a proper JSON library
         String repositoryUrl = extractJsonValue(json, "repositoryUrl");
         String lastIndexedCommitSha = extractJsonValue(json, "lastIndexedCommitSha");

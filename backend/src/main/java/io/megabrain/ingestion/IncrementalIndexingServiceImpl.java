@@ -19,7 +19,6 @@ import java.util.function.Consumer;
 import java.time.Duration;
 import java.time.Instant;
 
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -152,8 +151,7 @@ public class IncrementalIndexingServiceImpl implements IncrementalIndexingServic
         int processedCount = 0;
         int totalFiles = renamedFiles.size();
 
-        for (int i = 0; i < renamedFiles.size(); i++) {
-            FileChange change = renamedFiles.get(i);
+        for (FileChange change : renamedFiles) {
             processedCount++; // Count every file we attempt to process
 
             try {
@@ -162,8 +160,7 @@ public class IncrementalIndexingServiceImpl implements IncrementalIndexingServic
                 Path newFilePath = repositoryPath.resolve(change.filePath());
 
                 // Remove chunks from the old location
-                Integer removedCount = indexService.removeChunksForFile(oldFilePath.toString())
-                        .await().indefinitely();
+                Integer removedCount = indexService.removeChunksForFile(oldFilePath.toString()).await().indefinitely();
 
                 LOG.debugf("Removed %d chunks for renamed file from old path: %s", removedCount, change.oldPath());
 
@@ -268,8 +265,7 @@ public class IncrementalIndexingServiceImpl implements IncrementalIndexingServic
         int processedCount = 0;
         int totalFiles = modifiedFiles.size();
 
-        for (int i = 0; i < modifiedFiles.size(); i++) {
-            FileChange change = modifiedFiles.get(i);
+        for (FileChange change : modifiedFiles) {
             Path filePath = repositoryPath.resolve(change.filePath());
 
             processedCount++; // Count every file we attempt to process
@@ -281,8 +277,7 @@ public class IncrementalIndexingServiceImpl implements IncrementalIndexingServic
 
             try {
                 // Remove old chunks for this file
-                Integer removedCount = indexService.removeChunksForFile(filePath.toString())
-                        .await().indefinitely();
+                Integer removedCount = indexService.removeChunksForFile(filePath.toString()).await().indefinitely();
 
                 LOG.debugf("Removed %d old chunks for modified file: %s", removedCount, change.filePath());
 

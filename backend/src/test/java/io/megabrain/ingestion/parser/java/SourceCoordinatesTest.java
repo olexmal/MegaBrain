@@ -15,9 +15,10 @@ class SourceCoordinatesTest {
 
     @Test
     void computesByteOffsetsAndSlices() {
-        String source = "abc\n"
-                + "def\n"
-                + "ghi";
+        String source = """
+                abc
+                def
+                ghi""";
 
         SourceCoordinates coordinates = new SourceCoordinates(source);
 

@@ -24,6 +24,7 @@ import org.jboss.logging.Logger;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
@@ -91,7 +92,7 @@ public class GitHubSourceControlClient implements SourceControlClient {
                 throw new IngestionException("Failed to fetch repository metadata: " + e.getMessage(), e);
             }
         })
-        .onFailure().retry().withBackOff(java.time.Duration.ofSeconds(1), java.time.Duration.ofSeconds(5))
+        .onFailure().retry().withBackOff(Duration.ofSeconds(1), Duration.ofSeconds(5))
         .atMost(3);
     }
 

@@ -9,12 +9,10 @@ import io.megabrain.ingestion.IngestionService;
 import io.megabrain.ingestion.ProgressEvent;
 import io.megabrain.ingestion.StreamEvent;
 import io.quarkus.test.junit.QuarkusTest;
-import io.smallrye.mutiny.Multi;
-import io.smallrye.mutiny.helpers.test.UniAssertSubscriber;
+
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
-import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -58,15 +56,10 @@ class IngestionResourceTest {
         StreamEvent event = StreamEvent.of(StreamEvent.Stage.CLONING, "Starting clone", 0);
 
         // When - simulate SSE format conversion
-        String sseData = "data: {\"stage\":\"CLONING\",\"message\":\"Starting clone\",\"percentage\":0,\"timestamp\":\"" +
-                        event.timestamp() + "\",\"metadata\":{}}\n\n";
+        String sseData = "data: {\"stage\":\"CLONING\",\"message\":\"Starting clone\",\"percentage\":0,\"timestamp\":\"" + event.timestamp() + "\",\"metadata\":{}}\n\n";
 
         // Then
-        assertThat(sseData).startsWith("data: ");
-        assertThat(sseData).endsWith("\n\n");
-        assertThat(sseData).contains("\"stage\":\"CLONING\"");
-        assertThat(sseData).contains("\"message\":\"Starting clone\"");
-        assertThat(sseData).contains("\"percentage\":0");
+        assertThat(sseData).startsWith("data: ").endsWith("\n\n").contains("\"stage\":\"CLONING\"").contains("\"message\":\"Starting clone\"").contains("\"percentage\":0");
     }
 
     /**
@@ -76,9 +69,7 @@ class IngestionResourceTest {
     void indexingProgressEvents_shouldShowChunkInformation() {
         // Test batch indexing progress messages
         String batchMessage = "Indexed batch 2: 40/80 chunks (50.0%)";
-        assertThat(batchMessage).contains("Indexed batch");
-        assertThat(batchMessage).contains("chunks");
-        assertThat(batchMessage).contains("%");
+        assertThat(batchMessage).contains("Indexed batch").contains("chunks").contains("%");
 
         // Test completion message
         String completionMessage = "Indexing completed successfully";
@@ -86,8 +77,7 @@ class IngestionResourceTest {
 
         // Test chunk count messages
         String chunkMessage = "Indexing 25 chunks from added files";
-        assertThat(chunkMessage).contains("chunks");
-        assertThat(chunkMessage).contains("Indexing");
+        assertThat(chunkMessage).contains("chunks").contains("Indexing");
     }
 
     /**
@@ -158,7 +148,7 @@ class IngestionResourceTest {
             "Ingestion failed: Connection timeout", 0, errorMetadata);
 
         assertThat(errorEvent.stage()).isEqualTo(StreamEvent.Stage.FAILED);
-        assertThat(errorEvent.percentage()).isEqualTo(0);
+        assertThat(errorEvent.percentage()).isZero();
         assertThat(errorEvent.getMetadata("errorType")).contains("RuntimeException");
         assertThat(errorEvent.getMetadata("stage")).contains("PARSING");
         assertThat(errorEvent.message()).contains("Connection timeout");

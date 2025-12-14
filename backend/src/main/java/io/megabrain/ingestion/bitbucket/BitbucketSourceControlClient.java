@@ -27,6 +27,8 @@ import jakarta.ws.rs.WebApplicationException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
@@ -81,7 +83,7 @@ public class BitbucketSourceControlClient implements SourceControlClient {
     BitbucketTokenProvider tokenProvider;
 
     @ConfigProperty(name = "bitbucket-server-api/mp-rest/url")
-    java.util.Optional<String> serverBaseUrl;
+    Optional<String> serverBaseUrl;
 
     @Override
     public boolean canHandle(String repositoryUrl) {
@@ -160,7 +162,7 @@ public class BitbucketSourceControlClient implements SourceControlClient {
             }
         })
         .onFailure(this::isRateLimit)
-            .retry().withBackOff(java.time.Duration.ofSeconds(1), java.time.Duration.ofSeconds(5)).atMost(3)
+            .retry().withBackOff(Duration.ofSeconds(1), Duration.ofSeconds(5)).atMost(3)
         .onFailure(WebApplicationException.class)
             .transform(this::mapBitbucketException);
     }
@@ -241,17 +243,9 @@ public class BitbucketSourceControlClient implements SourceControlClient {
                 // Add authentication if token is available
                 BitbucketTokenProvider.BitbucketCredentials credentials = tokenProvider.getCredentials(urlParts.isCloud());
                 if (credentials != null) {
-                    if (urlParts.isCloud()) {
-                        // Bitbucket Cloud: username + app password
-                        cloneCommand.setCredentialsProvider(
-                                new UsernamePasswordCredentialsProvider(credentials.username(), credentials.password())
-                        );
-                    } else {
-                        // Bitbucket Server: username + PAT (sent as password)
-                        cloneCommand.setCredentialsProvider(
-                                new UsernamePasswordCredentialsProvider(credentials.username(), credentials.password())
-                        );
-                    }
+                    cloneCommand.setCredentialsProvider(
+                            new UsernamePasswordCredentialsProvider(credentials.username(), credentials.password())
+                    );
                 }
 
                 emitter.emit(ProgressEvent.of("Cloning repository", 40.0));

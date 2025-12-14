@@ -5,12 +5,14 @@
 
 package io.megabrain.ingestion.parser.treesitter;
 
+import io.github.treesitter.jtreesitter.Language;
 import io.github.treesitter.jtreesitter.Node;
 import io.github.treesitter.jtreesitter.Tree;
+import io.megabrain.ingestion.parser.GrammarManager;
+import io.megabrain.ingestion.parser.GrammarSpec;
 import io.megabrain.ingestion.parser.TextChunk;
 import org.jboss.logging.Logger;
 
-import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -19,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Supplier;
 
 /**
  * Tree-sitter parser for Kotlin source code.
@@ -51,14 +54,14 @@ public class KotlinTreeSitterParser extends TreeSitterParser {
     );
 
     public KotlinTreeSitterParser() {
-        this(new io.megabrain.ingestion.parser.GrammarManager());
+        this(new GrammarManager());
     }
 
-    public KotlinTreeSitterParser(io.megabrain.ingestion.parser.GrammarManager grammarManager) {
+    public KotlinTreeSitterParser(GrammarManager grammarManager) {
         this(grammarManager.languageSupplier(KOTLIN_SPEC), grammarManager.nativeLoader(KOTLIN_SPEC));
     }
 
-    KotlinTreeSitterParser(java.util.function.Supplier<io.github.treesitter.jtreesitter.Language> languageSupplier, Runnable nativeLoader) {
+    KotlinTreeSitterParser(Supplier<Language> languageSupplier, Runnable nativeLoader) {
         super(LANGUAGE, SUPPORTED_EXTENSIONS, languageSupplier, nativeLoader);
     }
 
@@ -302,8 +305,8 @@ public class KotlinTreeSitterParser extends TreeSitterParser {
         };
     }
 
-    private static final io.megabrain.ingestion.parser.GrammarSpec KOTLIN_SPEC =
-            new io.megabrain.ingestion.parser.GrammarSpec(
+    private static final GrammarSpec KOTLIN_SPEC =
+            new GrammarSpec(
                     LANGUAGE,
                     LANGUAGE_SYMBOL,
                     "tree-sitter-kotlin",

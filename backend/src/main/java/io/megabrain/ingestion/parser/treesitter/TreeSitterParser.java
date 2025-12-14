@@ -28,6 +28,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -164,7 +165,7 @@ public abstract class TreeSitterParser implements CodeParser {
     /**
      * Depth-first (pre-order) traversal helper for subclasses.
      */
-    protected final void traverseDepthFirst(Node rootNode, java.util.function.Consumer<Node> visitor) {
+    protected final void traverseDepthFirst(Node rootNode, Consumer<Node> visitor) {
         Objects.requireNonNull(rootNode, "rootNode");
         Objects.requireNonNull(visitor, "visitor");
 

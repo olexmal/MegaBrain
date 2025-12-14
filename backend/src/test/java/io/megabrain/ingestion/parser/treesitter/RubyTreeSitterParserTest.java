@@ -10,6 +10,7 @@ import io.megabrain.ingestion.parser.TextChunk;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -46,7 +47,7 @@ class RubyTreeSitterParserTest {
         // Create a temporary file
         Path tempFile = Path.of("/tmp/test.rb");
         try {
-            java.nio.file.Files.writeString(tempFile, rubyCode);
+            Files.writeString(tempFile, rubyCode);
             List<TextChunk> chunks = parser.parse(tempFile);
             // Should return empty list if grammar fails to load
             assertThat(chunks).isNotNull();
@@ -54,7 +55,7 @@ class RubyTreeSitterParserTest {
             // Expected if grammar not available in test environment
         } finally {
             try {
-                java.nio.file.Files.deleteIfExists(tempFile);
+                Files.deleteIfExists(tempFile);
             } catch (Exception e) {
                 // Ignore cleanup errors
             }

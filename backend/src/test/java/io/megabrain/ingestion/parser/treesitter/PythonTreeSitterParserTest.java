@@ -205,7 +205,7 @@ class PythonTreeSitterParserTest {
         return node;
     }
 
-    private static final class TestPythonTreeSitterParser extends io.megabrain.ingestion.parser.treesitter.PythonTreeSitterParser {
+    private static final class TestPythonTreeSitterParser extends PythonTreeSitterParser {
         TestPythonTreeSitterParser(Supplier<Language> languageSupplier, Runnable loader) {
             super(languageSupplier, loader);
         }

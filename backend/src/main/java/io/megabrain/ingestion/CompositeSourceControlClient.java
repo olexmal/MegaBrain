@@ -50,7 +50,7 @@ public class CompositeSourceControlClient implements SourceControlClient {
         if (clientList.isEmpty()) {
             return Multi.createFrom().failure(new IllegalStateException("No SourceControlClient implementations available"));
         }
-        return clientList.get(0).extractFiles(repositoryPath);
+        return clientList.getFirst().extractFiles(repositoryPath);
     }
 
     @Override
@@ -60,7 +60,7 @@ public class CompositeSourceControlClient implements SourceControlClient {
         if (clientList.isEmpty()) {
             return null;
         }
-        return clientList.get(0).getClonedRepositoryPath();
+        return clientList.getFirst().getClonedRepositoryPath();
     }
 
     private SourceControlClient getClient(String repositoryUrl) {
@@ -76,9 +76,8 @@ public class CompositeSourceControlClient implements SourceControlClient {
                 if (client.canHandle(repositoryUrl)) {
                     return client;
                 }
-            } catch (Exception e) {
+            } catch (Exception _) {
                 // If one client fails, try the next one
-                continue;
             }
         }
         return null;

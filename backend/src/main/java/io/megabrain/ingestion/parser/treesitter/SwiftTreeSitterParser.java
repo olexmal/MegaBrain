@@ -5,12 +5,14 @@
 
 package io.megabrain.ingestion.parser.treesitter;
 
+import io.github.treesitter.jtreesitter.Language;
 import io.github.treesitter.jtreesitter.Node;
 import io.github.treesitter.jtreesitter.Tree;
+import io.megabrain.ingestion.parser.GrammarManager;
+import io.megabrain.ingestion.parser.GrammarSpec;
 import io.megabrain.ingestion.parser.TextChunk;
 import org.jboss.logging.Logger;
 
-import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -19,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Supplier;
 
 /**
  * Tree-sitter parser for Swift source code.
@@ -41,14 +44,14 @@ public class SwiftTreeSitterParser extends TreeSitterParser {
     );
 
     public SwiftTreeSitterParser() {
-        this(new io.megabrain.ingestion.parser.GrammarManager());
+        this(new GrammarManager());
     }
 
-    public SwiftTreeSitterParser(io.megabrain.ingestion.parser.GrammarManager grammarManager) {
+    public SwiftTreeSitterParser(GrammarManager grammarManager) {
         this(grammarManager.languageSupplier(SWIFT_SPEC), grammarManager.nativeLoader(SWIFT_SPEC));
     }
 
-    SwiftTreeSitterParser(java.util.function.Supplier<io.github.treesitter.jtreesitter.Language> languageSupplier, Runnable nativeLoader) {
+    SwiftTreeSitterParser(Supplier<Language> languageSupplier, Runnable nativeLoader) {
         super(LANGUAGE, SUPPORTED_EXTENSIONS, languageSupplier, nativeLoader);
     }
 
@@ -192,8 +195,7 @@ public class SwiftTreeSitterParser extends TreeSitterParser {
     }
 
     private String qualifyName(ArrayDeque<String> typeStack, String leaf) {
-        List<String> parts = new ArrayList<>();
-        parts.addAll(typeStack);
+        List<String> parts = new ArrayList<>(typeStack);
         parts.add(leaf);
         return String.join(".", parts);
     }
@@ -223,8 +225,8 @@ public class SwiftTreeSitterParser extends TreeSitterParser {
         };
     }
 
-    private static final io.megabrain.ingestion.parser.GrammarSpec SWIFT_SPEC =
-            new io.megabrain.ingestion.parser.GrammarSpec(
+    private static final GrammarSpec SWIFT_SPEC =
+            new GrammarSpec(
                     LANGUAGE,
                     LANGUAGE_SYMBOL,
                     "tree-sitter-swift",

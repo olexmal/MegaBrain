@@ -5,6 +5,8 @@
 
 package io.megabrain.ingestion.bitbucket;
 
+import java.util.Optional;
+
 import jakarta.enterprise.context.ApplicationScoped;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
@@ -17,16 +19,16 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 public class BitbucketTokenProvider {
 
     @ConfigProperty(name = "megabrain.bitbucket.cloud.username")
-    java.util.Optional<String> cloudUsername;
+    Optional<String> cloudUsername;
 
     @ConfigProperty(name = "megabrain.bitbucket.cloud.app-password")
-    java.util.Optional<String> cloudAppPassword;
+    Optional<String> cloudAppPassword;
 
     @ConfigProperty(name = "megabrain.bitbucket.server.username")
-    java.util.Optional<String> serverUsername;
+    Optional<String> serverUsername;
 
     @ConfigProperty(name = "megabrain.bitbucket.server.token")
-    java.util.Optional<String> serverToken;
+    Optional<String> serverToken;
 
     /**
      * Gets Bitbucket credentials for the specified platform.

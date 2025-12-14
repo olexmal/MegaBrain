@@ -24,13 +24,19 @@ import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.jboss.logging.Logger;
 
 import java.io.IOException;
+import java.net.ConnectException;
 import java.net.URLEncoder;
+import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 import java.util.regex.Pattern;
+
+import javax.net.ssl.SSLHandshakeException;
 
 /**
  * GitLab source control client implementation.
@@ -110,7 +116,7 @@ public class GitLabSourceControlClient implements SourceControlClient {
                 throw new IngestionException("Failed to fetch repository metadata: " + e.getMessage(), e);
             }
         })
-        .onFailure().retry().withBackOff(java.time.Duration.ofSeconds(1), java.time.Duration.ofSeconds(5))
+        .onFailure().retry().withBackOff(Duration.ofSeconds(1), Duration.ofSeconds(5))
         .atMost(3);
     }
 
@@ -455,15 +461,15 @@ public class GitLabSourceControlClient implements SourceControlClient {
                             statusCode, response.getStatusInfo().getReasonPhrase()), e);
             }
         } catch (Exception e) {
-            if (e.getCause() instanceof java.net.UnknownHostException) {
+            if (e.getCause() instanceof UnknownHostException) {
                 throw new IngestionException(
                     String.format("Cannot resolve GitLab hostname: %s. Please check your GITLAB_API_URL configuration.",
                         config.apiUrl()), e);
-            } else if (e.getCause() instanceof java.net.ConnectException) {
+            } else if (e.getCause() instanceof ConnectException) {
                 throw new IngestionException(
                     String.format("Cannot connect to GitLab instance: %s. Please check network connectivity and URL.",
                         config.apiUrl()), e);
-            } else if (e.getCause() instanceof javax.net.ssl.SSLHandshakeException) {
+            } else if (e.getCause() instanceof SSLHandshakeException) {
                 throw new IngestionException(
                     "SSL certificate validation failed. For self-hosted GitLab with custom certificates, " +
                     "configure megabrain.gitlab.ssl.trust-store and related properties.", e);
@@ -483,7 +489,7 @@ public class GitLabSourceControlClient implements SourceControlClient {
      * @return the API response
      * @param <T> the response type
      */
-    private <T> T fetchWithRateLimitHandling(java.util.function.Supplier<T> apiCall) {
+    private <T> T fetchWithRateLimitHandling(Supplier<T> apiCall) {
         int attempt = 0;
         int maxAttempts = 5;
         long backoffMs = 1000; // Start with 1 second
@@ -495,48 +501,54 @@ public class GitLabSourceControlClient implements SourceControlClient {
                 Response response = e.getResponse();
                 int statusCode = response.getStatus();
 
-                if (statusCode == 429) { // Too Many Requests
-                    attempt++;
+                switch (statusCode) {
+                    case 429 -> { // Too Many Requests
+                        attempt++;
 
-                    if (attempt >= maxAttempts) {
-                        LOG.warnf("GitLab API rate limit exceeded, giving up after %d attempts", maxAttempts);
-                        throw new IngestionException("GitLab API rate limit exceeded", e);
-                    }
-
-                    // Check for Retry-After header (GitLab may provide this)
-                    String retryAfter = response.getHeaderString("Retry-After");
-                    long waitMs = backoffMs;
-
-                    if (retryAfter != null) {
-                        try {
-                            waitMs = Long.parseLong(retryAfter) * 1000; // Convert seconds to milliseconds
-                            LOG.infof("GitLab API rate limited, waiting %d seconds as requested", waitMs / 1000);
-                        } catch (NumberFormatException nfe) {
-                            LOG.warnf("Invalid Retry-After header: %s, using exponential backoff", retryAfter);
+                        if (attempt >= maxAttempts) {
+                            LOG.warnf("GitLab API rate limit exceeded, giving up after %d attempts", maxAttempts);
+                            throw new IngestionException("GitLab API rate limit exceeded", e);
                         }
-                    } else {
-                        LOG.infof("GitLab API rate limited, attempt %d/%d, waiting %d ms", attempt, maxAttempts, waitMs);
+
+                        // Check for Retry-After header (GitLab may provide this)
+                        String retryAfter = response.getHeaderString("Retry-After");
+                        long waitMs = backoffMs;
+
+                        if (retryAfter != null) {
+                            try {
+                                waitMs = Long.parseLong(retryAfter) * 1000; // Convert seconds to milliseconds
+                                LOG.infof("GitLab API rate limited, waiting %d seconds as requested", waitMs / 1000);
+                            } catch (NumberFormatException nfe) {
+                                LOG.warnf("Invalid Retry-After header: %s, using exponential backoff", retryAfter);
+                            }
+                        } else {
+                            LOG.infof("GitLab API rate limited, attempt %d/%d, waiting %d ms", attempt, maxAttempts, waitMs);
+                        }
+
+                        try {
+                            Thread.sleep(waitMs);
+                        } catch (InterruptedException ie) {
+                            Thread.currentThread().interrupt();
+                            throw new IngestionException("Interrupted while waiting for rate limit", ie);
+                        }
+
+                        // Exponential backoff for next attempt
+                        backoffMs = Math.min(backoffMs * 2, 30000); // Max 30 seconds
+
                     }
-
-                    try {
-                        Thread.sleep(waitMs);
-                    } catch (InterruptedException ie) {
-                        Thread.currentThread().interrupt();
-                        throw new IngestionException("Interrupted while waiting for rate limit", ie);
+                    case 401 -> {
+                        throw new IngestionException("GitLab authentication failed. Please check your token.", e);
                     }
-
-                    // Exponential backoff for next attempt
-                    backoffMs = Math.min(backoffMs * 2, 30000); // Max 30 seconds
-
-                } else if (statusCode == 401) {
-                    throw new IngestionException("GitLab authentication failed. Please check your token.", e);
-                } else if (statusCode == 403) {
-                    throw new IngestionException("GitLab access forbidden. You may not have permission to access this repository.", e);
-                } else if (statusCode == 404) {
-                    throw new IngestionException("GitLab repository not found. Please check the URL.", e);
-                } else {
-                    // For other errors, don't retry
-                    throw e;
+                    case 403 -> {
+                        throw new IngestionException("GitLab access forbidden. You may not have permission to access this repository.", e);
+                    }
+                    case 404 -> {
+                        throw new IngestionException("GitLab repository not found. Please check the URL.", e);
+                    }
+                    default -> {
+                        // For other errors, don't retry
+                        throw e;
+                    }
                 }
             } catch (Exception e) {
                 // For non-HTTP exceptions, don't retry

@@ -5,27 +5,28 @@
 
 package io.megabrain.ingestion.parser.treesitter;
 
-import io.github.treesitter.jtreesitter.Language;
-import io.github.treesitter.jtreesitter.Node;
-import io.github.treesitter.jtreesitter.Tree;
-import io.megabrain.ingestion.parser.TextChunk;
-import org.jboss.logging.Logger;
-
-import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
+
+import io.github.treesitter.jtreesitter.Language;
+import io.github.treesitter.jtreesitter.Node;
+import io.github.treesitter.jtreesitter.Tree;
+import io.megabrain.ingestion.parser.GrammarManager;
+import io.megabrain.ingestion.parser.GrammarSpec;
+import io.megabrain.ingestion.parser.TextChunk;
 
 /**
  * Tree-sitter parser for C source code.
  */
 public class CTreeSitterParser extends TreeSitterParser {
 
-    private static final Logger LOG = Logger.getLogger(CTreeSitterParser.class);
     private static final String LANGUAGE = "c";
     private static final Set<String> SUPPORTED_EXTENSIONS = Set.of("c", "h");
     private static final String LIBRARY_ENV = "TREE_SITTER_C_LIB";
@@ -33,10 +34,10 @@ public class CTreeSitterParser extends TreeSitterParser {
     private static final String LANGUAGE_SYMBOL = "tree_sitter_c";
 
     public CTreeSitterParser() {
-        this(new io.megabrain.ingestion.parser.GrammarManager());
+        this(new GrammarManager());
     }
 
-    public CTreeSitterParser(io.megabrain.ingestion.parser.GrammarManager grammarManager) {
+    public CTreeSitterParser(GrammarManager grammarManager) {
         this(grammarManager.languageSupplier(C_SPEC), grammarManager.nativeLoader(C_SPEC));
     }
 
@@ -63,7 +64,7 @@ public class CTreeSitterParser extends TreeSitterParser {
     @Override
     protected List<TextChunk> extractChunks(Node rootNode, Tree tree, TreeSitterSource source) {
         List<TextChunk> chunks = new ArrayList<>();
-        Set<String> seen = java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
+        Set<String> seen = Collections.newSetFromMap(new ConcurrentHashMap<>());
         traverseDepthFirst(rootNode, node -> {
             if (isStruct(node)) {
                 processStruct(node, source, chunks, seen);
@@ -135,8 +136,8 @@ public class CTreeSitterParser extends TreeSitterParser {
         }
     }
 
-    private static final io.megabrain.ingestion.parser.GrammarSpec C_SPEC =
-            new io.megabrain.ingestion.parser.GrammarSpec(
+    private static final GrammarSpec C_SPEC =
+            new GrammarSpec(
                     LANGUAGE,
                     LANGUAGE_SYMBOL,
                     "tree-sitter-c",

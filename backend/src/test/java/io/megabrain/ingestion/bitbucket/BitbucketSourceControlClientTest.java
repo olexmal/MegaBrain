@@ -114,8 +114,7 @@ class BitbucketSourceControlClientTest {
         // Then
         List<ProgressEvent> events = result.collect().asList().await().indefinitely();
         assertThat(events).isNotEmpty();
-        assertThat(events.getLast().message()).contains("extraction");
-        assertThat(events.getLast().message()).contains("completed");
+        assertThat(events.getLast().message()).contains("extraction").contains("completed");
     }
 
     @Test
