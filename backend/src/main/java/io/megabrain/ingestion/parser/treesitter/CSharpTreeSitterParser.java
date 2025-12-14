@@ -37,6 +37,9 @@ public class CSharpTreeSitterParser extends TreeSitterParser {
     private static final String ATTR_MODIFIERS = "modifiers";
     private static final String ATTR_ENCLOSING_TYPE = "enclosing_type";
 
+    // AST field names
+    private static final String FIELD_MODIFIERS = "modifiers";
+
     private static final Set<String> TYPE_NODE_TYPES = Set.of(
             "class_declaration",
             "interface_declaration",
@@ -200,7 +203,7 @@ public class CSharpTreeSitterParser extends TreeSitterParser {
     private Map<String, String> buildTypeAttributes(Node node, TreeSitterSource source, CSharpContext context) {
         Map<String, String> attributes = new LinkedHashMap<>();
         context.namespace().ifPresent(ns -> attributes.put(ATTR_NAMESPACE, ns));
-        sliceField(node, "modifiers", source).ifPresent(mods -> attributes.put(ATTR_MODIFIERS, mods));
+        sliceField(node, FIELD_MODIFIERS, source).ifPresent(mods -> attributes.put(ATTR_MODIFIERS, mods));
         sliceField(node, "type_parameters", source).ifPresent(tp -> attributes.put("type_parameters", tp));
         sliceField(node, "base_list", source).ifPresent(base -> attributes.put("base_list", base));
         return attributes;
@@ -215,7 +218,7 @@ public class CSharpTreeSitterParser extends TreeSitterParser {
         if (!typeStack.isEmpty()) {
             attributes.put(ATTR_ENCLOSING_TYPE, String.join(".", typeStack));
         }
-        sliceField(node, "modifiers", source).ifPresent(mods -> attributes.put(ATTR_MODIFIERS, mods));
+        sliceField(node, FIELD_MODIFIERS, source).ifPresent(mods -> attributes.put(ATTR_MODIFIERS, mods));
         sliceField(node, "parameter_list", source).ifPresent(params -> attributes.put("parameters", params));
         sliceField(node, "return_type", source).ifPresent(ret -> attributes.put("return_type", ret));
         return attributes;
@@ -230,7 +233,7 @@ public class CSharpTreeSitterParser extends TreeSitterParser {
         if (!typeStack.isEmpty()) {
             attributes.put(ATTR_ENCLOSING_TYPE, String.join(".", typeStack));
         }
-        sliceField(node, "modifiers", source).ifPresent(mods -> attributes.put(ATTR_MODIFIERS, mods));
+        sliceField(node, FIELD_MODIFIERS, source).ifPresent(mods -> attributes.put(ATTR_MODIFIERS, mods));
         sliceField(node, "type", source).ifPresent(type -> attributes.put("type", type));
         return attributes;
     }
