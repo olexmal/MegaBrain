@@ -156,7 +156,8 @@ class JavaTreeSitterParserTest {
                     assertThat(chunk.attributes().get("modifiers")).contains("public");
                     assertThat(chunk.attributes().get("annotations")).contains("@Inject");
                     assertThat(chunk.attributes()).containsEntry("parameters", "()");
-                    assertThat(chunk.attributes()).isEmpty();
+                    assertThat(chunk.attributes()).containsEntry("package", "com.example");
+                    assertThat(chunk.attributes().get("imports")).contains("java.util.List");
                 })
                 .anySatisfy(chunk -> {
                     assertThat(chunk.entityType()).isEqualTo("method");

@@ -19,7 +19,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import static org.mockito.Mockito.lenient;
 
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Path;
@@ -49,16 +52,34 @@ class GitLabSourceControlClientTest {
     @Mock
     private GitLabConfiguration config;
 
-    @InjectMocks
     private GitLabSourceControlClient client;
 
     @BeforeEach
     void setUp() {
-        // Default mock configurations
-        when(config.apiUrl()).thenReturn("https://gitlab.com");
-        when(config.connectTimeout()).thenReturn(10000);
-        when(config.readTimeout()).thenReturn(30000);
-        when(tokenProvider.getToken()).thenReturn("test-token");
+        // Initialize mocks
+        MockitoAnnotations.openMocks(this);
+
+        // Set up mock behavior (lenient to avoid unnecessary stubbing exceptions)
+        lenient().when(config.apiUrl()).thenReturn("https://gitlab.com");
+        lenient().when(config.connectTimeout()).thenReturn(10000);
+        lenient().when(config.readTimeout()).thenReturn(30000);
+        lenient().when(tokenProvider.getToken()).thenReturn("test-token");
+
+        // Create client and manually inject dependencies
+        client = new GitLabSourceControlClient();
+        setField(client, "config", config);
+        setField(client, "gitlabApiClient", gitlabApiClient);
+        setField(client, "tokenProvider", tokenProvider);
+    }
+
+    private void setField(Object target, String fieldName, Object value) {
+        try {
+            java.lang.reflect.Field field = target.getClass().getDeclaredField(fieldName);
+            field.setAccessible(true);
+            field.set(target, value);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to set field " + fieldName, e);
+        }
     }
 
     // Note: For CDI beans with dependencies, we would typically use @Inject
@@ -156,7 +177,7 @@ class GitLabSourceControlClientTest {
     @Test
     void fetchMetadata_shouldHandleSelfHostedGitLab() {
         // Given
-        when(config.apiUrl()).thenReturn("https://gitlab.company.com");
+        lenient().when(config.apiUrl()).thenReturn("https://gitlab.company.com");
         String repositoryUrl = "https://gitlab.company.com/group/project";
         GitLabRepositoryInfo mockProject = new GitLabRepositoryInfo(
             456, "project", "group/project", "develop",
@@ -221,7 +242,7 @@ class GitLabSourceControlClientTest {
     void extractFiles_shouldHandleValidRepositoryPath() {
         // Given
         Path mockPath = mock(Path.class);
-        when(mockPath.toString()).thenReturn("/tmp/test-repo");
+        lenient().when(mockPath.toString()).thenReturn("/tmp/test-repo");
 
         // When - Note: Full testing would require file system mocking
         Multi<ProgressEvent> result = client.extractFiles(mockPath);
