@@ -28,6 +28,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class GrammarHealthCheck implements HealthCheck {
 
     private static final Logger LOG = Logger.getLogger(GrammarHealthCheck.class);
+    private static final String GRAMMAR_PREFIX = "grammar.";
 
     @Inject
     GrammarManager grammarManager;
@@ -54,11 +55,11 @@ public class GrammarHealthCheck implements HealthCheck {
 
             // Add details for each grammar
             for (GrammarDetail detail : status.grammarDetails()) {
-                builder.withData("grammar." + detail.language() + ".status",
+                builder.withData(GRAMMAR_PREFIX + detail.language() + ".status",
                                detail.status().name())
-                       .withData("grammar." + detail.language() + ".version",
+                       .withData(GRAMMAR_PREFIX + detail.language() + ".version",
                                detail.version() != null ? detail.version() : "unknown")
-                       .withData("grammar." + detail.language() + ".error",
+                       .withData(GRAMMAR_PREFIX + detail.language() + ".error",
                                detail.errorMessage() != null ? detail.errorMessage() : "");
             }
 
@@ -90,70 +91,89 @@ public class GrammarHealthCheck implements HealthCheck {
      * Check the health status of all grammars.
      */
     private GrammarHealthStatus checkGrammarHealth() {
-        // Get all known grammar languages from parser registry
-        // For now, we'll check common languages that might be expected
-        List<String> expectedLanguages = List.of("java", "python", "javascript", "typescript",
-                                                "c", "cpp", "go", "rust", "kotlin", "ruby",
-                                                "scala", "swift", "php", "csharp");
-
+        List<String> expectedLanguages = getExpectedLanguages();
         Map<String, GrammarDetail> grammarDetails = new ConcurrentHashMap<>();
-        int loadedCount = 0;
-        int failedCount = 0;
 
-        for (String language : expectedLanguages) {
-            long languageStartTime = System.nanoTime();
+        GrammarCounts counts = expectedLanguages.stream()
+            .map(language -> checkSingleGrammar(language, grammarDetails))
+            .reduce(new GrammarCounts(0, 0), GrammarCounts::add);
 
-            GrammarStatus status = GrammarStatus.NOT_CONFIGURED;
-            String version = null;
-            String errorMessage = null;
+        return new GrammarHealthStatus(expectedLanguages.size(), counts.loaded(), counts.failed(),
+                                     grammarDetails.values().stream().toList());
+    }
 
-            try {
-                // Try to get version info for this language
-                var versionInfo = grammarManager.getVersionInfo(language, null);
+    /**
+     * Get the list of expected grammar languages.
+     */
+    private List<String> getExpectedLanguages() {
+        return List.of("java", "python", "javascript", "typescript",
+                      "c", "cpp", "go", "rust", "kotlin", "ruby",
+                      "scala", "swift", "php", "csharp");
+    }
 
-                if (versionInfo.isPresent()) {
-                    version = versionInfo.get().version();
+    /**
+     * Check the health of a single grammar and update the details map.
+     */
+    private GrammarCounts checkSingleGrammar(String language, Map<String, GrammarDetail> grammarDetails) {
+        long startTime = System.nanoTime();
 
-                    // Try to load the grammar to verify it's working
-                    var grammarSpec = grammarManager.createGrammarSpecForVersion(language, version);
-                    if (grammarSpec != null) {
-                        var languageObj = grammarManager.loadLanguage(grammarSpec);
-                        if (languageObj != null) {
-                            status = GrammarStatus.LOADED;
-                            loadedCount++;
+        try {
+            GrammarDetail detail = checkGrammarDetail(language, startTime);
+            grammarDetails.put(language, detail);
 
-                            // Performance check: AC5 requirement (<500ms cold start)
-                            long loadTimeMs = (System.nanoTime() - languageStartTime) / 1_000_000;
-                            if (loadTimeMs > 500) {
-                                LOG.warnf("Grammar loading for %s exceeded 500ms threshold: %d ms (AC5 violation)", language, loadTimeMs);
-                            }
-                        } else {
-                            status = GrammarStatus.FAILED;
-                            errorMessage = "Failed to load grammar";
-                            failedCount++;
-                        }
-                    } else {
-                        status = GrammarStatus.FAILED;
-                        errorMessage = "Failed to create grammar spec";
-                        failedCount++;
-                    }
-                } else {
-                    // No cached version found
-                    status = GrammarStatus.NOT_CACHED;
-                }
-            } catch (Exception e) {
-                long languageCheckTime = (System.nanoTime() - languageStartTime) / 1_000_000;
-                status = GrammarStatus.FAILED;
-                errorMessage = e.getMessage();
-                failedCount++;
-                LOG.debugf("Failed to check grammar status for %s after %d ms: %s", language, languageCheckTime, errorMessage);
+            if (detail.status() == GrammarStatus.LOADED) {
+                return new GrammarCounts(1, 0);
+            } else {
+                int failed = detail.status() == GrammarStatus.FAILED ? 1 : 0;
+                return new GrammarCounts(0, failed);
             }
+        } catch (Exception e) {
+            long checkTime = (System.nanoTime() - startTime) / 1_000_000;
+            GrammarDetail failedDetail = new GrammarDetail(language, GrammarStatus.FAILED, null, e.getMessage());
+            grammarDetails.put(language, failedDetail);
+            LOG.debugf("Failed to check grammar status for %s after %d ms: %s", language, checkTime, e.getMessage());
+            return new GrammarCounts(0, 1);
+        }
+    }
 
-            grammarDetails.put(language, new GrammarDetail(language, status, version, errorMessage));
+    /**
+     * Check the detailed status of a single grammar.
+     */
+    private GrammarDetail checkGrammarDetail(String language, long startTime) {
+        var versionInfo = grammarManager.getVersionInfo(language, null);
+
+        if (versionInfo.isEmpty()) {
+            return new GrammarDetail(language, GrammarStatus.NOT_CACHED, null, null);
         }
 
-        return new GrammarHealthStatus(expectedLanguages.size(), loadedCount, failedCount,
-                                     grammarDetails.values().stream().toList());
+        String version = versionInfo.get().version();
+        var grammarSpec = grammarManager.createGrammarSpecForVersion(language, version);
+
+        if (grammarSpec == null) {
+            return new GrammarDetail(language, GrammarStatus.FAILED, version, "Failed to create grammar spec");
+        }
+
+        var languageObj = grammarManager.loadLanguage(grammarSpec);
+        if (languageObj == null) {
+            return new GrammarDetail(language, GrammarStatus.FAILED, version, "Failed to load grammar");
+        }
+
+        // Performance check: AC5 requirement (<500ms cold start)
+        long loadTimeMs = (System.nanoTime() - startTime) / 1_000_000;
+        if (loadTimeMs > 500) {
+            LOG.warnf("Grammar loading for %s exceeded 500ms threshold: %d ms (AC5 violation)", language, loadTimeMs);
+        }
+
+        return new GrammarDetail(language, GrammarStatus.LOADED, version, null);
+    }
+
+    /**
+     * Simple record to track loaded/failed grammar counts.
+     */
+    private record GrammarCounts(int loaded, int failed) {
+        GrammarCounts add(GrammarCounts other) {
+            return new GrammarCounts(loaded + other.loaded, failed + other.failed);
+        }
     }
 
     /**

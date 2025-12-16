@@ -1,0 +1,128 @@
+---
+description: Forbid use of reflection in unit tests
+globs:
+  - "**/*Test.java"
+  - "**/*Tests.java"
+  - "**/test/**/*.java"
+  - "**/src/test/**/*.java"
+---
+
+# No Reflection in Unit Tests
+
+## Rule
+**Reflection (java.lang.reflect) must not be used in unit tests.**
+
+## Reasoning
+- Unit tests should test public APIs and observable behavior, not implementation details
+- Reflection-based tests are brittle and break when internal implementation changes
+- Reflection can bypass access controls and test invalid states
+- Reflection tests are harder to understand and maintain
+- Reflection can interfere with mocking frameworks and test isolation
+
+## Alternatives
+
+### 1. Test Public APIs
+Instead of using reflection to access private fields/methods, expose necessary state through public methods or design testable interfaces.
+
+```java
+// WRONG - Using reflection in tests
+@Test
+void testInternalState() throws Exception {
+    MyClass instance = new MyClass();
+    Field field = MyClass.class.getDeclaredField("internalState");
+    field.setAccessible(true);
+    assertEquals("expected", field.get(instance));
+}
+
+// CORRECT - Test through public API
+@Test
+void testInternalState() {
+    MyClass instance = new MyClass();
+    // Test through public method that exposes necessary state
+    assertEquals("expected", instance.getState());
+}
+```
+
+### 2. Use Package-Private Access
+For testing purposes, use package-private (default) visibility instead of private. This allows access from tests in the same package without reflection.
+
+```java
+// In main code (package-private)
+class MyClass {
+    String internalState; // package-private for testing
+
+    // Package-private method for testing
+    boolean isValidState() {
+        return internalState != null && !internalState.isEmpty();
+    }
+}
+
+// In test (same package)
+class MyClassTest {
+    @Test
+    void testInternalState() {
+        MyClass instance = new MyClass();
+        instance.internalState = "test";
+        assertTrue(instance.isValidState());
+    }
+}
+```
+
+### 3. Dependency Injection for Testability
+Design classes to accept dependencies through constructors or setters, allowing mocks in tests.
+
+```java
+// WRONG - Hard-coded dependency
+class Service {
+    private final Database db = new Database(); // Can't mock
+}
+
+// CORRECT - Injectable dependency
+class Service {
+    private final Database db;
+
+    @Inject
+    public Service(Database db) {
+        this.db = db;
+    }
+}
+
+// Test can inject mock
+@Test
+void testService() {
+    Database mockDb = mock(Database.class);
+    Service service = new Service(mockDb);
+    // Test with mocked dependency
+}
+```
+
+### 4. Test Behavior, Not Implementation
+Focus on testing what the code does, not how it does it.
+
+```java
+// WRONG - Testing implementation details
+@Test
+void testUsesCache() throws Exception {
+    Method method = Service.class.getDeclaredMethod("getCachedData");
+    method.setAccessible(true);
+    // Test internal caching mechanism
+}
+
+// CORRECT - Test observable behavior
+@Test
+void testPerformanceImprovement() {
+    long startTime = System.nanoTime();
+    String result = service.getData();
+    long duration = (System.nanoTime() - startTime) / 1_000_000;
+
+    // Test that caching provides performance benefit
+    assertThat(duration).isLessThan(100); // Fast due to caching
+}
+```
+
+## Exceptions
+Reflection may be acceptable in integration tests or when testing legacy code that cannot be refactored. However, prefer to refactor the code under test to make it testable without reflection.
+
+## Related Rules
+- See testing-standards.mdc for general testing best practices
+- See java-backend.mdc for Java coding standards
