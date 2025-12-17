@@ -25,14 +25,14 @@
 - **Description:** Create the `LuceneIndexService` class that manages Lucene index lifecycle: creation, opening, writing, searching, and closing. The service should handle index directory management, writer/reader management, and provide search functionality.
 - **Estimated Hours:** 5 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T1 (needs index schema)
 - **Acceptance Criteria:**
-  - [ ] Service manages index directory
-  - [ ] Provides index writing functionality
-  - [ ] Provides index searching functionality
-  - [ ] Handles index opening/closing
-  - [ ] Thread-safe operations
+  - [x] Service manages index directory
+  - [x] Provides index writing functionality
+  - [x] Provides index searching functionality
+  - [x] Handles index opening/closing
+  - [x] Thread-safe operations
 - **Technical Notes:** Use Lucene's Directory, IndexWriter, and IndexSearcher. Implement as Quarkus CDI service. Use NIOFSDirectory or MMapDirectory for performance. Handle index locking properly.
 
 ### T3: Create code-aware analyzer with custom tokenizer
