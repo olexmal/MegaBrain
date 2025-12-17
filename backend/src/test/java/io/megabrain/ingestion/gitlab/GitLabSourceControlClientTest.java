@@ -8,7 +8,6 @@ package io.megabrain.ingestion.gitlab;
 import io.megabrain.ingestion.IngestionException;
 import io.megabrain.ingestion.ProgressEvent;
 import io.megabrain.ingestion.RepositoryMetadata;
-import io.quarkus.test.junit.QuarkusTest;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 
@@ -17,7 +16,6 @@ import jakarta.ws.rs.core.Response;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -39,7 +37,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-@QuarkusTest
 @ExtendWith(MockitoExtension.class)
 class GitLabSourceControlClientTest {
 
@@ -65,21 +62,8 @@ class GitLabSourceControlClientTest {
         lenient().when(config.readTimeout()).thenReturn(30000);
         lenient().when(tokenProvider.getToken()).thenReturn("test-token");
 
-        // Create client and manually inject dependencies
-        client = new GitLabSourceControlClient();
-        setField(client, "config", config);
-        setField(client, "gitlabApiClient", gitlabApiClient);
-        setField(client, "tokenProvider", tokenProvider);
-    }
-
-    private void setField(Object target, String fieldName, Object value) {
-        try {
-            java.lang.reflect.Field field = target.getClass().getDeclaredField(fieldName);
-            field.setAccessible(true);
-            field.set(target, value);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to set field " + fieldName, e);
-        }
+        // Create client with constructor injection
+        client = new GitLabSourceControlClient(gitlabApiClient, tokenProvider, config);
     }
 
     // Note: For CDI beans with dependencies, we would typically use @Inject
@@ -307,9 +291,6 @@ class GitLabSourceControlClientTest {
 
     @Test
     void validateGitLabConnection_shouldHandleConnectionErrors() throws Exception {
-        // Given
-        GitLabSourceControlClient client = new GitLabSourceControlClient();
-
         // Test that the method exists and can be called (would need mocking for full test)
         var method = GitLabSourceControlClient.class.getDeclaredMethod("validateGitLabConnection");
         method.setAccessible(true);
@@ -321,9 +302,6 @@ class GitLabSourceControlClientTest {
 
     @Test
     void tokenAuthentication_shouldUseSecureStorage() {
-        // Given - Test that tokens are handled securely
-        GitLabSourceControlClient client = new GitLabSourceControlClient();
-
         // Test that we have token provider injected (security through dependency injection)
         // The actual token handling is tested in GitLabTokenProviderTest
         assertThat(client).isNotNull();

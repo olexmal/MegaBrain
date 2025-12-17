@@ -58,15 +58,18 @@ public class GitLabSourceControlClient implements SourceControlClient {
 
     private final AtomicReference<Path> clonedRepositoryPath = new AtomicReference<>();
 
-    @Inject
-    @RestClient
-    GitLabApiClient gitlabApiClient;
+    private final GitLabApiClient gitlabApiClient;
+    private final GitLabTokenProvider tokenProvider;
+    private final GitLabConfiguration config;
 
     @Inject
-    GitLabTokenProvider tokenProvider;
-
-    @Inject
-    GitLabConfiguration config;
+    public GitLabSourceControlClient(@RestClient GitLabApiClient gitlabApiClient,
+                                     GitLabTokenProvider tokenProvider,
+                                     GitLabConfiguration config) {
+        this.gitlabApiClient = gitlabApiClient;
+        this.tokenProvider = tokenProvider;
+        this.config = config;
+    }
 
     @Override
     public boolean canHandle(String repositoryUrl) {
@@ -129,83 +132,16 @@ public class GitLabSourceControlClient implements SourceControlClient {
                 RepositoryUrlParts urlParts = parseRepositoryUrl(repositoryUrl);
                 String cloneUrl = buildCloneUrl(urlParts);
 
-                // Create temporary directory for clone
                 Path tempDir = Files.createTempDirectory("megabrain-gitlab-");
                 Path clonePath = tempDir.resolve(urlParts.project());
                 clonedRepositoryPath.set(clonePath);
 
                 emitter.emit(ProgressEvent.of("Preparing clone destination", 10.0));
 
-                // Configure clone command
-                CloneCommand cloneCommand = Git.cloneRepository()
-                        .setURI(cloneUrl)
-                        .setDirectory(clonePath.toFile())
-                        .setProgressMonitor(new ProgressMonitor() {
-                            private int currentTask = 0;
-                            private int totalTasks = 0;
-                            private int lastReportedProgress = 20;
-
-                            @Override
-                            public void start(int totalTasks) {
-                                this.totalTasks = totalTasks;
-                                this.currentTask = 0;
-                                emitter.emit(ProgressEvent.of("Clone started", 20.0));
-                            }
-
-                            @Override
-                            public void beginTask(String title, int totalWork) {
-                                currentTask++;
-                                int baseProgress = 20 + (currentTask * 50 / (totalTasks > 0 ? totalTasks : 1));
-                                emitter.emit(ProgressEvent.of("Cloning: " + title, Math.min(baseProgress, 70.0)));
-                            }
-
-                            @Override
-                            public void update(int completed) {
-                                // Calculate progress within current task
-                                int currentProgress = 20 + (currentTask * 50 / (totalTasks > 0 ? totalTasks : 1));
-                                if (currentProgress > lastReportedProgress + 5) { // Report every 5% increase
-                                    emitter.emit(ProgressEvent.of("Cloning repository", Math.min(currentProgress, 70.0)));
-                                    lastReportedProgress = currentProgress;
-                                }
-                            }
-
-                            @Override
-                            public void endTask() {
-                                int progress = 20 + (currentTask * 50 / (totalTasks > 0 ? totalTasks : 1));
-                                emitter.emit(ProgressEvent.of("Task completed", Math.min(progress, 70.0)));
-                            }
-
-                            @Override
-                            public boolean isCancelled() {
-                                return false;
-                            }
-
-                            @Override
-                            public void showDuration(boolean enabled) {
-                                // Duration display control - not needed for our use case
-                            }
-                        })
-                        .setTimeout(CLONE_TIMEOUT_SECONDS)
-                        .setCloneSubmodules(false);
-
-                // Set branch if specified
-                if (branch != null && !branch.isBlank()) {
-                    cloneCommand.setBranch(branch);
-                }
-
-                // Add authentication if token is available
-                String token = tokenProvider.getToken();
-                if (token != null && !token.isBlank()) {
-                    // GitLab uses OAuth token for Git operations (same as GitHub)
-                    cloneCommand.setCredentialsProvider(
-                            new UsernamePasswordCredentialsProvider("oauth2", token)
-                    );
-                }
-
+                CloneCommand cloneCommand = configureCloneCommand(cloneUrl, clonePath, branch, emitter::emit);
                 emitter.emit(ProgressEvent.of("Cloning repository", 40.0));
 
-                // Perform clone
-                try (Git git = cloneCommand.call()) {
+                try (Git ignored = cloneCommand.call()) {
                     emitter.emit(ProgressEvent.of("Repository cloned successfully", 100.0));
                     emitter.complete();
                 }
@@ -221,6 +157,80 @@ public class GitLabSourceControlClient implements SourceControlClient {
                 emitter.fail(new IngestionException("Unexpected error during clone: " + e.getMessage(), e));
             }
         });
+    }
+
+    private CloneCommand configureCloneCommand(String cloneUrl, Path clonePath, String branch,
+                                               java.util.function.Consumer<ProgressEvent> progressEmitter) {
+        CloneCommand cloneCommand = Git.cloneRepository()
+                .setURI(cloneUrl)
+                .setDirectory(clonePath.toFile())
+                .setProgressMonitor(new CloneProgressMonitor(progressEmitter))
+                .setTimeout(CLONE_TIMEOUT_SECONDS)
+                .setCloneSubmodules(false);
+
+        if (branch != null && !branch.isBlank()) {
+            cloneCommand.setBranch(branch);
+        }
+
+        String token = tokenProvider.getToken();
+        if (token != null && !token.isBlank()) {
+            cloneCommand.setCredentialsProvider(new UsernamePasswordCredentialsProvider("oauth2", token));
+        }
+
+        return cloneCommand;
+    }
+
+    /**
+     * Progress monitor for git clone operations.
+     */
+    private static class CloneProgressMonitor implements ProgressMonitor {
+        private final java.util.function.Consumer<ProgressEvent> emitter;
+        private int currentTask = 0;
+        private int totalTasks = 0;
+        private int lastReportedProgress = 20;
+
+        CloneProgressMonitor(java.util.function.Consumer<ProgressEvent> emitter) {
+            this.emitter = emitter;
+        }
+
+        @Override
+        public void start(int totalTasks) {
+            this.totalTasks = totalTasks;
+            this.currentTask = 0;
+            emitter.accept(ProgressEvent.of("Clone started", 20.0));
+        }
+
+        @Override
+        public void beginTask(String title, int totalWork) {
+            currentTask++;
+            int baseProgress = 20 + (currentTask * 50 / Math.max(totalTasks, 1));
+            emitter.accept(ProgressEvent.of("Cloning: " + title, Math.min(baseProgress, 70.0)));
+        }
+
+        @Override
+        public void update(int completed) {
+            int currentProgress = 20 + (currentTask * 50 / Math.max(totalTasks, 1));
+            if (currentProgress > lastReportedProgress + 5) {
+                emitter.accept(ProgressEvent.of("Cloning repository", Math.min(currentProgress, 70.0)));
+                lastReportedProgress = currentProgress;
+            }
+        }
+
+        @Override
+        public void endTask() {
+            int progress = 20 + (currentTask * 50 / Math.max(totalTasks, 1));
+            emitter.accept(ProgressEvent.of("Task completed", Math.min(progress, 70.0)));
+        }
+
+        @Override
+        public boolean isCancelled() {
+            return false;
+        }
+
+        @Override
+        public void showDuration(boolean enabled) {
+            // Duration display control - not needed for our use case
+        }
     }
 
     @Override
@@ -404,7 +414,7 @@ public class GitLabSourceControlClient implements SourceControlClient {
                     try {
                         deleteRecursively(child);
                     } catch (IOException e) {
-                        throw new RuntimeException(e);
+                        throw new IngestionException("Failed to delete file during cleanup: " + child, e);
                     }
                 });
             }
@@ -492,70 +502,73 @@ public class GitLabSourceControlClient implements SourceControlClient {
     private <T> T fetchWithRateLimitHandling(Supplier<T> apiCall) {
         int attempt = 0;
         int maxAttempts = 5;
-        long backoffMs = 1000; // Start with 1 second
+        long backoffMs = 1000;
 
         while (attempt < maxAttempts) {
             try {
                 return apiCall.get();
             } catch (WebApplicationException e) {
-                Response response = e.getResponse();
-                int statusCode = response.getStatus();
-
-                switch (statusCode) {
-                    case 429 -> { // Too Many Requests
-                        attempt++;
-
-                        if (attempt >= maxAttempts) {
-                            LOG.warnf("GitLab API rate limit exceeded, giving up after %d attempts", maxAttempts);
-                            throw new IngestionException("GitLab API rate limit exceeded", e);
-                        }
-
-                        // Check for Retry-After header (GitLab may provide this)
-                        String retryAfter = response.getHeaderString("Retry-After");
-                        long waitMs = backoffMs;
-
-                        if (retryAfter != null) {
-                            try {
-                                waitMs = Long.parseLong(retryAfter) * 1000; // Convert seconds to milliseconds
-                                LOG.infof("GitLab API rate limited, waiting %d seconds as requested", waitMs / 1000);
-                            } catch (NumberFormatException nfe) {
-                                LOG.warnf("Invalid Retry-After header: %s, using exponential backoff", retryAfter);
-                            }
-                        } else {
-                            LOG.infof("GitLab API rate limited, attempt %d/%d, waiting %d ms", attempt, maxAttempts, waitMs);
-                        }
-
-                        try {
-                            Thread.sleep(waitMs);
-                        } catch (InterruptedException ie) {
-                            Thread.currentThread().interrupt();
-                            throw new IngestionException("Interrupted while waiting for rate limit", ie);
-                        }
-
-                        // Exponential backoff for next attempt
-                        backoffMs = Math.min(backoffMs * 2, 30000); // Max 30 seconds
-
-                    }
-                    case 401 -> {
-                        throw new IngestionException("GitLab authentication failed. Please check your token.", e);
-                    }
-                    case 403 -> {
-                        throw new IngestionException("GitLab access forbidden. You may not have permission to access this repository.", e);
-                    }
-                    case 404 -> {
-                        throw new IngestionException("GitLab repository not found. Please check the URL.", e);
-                    }
-                    default -> {
-                        // For other errors, don't retry
-                        throw e;
-                    }
+                RateLimitResult result = handleWebApplicationException(e, attempt, maxAttempts, backoffMs);
+                if (result.shouldRetry()) {
+                    attempt++;
+                    backoffMs = result.nextBackoffMs();
                 }
             } catch (Exception e) {
-                // For non-HTTP exceptions, don't retry
                 throw new IngestionException("GitLab API call failed: " + e.getMessage(), e);
             }
         }
 
         throw new IngestionException("GitLab API call failed after maximum retry attempts");
+    }
+
+    private record RateLimitResult(boolean shouldRetry, long nextBackoffMs) {}
+
+    private RateLimitResult handleWebApplicationException(WebApplicationException e, int attempt, int maxAttempts, long backoffMs) {
+        Response response = e.getResponse();
+        int statusCode = response.getStatus();
+
+        return switch (statusCode) {
+            case 429 -> handleRateLimitResponse(response, attempt, maxAttempts, backoffMs, e);
+            case 401 -> throw new IngestionException("GitLab authentication failed. Please check your token.", e);
+            case 403 -> throw new IngestionException("GitLab access forbidden. You may not have permission to access this repository.", e);
+            case 404 -> throw new IngestionException("GitLab repository not found. Please check the URL.", e);
+            default -> throw e;
+        };
+    }
+
+    private RateLimitResult handleRateLimitResponse(Response response, int attempt, int maxAttempts, long backoffMs, WebApplicationException e) {
+        if (attempt + 1 >= maxAttempts) {
+            LOG.warnf("GitLab API rate limit exceeded, giving up after %d attempts", maxAttempts);
+            throw new IngestionException("GitLab API rate limit exceeded", e);
+        }
+
+        long waitMs = calculateWaitTime(response, backoffMs, attempt, maxAttempts);
+        sleepForRateLimit(waitMs);
+
+        return new RateLimitResult(true, Math.min(backoffMs * 2, 30000));
+    }
+
+    private long calculateWaitTime(Response response, long backoffMs, int attempt, int maxAttempts) {
+        String retryAfter = response.getHeaderString("Retry-After");
+        if (retryAfter != null) {
+            try {
+                long waitMs = Long.parseLong(retryAfter) * 1000;
+                LOG.infof("GitLab API rate limited, waiting %d seconds as requested", waitMs / 1000);
+                return waitMs;
+            } catch (NumberFormatException ignored) {
+                LOG.warnf("Invalid Retry-After header: %s, using exponential backoff", retryAfter);
+            }
+        }
+        LOG.infof("GitLab API rate limited, attempt %d/%d, waiting %d ms", attempt + 1, maxAttempts, backoffMs);
+        return backoffMs;
+    }
+
+    private void sleepForRateLimit(long waitMs) {
+        try {
+            Thread.sleep(waitMs);
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+            throw new IngestionException("Interrupted while waiting for rate limit", ie);
+        }
     }
 }

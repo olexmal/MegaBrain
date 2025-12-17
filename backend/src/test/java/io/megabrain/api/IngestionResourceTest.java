@@ -26,6 +26,9 @@ class IngestionResourceTest {
     @Inject
     IngestionService ingestionService;
 
+    @Inject
+    IngestionResource resource;
+
     /**
      * Test the StreamEvent-based SSE endpoint.
      * This test verifies T2 implementation.
@@ -85,7 +88,6 @@ class IngestionResourceTest {
      */
     @Test
     void statisticsExtraction_shouldParseFileAndChunkCounts() {
-        IngestionResource resource = new IngestionResource();
         int[] filesProcessed = {0};
         int[] chunksCreated = {0};
 

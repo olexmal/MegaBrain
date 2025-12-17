@@ -15,8 +15,12 @@ import jakarta.inject.Inject;
 @ApplicationScoped
 public class GitLabTokenProvider {
 
+    private final GitLabConfiguration config;
+
     @Inject
-    GitLabConfiguration config;
+    public GitLabTokenProvider(GitLabConfiguration config) {
+        this.config = config;
+    }
 
     /**
      * Gets the GitLab token if configured.

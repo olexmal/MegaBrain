@@ -33,6 +33,8 @@ import java.util.stream.Collectors;
 final class JavaAstVisitor extends VoidVisitorAdapter<JavaAstVisitor.Context> {
 
     private static final Logger LOG = Logger.getLogger(JavaAstVisitor.class);
+    private static final String ATTR_MODIFIERS = "modifiers";
+    private static final String ENTITY_CLASS = "class";
 
     private final String language;
     private final String packageName;
@@ -64,7 +66,7 @@ final class JavaAstVisitor extends VoidVisitorAdapter<JavaAstVisitor.Context> {
     public void visit(ClassOrInterfaceDeclaration n, Context ctx) {
         ctx.pushType(n.getNameAsString());
         try {
-            String kind = n.isInterface() ? "interface" : "class";
+            String kind = n.isInterface() ? "interface" : ENTITY_CLASS;
             addTypeChunk(n.getRange(), ctx, kind, modifiers(n));
             super.visit(n, ctx);
         } finally {
@@ -121,7 +123,7 @@ final class JavaAstVisitor extends VoidVisitorAdapter<JavaAstVisitor.Context> {
         String entityName = qualifiedParent + "#" + signature;
 
         Map<String, String> attributes = attributesForMember(ctx);
-        attributes.put("modifiers", modifiers(n));
+        attributes.put(ATTR_MODIFIERS, modifiers(n));
         attributes.put("returnType", n.getType().asString());
         attributes.put("parameters", n.getParameters().stream()
                 .map(p -> p.getType().asString() + " " + p.getNameAsString())
@@ -143,7 +145,7 @@ final class JavaAstVisitor extends VoidVisitorAdapter<JavaAstVisitor.Context> {
         String entityName = qualifiedParent + "#" + signature;
 
         Map<String, String> attributes = attributesForMember(ctx);
-        attributes.put("modifiers", modifiers(n));
+        attributes.put(ATTR_MODIFIERS, modifiers(n));
         attributes.put("returnType", n.getNameAsString());
         attributes.put("parameters", n.getParameters().stream()
                 .map(p -> p.getType().asString() + " " + p.getNameAsString())
@@ -164,7 +166,7 @@ final class JavaAstVisitor extends VoidVisitorAdapter<JavaAstVisitor.Context> {
             String qualifiedParent = ctx.currentTypeFqn(packageName);
             String entityName = qualifiedParent + "#" + variable.getNameAsString();
             Map<String, String> attributes = attributesForMember(ctx);
-            attributes.put("modifiers", modifiers(n));
+            attributes.put(ATTR_MODIFIERS, modifiers(n));
             attributes.put("fieldType", variable.getType().asString());
             addChunk("field", entityName, variable.getRange().or(n::getRange), attributes);
         }
@@ -175,8 +177,8 @@ final class JavaAstVisitor extends VoidVisitorAdapter<JavaAstVisitor.Context> {
         String entityName = ctx.currentTypeFqn(packageName);
         Map<String, String> attributes = attributesForType(ctx);
         attributes.put("kind", kind);
-        attributes.put("modifiers", modifiers);
-        addChunk(kind.equals("class") ? "class" : kind, entityName, range, attributes);
+        attributes.put(ATTR_MODIFIERS, modifiers);
+        addChunk(kind.equals(ENTITY_CLASS) ? ENTITY_CLASS : kind, entityName, range, attributes);
     }
 
     private void addChunk(String entityType,

@@ -1040,7 +1040,7 @@ class GrammarManagerTest {
     }
 
     @Test
-    void ensureCachedLibrary_handlesVersionPinningIntegration() throws Exception {
+    void ensureCachedLibrary_handlesVersionPinningIntegration() {
         // Test the integration of version pinning with ensureCachedLibrary
         GrammarConfig pinnedConfig = new GrammarConfig() {
             @Override

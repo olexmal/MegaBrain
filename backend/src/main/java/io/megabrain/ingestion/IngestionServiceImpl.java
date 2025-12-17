@@ -41,23 +41,24 @@ public class IngestionServiceImpl implements IngestionService {
 
     private static final Logger LOG = LoggerFactory.getLogger(IngestionServiceImpl.class);
 
-    @Inject
-    CompositeSourceControlClient sourceControlClient;
+    private final CompositeSourceControlClient sourceControlClient;
+    private final ParserRegistry parserRegistry;
+    private final IndexService indexService;
+    private final IncrementalIndexingService incrementalIndexingService;
+    private final GitDiffService gitDiffService;
 
     @Inject
-    ParserRegistry parserRegistry;
-
-    @Inject
-    IndexService indexService;
-
-    @Inject
-    IncrementalIndexingService incrementalIndexingService;
-
-    @Inject
-    GitDiffService gitDiffService;
-
-    @ConfigProperty(name = "megabrain.ingestion.temp-dir", defaultValue = "/tmp/megabrain-ingestion")
-    String tempDir;
+    public IngestionServiceImpl(CompositeSourceControlClient sourceControlClient,
+                               ParserRegistry parserRegistry,
+                               IndexService indexService,
+                               IncrementalIndexingService incrementalIndexingService,
+                               GitDiffService gitDiffService) {
+        this.sourceControlClient = sourceControlClient;
+        this.parserRegistry = parserRegistry;
+        this.indexService = indexService;
+        this.incrementalIndexingService = incrementalIndexingService;
+        this.gitDiffService = gitDiffService;
+    }
 
     @Override
     public Multi<ProgressEvent> ingestRepository(String repositoryUrl) {
@@ -296,98 +297,119 @@ public class IngestionServiceImpl implements IngestionService {
             try {
                 emitter.emit(ProgressEvent.of("Starting file parsing and indexing", 0.0));
 
-                // First pass: collect all source files
-                List<Path> sourceFiles;
-                try (var paths = Files.walk(repositoryPath)) {
-                    sourceFiles = paths
-                        .filter(Files::isRegularFile)
-                        .filter(this::isSourceFile)
-                        .toList();
-                }
-
+                List<Path> sourceFiles = collectSourceFiles(repositoryPath);
                 int totalFiles = sourceFiles.size();
                 emitter.emit(ProgressEvent.of("Found " + totalFiles + " source files to process", 5.0));
 
-                // Phase 1: Parse all files and collect chunks
                 emitter.emit(ProgressEvent.of("Starting file parsing", 10.0));
-
-                List<TextChunk> allChunks = new ArrayList<>();
-                int processedFiles = 0;
-                int successfullyParsedFiles = 0;
-
-                for (Path file : sourceFiles) {
-                    try {
-                        processedFiles++;
-                        Optional<CodeParser> parser = parserRegistry.findParser(file);
-                        if (parser.isPresent()) {
-                            List<TextChunk> chunks = parser.get().parse(file);
-                            if (!chunks.isEmpty()) {
-                                allChunks.addAll(chunks);
-                                successfullyParsedFiles++;
-
-                                // Emit parsing progress every few files
-                                if (processedFiles % Math.max(1, totalFiles / 10) == 0 || processedFiles == totalFiles) {
-                                    int percentage = 10 + (processedFiles * 30 / totalFiles); // 10-40% for parsing
-                                    emitter.emit(ProgressEvent.of(
-                                        String.format("Parsed file %d/%d: %s (%d chunks)", processedFiles, totalFiles,
-                                            file.getFileName(), chunks.size()),
-                                        percentage
-                                    ));
-                                }
-                            }
-                        } else {
-                            LOG.debug("No parser found for file: {}", file);
-                        }
-                    } catch (Exception e) {
-                        LOG.warn("Failed to parse file: {}", file, e);
-                        // Continue with other files even if one fails
-                    }
-                }
+                ParseResult parseResult = parseAllFiles(sourceFiles, totalFiles, emitter::emit);
 
                 emitter.emit(ProgressEvent.of("File parsing completed", 40.0));
                 LOG.info("Successfully parsed {} files with {} total chunks",
-                        successfullyParsedFiles, allChunks.size());
+                        parseResult.successfullyParsedFiles, parseResult.chunks.size());
 
-                // Phase 2: Index all collected chunks with progress reporting
-                emitter.emit(ProgressEvent.of("Starting indexing of " + allChunks.size() + " chunks", 45.0));
-
-                if (!allChunks.isEmpty()) {
-                    final int batchSize = Math.max(10, allChunks.size() / 10); // Process in up to 10 batches
-                    int indexedChunks = 0;
-                    int batchCount = 0;
-
-                    for (int i = 0; i < allChunks.size(); i += batchSize) {
-                        int endIndex = Math.min(i + batchSize, allChunks.size());
-                        List<TextChunk> batch = allChunks.subList(i, endIndex);
-
-                        // Index this batch
-                        indexService.addChunks(batch).await().indefinitely();
-                        indexedChunks += batch.size();
-                        batchCount++;
-
-                        // Emit indexing progress
-                        int percentage = 45 + (indexedChunks * 55 / allChunks.size()); // 45-100% for indexing
-                        emitter.emit(ProgressEvent.of(
-                            String.format("Indexed batch %d: %d/%d chunks (%.1f%%)",
-                                batchCount, indexedChunks, allChunks.size(),
-                                (indexedChunks * 100.0 / allChunks.size())),
-                            percentage
-                        ));
-                    }
-                }
+                emitter.emit(ProgressEvent.of("Starting indexing of " + parseResult.chunks.size() + " chunks", 45.0));
+                indexChunksInBatches(parseResult.chunks, emitter::emit);
 
                 emitter.emit(ProgressEvent.of("Indexing completed successfully", 100.0));
-                LOG.info("Completed indexing of {} chunks from {} files", allChunks.size(), successfullyParsedFiles);
+                LOG.info("Completed indexing of {} chunks from {} files", parseResult.chunks.size(), parseResult.successfullyParsedFiles);
                 emitter.complete();
 
             } catch (IOException e) {
                 LOG.error("Failed to walk repository directory: {}", repositoryPath, e);
-                emitter.fail(new RuntimeException("Failed to index repository files", e));
+                emitter.fail(new IngestionException("Failed to index repository files", e));
             } catch (Exception e) {
                 LOG.error("Unexpected error during file processing", e);
                 emitter.fail(e);
             }
         });
+    }
+
+    private record ParseResult(List<TextChunk> chunks, int successfullyParsedFiles) {}
+
+    private List<Path> collectSourceFiles(Path repositoryPath) throws IOException {
+        try (var paths = Files.walk(repositoryPath)) {
+            return paths
+                .filter(Files::isRegularFile)
+                .filter(this::isSourceFile)
+                .toList();
+        }
+    }
+
+    private ParseResult parseAllFiles(List<Path> sourceFiles, int totalFiles,
+                                      java.util.function.Consumer<ProgressEvent> emitter) {
+        List<TextChunk> allChunks = new ArrayList<>();
+        int processedFiles = 0;
+        int successfullyParsedFiles = 0;
+
+        for (Path file : sourceFiles) {
+            processedFiles++;
+            int parsedChunks = parseFileAndCollectChunks(file, allChunks);
+            if (parsedChunks > 0) {
+                successfullyParsedFiles++;
+                emitParsingProgress(emitter, processedFiles, totalFiles, file, parsedChunks);
+            }
+        }
+
+        return new ParseResult(allChunks, successfullyParsedFiles);
+    }
+
+    private int parseFileAndCollectChunks(Path file, List<TextChunk> allChunks) {
+        try {
+            Optional<CodeParser> parser = parserRegistry.findParser(file);
+            if (parser.isPresent()) {
+                List<TextChunk> chunks = parser.get().parse(file);
+                if (!chunks.isEmpty()) {
+                    allChunks.addAll(chunks);
+                    return chunks.size();
+                }
+            } else {
+                LOG.debug("No parser found for file: {}", file);
+            }
+        } catch (Exception e) {
+            LOG.warn("Failed to parse file: {}", file, e);
+        }
+        return 0;
+    }
+
+    private void emitParsingProgress(java.util.function.Consumer<ProgressEvent> emitter,
+                                     int processedFiles, int totalFiles, Path file, int chunkCount) {
+        if (processedFiles % Math.max(1, totalFiles / 10) == 0 || processedFiles == totalFiles) {
+            int percentage = 10 + (processedFiles * 30 / totalFiles);
+            emitter.accept(ProgressEvent.of(
+                String.format("Parsed file %d/%d: %s (%d chunks)", processedFiles, totalFiles,
+                    file.getFileName(), chunkCount),
+                percentage
+            ));
+        }
+    }
+
+    private void indexChunksInBatches(List<TextChunk> allChunks,
+                                      java.util.function.Consumer<ProgressEvent> emitter) {
+        if (allChunks.isEmpty()) {
+            return;
+        }
+
+        final int batchSize = Math.max(10, allChunks.size() / 10);
+        int indexedChunks = 0;
+        int batchCount = 0;
+
+        for (int i = 0; i < allChunks.size(); i += batchSize) {
+            int endIndex = Math.min(i + batchSize, allChunks.size());
+            List<TextChunk> batch = allChunks.subList(i, endIndex);
+
+            indexService.addChunks(batch).await().indefinitely();
+            indexedChunks += batch.size();
+            batchCount++;
+
+            int percentage = 45 + (indexedChunks * 55 / allChunks.size());
+            emitter.accept(ProgressEvent.of(
+                String.format("Indexed batch %d: %d/%d chunks (%.1f%%)",
+                    batchCount, indexedChunks, allChunks.size(),
+                    (indexedChunks * 100.0 / allChunks.size())),
+                percentage
+            ));
+        }
     }
 
     /**

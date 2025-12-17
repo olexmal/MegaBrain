@@ -5,22 +5,23 @@
 
 package io.megabrain.ingestion.bitbucket;
 
-import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
 
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@QuarkusTest
 class BitbucketTokenProviderTest {
 
     @Test
     void getCredentials_shouldReturnCloudCredentials_whenUsernameAndAppPasswordPresent() {
         // given
-        BitbucketTokenProvider provider = new BitbucketTokenProvider();
-        provider.cloudUsername = Optional.of("alice");
-        provider.cloudAppPassword = Optional.of("app-pass");
+        BitbucketTokenProvider provider = new BitbucketTokenProvider(
+                Optional.of("alice"),
+                Optional.of("app-pass"),
+                Optional.empty(),
+                Optional.empty()
+        );
 
         // when
         BitbucketTokenProvider.BitbucketCredentials credentials = provider.getCredentials(true);
@@ -35,9 +36,12 @@ class BitbucketTokenProviderTest {
     @Test
     void getCredentials_shouldReturnServerCredentials_whenUsernameAndTokenPresent() {
         // given
-        BitbucketTokenProvider provider = new BitbucketTokenProvider();
-        provider.serverUsername = Optional.of("bob");
-        provider.serverToken = Optional.of("pat-123");
+        BitbucketTokenProvider provider = new BitbucketTokenProvider(
+                Optional.empty(),
+                Optional.empty(),
+                Optional.of("bob"),
+                Optional.of("pat-123")
+        );
 
         // when
         BitbucketTokenProvider.BitbucketCredentials credentials = provider.getCredentials(false);
@@ -52,11 +56,12 @@ class BitbucketTokenProviderTest {
     @Test
     void getCredentials_shouldReturnNull_whenConfigMissingOrBlank() {
         // given
-        BitbucketTokenProvider provider = new BitbucketTokenProvider();
-        provider.cloudUsername = Optional.empty();
-        provider.cloudAppPassword = Optional.of("");
-        provider.serverUsername = Optional.of(" ");
-        provider.serverToken = Optional.empty();
+        BitbucketTokenProvider provider = new BitbucketTokenProvider(
+                Optional.empty(),
+                Optional.of(""),
+                Optional.of(" "),
+                Optional.empty()
+        );
 
         // when
         BitbucketTokenProvider.BitbucketCredentials cloudCreds = provider.getCredentials(true);

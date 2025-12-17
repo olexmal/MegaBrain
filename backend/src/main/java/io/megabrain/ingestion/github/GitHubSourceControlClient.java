@@ -45,12 +45,15 @@ public class GitHubSourceControlClient implements SourceControlClient {
 
     private final AtomicReference<Path> clonedRepositoryPath = new AtomicReference<>();
 
-    @Inject
-    @RestClient
-    GitHubApiClient githubApiClient;
+    private final GitHubApiClient githubApiClient;
+    private final GitHubTokenProvider tokenProvider;
 
     @Inject
-    GitHubTokenProvider tokenProvider;
+    public GitHubSourceControlClient(@RestClient GitHubApiClient githubApiClient,
+                                     GitHubTokenProvider tokenProvider) {
+        this.githubApiClient = githubApiClient;
+        this.tokenProvider = tokenProvider;
+    }
 
     @Override
     public boolean canHandle(String repositoryUrl) {
@@ -104,85 +107,16 @@ public class GitHubSourceControlClient implements SourceControlClient {
 
                 RepositoryUrlParts urlParts = parseRepositoryUrl(repositoryUrl);
                 String cloneUrl = buildCloneUrl(urlParts);
-                
-                // Create temporary directory for clone
+
                 Path tempDir = Files.createTempDirectory("megabrain-git-");
                 Path clonePath = tempDir.resolve(urlParts.repo());
-                
+
                 emitter.emit(ProgressEvent.of("Preparing clone destination", 10.0));
 
-                // Configure clone command
-                CloneCommand cloneCommand = Git.cloneRepository()
-                        .setURI(cloneUrl)
-                        .setDirectory(clonePath.toFile())
-                        .setProgressMonitor(new ProgressMonitor() {
-                            private int currentTask = 0;
-                            private int totalTasks = 0;
-                            private int lastReportedProgress = 20;
-
-                            @Override
-                            public void start(int totalTasks) {
-                                this.totalTasks = totalTasks;
-                                this.currentTask = 0;
-                                emitter.emit(ProgressEvent.of("Clone started", 20.0));
-                            }
-
-                            @Override
-                            public void beginTask(String title, int totalWork) {
-                                currentTask++;
-                                int baseProgress = 20 + (currentTask * 50 / (totalTasks > 0 ? totalTasks : 1));
-                                emitter.emit(ProgressEvent.of("Cloning: " + title, Math.min(baseProgress, 70.0)));
-                            }
-
-                            @Override
-                            public void update(int completed) {
-                                // Calculate progress within current task
-                                // Since JGit doesn't provide total progress, we emit periodic updates
-                                int currentProgress = 20 + (currentTask * 50 / (totalTasks > 0 ? totalTasks : 1));
-                                if (currentProgress > lastReportedProgress + 5) { // Report every 5% increase
-                                    emitter.emit(ProgressEvent.of("Cloning repository", Math.min(currentProgress, 70.0)));
-                                    lastReportedProgress = currentProgress;
-                                }
-                            }
-
-                            @Override
-                            public void endTask() {
-                                int progress = 20 + (currentTask * 50 / (totalTasks > 0 ? totalTasks : 1));
-                                emitter.emit(ProgressEvent.of("Task completed", Math.min(progress, 70.0)));
-                            }
-
-                            @Override
-                            public boolean isCancelled() {
-                                return false;
-                            }
-
-                            @Override
-                            public void showDuration(boolean enabled) {
-                                // Duration display control - not needed for our use case
-                            }
-                        })
-                        .setTimeout(CLONE_TIMEOUT_SECONDS)
-                        .setCloneSubmodules(false);
-
-                // Set branch if specified
-                if (branch != null && !branch.isBlank()) {
-                    cloneCommand.setBranch(branch);
-                }
-
-                // Add authentication if token is available
-                String token = tokenProvider.getToken();
-                if (token != null && !token.isBlank()) {
-                    // Remove "token " or "Bearer " prefix if present
-                    String cleanToken = token.replaceFirst("^(token|Bearer)\\s+", "");
-                    cloneCommand.setCredentialsProvider(
-                            new UsernamePasswordCredentialsProvider(cleanToken, "")
-                    );
-                }
-
+                CloneCommand cloneCommand = configureCloneCommand(cloneUrl, clonePath, branch, emitter::emit);
                 emitter.emit(ProgressEvent.of("Cloning repository", 40.0));
 
-                // Perform clone
-                try (Git git = cloneCommand.call()) {
+                try (Git ignored = cloneCommand.call()) {
                     clonedRepositoryPath.set(clonePath);
                     emitter.emit(ProgressEvent.of("Repository cloned successfully", 100.0));
                     emitter.complete();
@@ -199,6 +133,81 @@ public class GitHubSourceControlClient implements SourceControlClient {
                 emitter.fail(new IngestionException("Unexpected error during clone: " + e.getMessage(), e));
             }
         });
+    }
+
+    private CloneCommand configureCloneCommand(String cloneUrl, Path clonePath, String branch,
+                                               java.util.function.Consumer<ProgressEvent> progressEmitter) {
+        CloneCommand cloneCommand = Git.cloneRepository()
+                .setURI(cloneUrl)
+                .setDirectory(clonePath.toFile())
+                .setProgressMonitor(new CloneProgressMonitor(progressEmitter))
+                .setTimeout(CLONE_TIMEOUT_SECONDS)
+                .setCloneSubmodules(false);
+
+        if (branch != null && !branch.isBlank()) {
+            cloneCommand.setBranch(branch);
+        }
+
+        String token = tokenProvider.getToken();
+        if (token != null && !token.isBlank()) {
+            String cleanToken = token.replaceFirst("^(token|Bearer)\\s+", "");
+            cloneCommand.setCredentialsProvider(new UsernamePasswordCredentialsProvider(cleanToken, ""));
+        }
+
+        return cloneCommand;
+    }
+
+    /**
+     * Progress monitor for git clone operations.
+     */
+    private static class CloneProgressMonitor implements ProgressMonitor {
+        private final java.util.function.Consumer<ProgressEvent> emitter;
+        private int currentTask = 0;
+        private int totalTasks = 0;
+        private int lastReportedProgress = 20;
+
+        CloneProgressMonitor(java.util.function.Consumer<ProgressEvent> emitter) {
+            this.emitter = emitter;
+        }
+
+        @Override
+        public void start(int totalTasks) {
+            this.totalTasks = totalTasks;
+            this.currentTask = 0;
+            emitter.accept(ProgressEvent.of("Clone started", 20.0));
+        }
+
+        @Override
+        public void beginTask(String title, int totalWork) {
+            currentTask++;
+            int baseProgress = 20 + (currentTask * 50 / Math.max(totalTasks, 1));
+            emitter.accept(ProgressEvent.of("Cloning: " + title, Math.min(baseProgress, 70.0)));
+        }
+
+        @Override
+        public void update(int completed) {
+            int currentProgress = 20 + (currentTask * 50 / Math.max(totalTasks, 1));
+            if (currentProgress > lastReportedProgress + 5) {
+                emitter.accept(ProgressEvent.of("Cloning repository", Math.min(currentProgress, 70.0)));
+                lastReportedProgress = currentProgress;
+            }
+        }
+
+        @Override
+        public void endTask() {
+            int progress = 20 + (currentTask * 50 / Math.max(totalTasks, 1));
+            emitter.accept(ProgressEvent.of("Task completed", Math.min(progress, 70.0)));
+        }
+
+        @Override
+        public boolean isCancelled() {
+            return false;
+        }
+
+        @Override
+        public void showDuration(boolean enabled) {
+            // Duration display control - not needed for our use case
+        }
     }
 
     @Override
@@ -358,7 +367,7 @@ public class GitHubSourceControlClient implements SourceControlClient {
                     try {
                         deleteRecursively(child);
                     } catch (IOException e) {
-                        throw new RuntimeException(e);
+                        throw new IngestionException("Failed to delete file during cleanup: " + child, e);
                     }
                 });
             }

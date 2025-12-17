@@ -20,8 +20,12 @@ import java.util.Base64;
 @ApplicationScoped
 public class BitbucketCloudApiHeadersFactory implements ClientHeadersFactory {
 
+    private final BitbucketTokenProvider tokenProvider;
+
     @Inject
-    BitbucketTokenProvider tokenProvider;
+    public BitbucketCloudApiHeadersFactory(BitbucketTokenProvider tokenProvider) {
+        this.tokenProvider = tokenProvider;
+    }
 
     @Override
     public MultivaluedMap<String, String> update(

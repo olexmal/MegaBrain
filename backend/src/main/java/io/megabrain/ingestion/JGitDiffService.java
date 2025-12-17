@@ -34,8 +34,12 @@ public class JGitDiffService implements GitDiffService {
     private static final Logger LOG = Logger.getLogger(JGitDiffService.class);
     private static final int RENAME_SIMILARITY_THRESHOLD = 50; // 50% similarity for rename detection
 
+    private final RepositoryIndexStateService indexStateService;
+
     @Inject
-    RepositoryIndexStateService indexStateService;
+    public JGitDiffService(RepositoryIndexStateService indexStateService) {
+        this.indexStateService = indexStateService;
+    }
 
     @Override
     public Uni<List<FileChange>> detectChanges(Path repositoryPath, String oldCommitSha, String newCommitSha) {
@@ -69,7 +73,7 @@ public class JGitDiffService implements GitDiffService {
             } catch (IOException | GitAPIException e) {
                 LOG.errorf(e, "Failed to detect changes between commits %s and %s in repository %s",
                         oldCommitSha, newCommitSha, repositoryPath);
-                throw new RuntimeException("Git diff failed", e);
+                throw new IngestionException("Git diff failed", e);
             }
         });
     }
