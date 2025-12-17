@@ -5,6 +5,7 @@
 
 package io.megabrain.repository;
 
+import io.megabrain.core.MegaBrainException;
 import io.megabrain.ingestion.RepositoryIndexState;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -101,7 +102,7 @@ public class FileBasedRepositoryIndexStateRepository implements RepositoryIndexS
                 return state;
             } catch (Exception e) {
                 LOG.errorf(e, "Failed to save index state for repository: %s", state.repositoryUrl());
-                throw new RuntimeException("Failed to save repository index state", e);
+                throw new MegaBrainException("Failed to save repository index state", e);
             }
         });
     }

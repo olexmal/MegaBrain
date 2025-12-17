@@ -34,17 +34,21 @@ public class IncrementalIndexingServiceImpl implements IncrementalIndexingServic
 
     private static final Logger LOG = Logger.getLogger(IncrementalIndexingServiceImpl.class);
 
-    @Inject
-    GitDiffService gitDiffService;
+    private final GitDiffService gitDiffService;
+    private final RepositoryIndexStateService indexStateService;
+    private final ParserRegistry parserRegistry;
+    private final IndexService indexService;
 
     @Inject
-    RepositoryIndexStateService indexStateService;
-
-    @Inject
-    ParserRegistry parserRegistry;
-
-    @Inject
-    IndexService indexService;
+    public IncrementalIndexingServiceImpl(GitDiffService gitDiffService,
+                                         RepositoryIndexStateService indexStateService,
+                                         ParserRegistry parserRegistry,
+                                         IndexService indexService) {
+        this.gitDiffService = gitDiffService;
+        this.indexStateService = indexStateService;
+        this.parserRegistry = parserRegistry;
+        this.indexService = indexService;
+    }
 
     @Override
     public Uni<Integer> indexChangesSinceLastCommit(Path repositoryPath, String repositoryUrl) {
@@ -132,13 +136,6 @@ public class IncrementalIndexingServiceImpl implements IncrementalIndexingServic
     }
 
     /**
-     * Processes renamed files by removing old chunks and adding new chunks at the new location.
-     */
-    private int processRenamedFiles(Path repositoryPath, List<FileChange> renamedFiles) {
-        return processRenamedFilesWithProgress(repositoryPath, renamedFiles, null);
-    }
-
-    /**
      * Processes renamed files by removing old chunks and adding new chunks at the new location with progress reporting.
      */
     private int processRenamedFilesWithProgress(Path repositoryPath, List<FileChange> renamedFiles, Consumer<String> progressCallback) {
@@ -152,64 +149,62 @@ public class IncrementalIndexingServiceImpl implements IncrementalIndexingServic
         int totalFiles = renamedFiles.size();
 
         for (FileChange change : renamedFiles) {
-            processedCount++; // Count every file we attempt to process
-
-            try {
-                // Construct paths for old and new locations
-                Path oldFilePath = repositoryPath.resolve(change.oldPath());
-                Path newFilePath = repositoryPath.resolve(change.filePath());
-
-                // Remove chunks from the old location
-                Integer removedCount = indexService.removeChunksForFile(oldFilePath.toString()).await().indefinitely();
-
-                LOG.debugf("Removed %d chunks for renamed file from old path: %s", removedCount, change.oldPath());
-
-                // Parse and index the file at the new location
-                if (!Files.exists(newFilePath)) {
-                    LOG.warnf("Renamed file does not exist at new location: %s", newFilePath);
-                    // Report progress even for missing files
-                    if (progressCallback != null && processedCount % Math.max(1, totalFiles / 5) == 0) {
-                        progressCallback.accept(String.format("Processed renamed file %d/%d: %s (file missing)", processedCount, totalFiles, change.filePath()));
-                    }
-                    continue;
-                }
-
-                // Find appropriate parser for the file
-                Optional<CodeParser> parser = parserRegistry.findParser(newFilePath);
-                if (parser.isEmpty()) {
-                    LOG.debugf("No parser found for renamed file: %s", newFilePath);
-                    // Report progress even for unparseable files
-                    if (progressCallback != null && processedCount % Math.max(1, totalFiles / 5) == 0) {
-                        progressCallback.accept(String.format("Processed renamed file %d/%d: %s (no parser)", processedCount, totalFiles, change.filePath()));
-                    }
-                    continue;
-                }
-
-                // Re-parse the file at the new location
-                List<TextChunk> newChunks = parser.get().parse(newFilePath);
-                if (!newChunks.isEmpty()) {
-                    // Index the new chunks
-                    if (progressCallback != null) {
-                        progressCallback.accept(String.format("Indexing %d chunks for renamed file: %s", newChunks.size(), change.filePath()));
-                    }
-                    indexService.addChunks(newChunks).await().indefinitely();
-                    LOG.debugf("Re-indexed %d chunks for renamed file at new path: %s", newChunks.size(), change.filePath());
-                } else {
-                    LOG.debugf("Parsed 0 chunks from renamed file: %s", change.filePath());
-                }
-
-                // Report progress for parsing
-                if (progressCallback != null && processedCount % Math.max(1, totalFiles / 5) == 0) {
-                    progressCallback.accept(String.format("Processed renamed file %d/%d: %s", processedCount, totalFiles, change.filePath()));
-                }
-
-            } catch (Exception e) {
-                LOG.errorf(e, "Failed to process renamed file: %s -> %s", change.oldPath(), change.filePath());
-                // Still count as processed even if processing failed
-            }
+            processedCount++;
+            processRenamedFile(repositoryPath, change, processedCount, totalFiles, progressCallback);
         }
 
         return processedCount;
+    }
+
+    private void processRenamedFile(Path repositoryPath, FileChange change, int processedCount, int totalFiles, Consumer<String> progressCallback) {
+        try {
+            Path oldFilePath = repositoryPath.resolve(change.oldPath());
+            Path newFilePath = repositoryPath.resolve(change.filePath());
+
+            Integer removedCount = indexService.removeChunksForFile(oldFilePath.toString()).await().indefinitely();
+            LOG.debugf("Removed %d chunks for renamed file from old path: %s", removedCount, change.oldPath());
+
+            if (!Files.exists(newFilePath)) {
+                LOG.warnf("Renamed file does not exist at new location: %s", newFilePath);
+                reportProgress(progressCallback, processedCount, totalFiles, change.filePath(), "file missing");
+                return;
+            }
+
+            Optional<CodeParser> parser = parserRegistry.findParser(newFilePath);
+            if (parser.isEmpty()) {
+                LOG.debugf("No parser found for renamed file: %s", newFilePath);
+                reportProgress(progressCallback, processedCount, totalFiles, change.filePath(), "no parser");
+                return;
+            }
+
+            indexParsedChunks(parser.get(), newFilePath, change.filePath(), progressCallback);
+            reportProgress(progressCallback, processedCount, totalFiles, change.filePath(), null);
+
+        } catch (Exception e) {
+            LOG.errorf(e, "Failed to process renamed file: %s -> %s", change.oldPath(), change.filePath());
+        }
+    }
+
+    private void indexParsedChunks(CodeParser parser, Path filePath, String displayPath, Consumer<String> progressCallback) {
+        List<TextChunk> chunks = parser.parse(filePath);
+        if (!chunks.isEmpty()) {
+            if (progressCallback != null) {
+                progressCallback.accept(String.format("Indexing %d chunks for file: %s", chunks.size(), displayPath));
+            }
+            indexService.addChunks(chunks).await().indefinitely();
+            LOG.debugf("Indexed %d chunks for file: %s", chunks.size(), displayPath);
+        } else {
+            LOG.debugf("Parsed 0 chunks from file: %s", displayPath);
+        }
+    }
+
+    private void reportProgress(Consumer<String> callback, int processed, int total, String filePath, String suffix) {
+        if (callback != null && processed % Math.max(1, total / 5) == 0) {
+            String message = suffix != null
+                    ? String.format("Processed file %d/%d: %s (%s)", processed, total, filePath, suffix)
+                    : String.format("Processed file %d/%d: %s", processed, total, filePath);
+            callback.accept(message);
+        }
     }
 
     /**
@@ -246,13 +241,6 @@ public class IncrementalIndexingServiceImpl implements IncrementalIndexingServic
     }
 
     /**
-     * Processes modified files by removing old chunks and re-parsing/re-indexing.
-     */
-    private int processModifiedFiles(Path repositoryPath, List<FileChange> modifiedFiles) {
-        return processModifiedFilesWithProgress(repositoryPath, modifiedFiles, null);
-    }
-
-    /**
      * Processes modified files by removing old chunks and re-parsing/re-indexing with progress reporting.
      */
     private int processModifiedFilesWithProgress(Path repositoryPath, List<FileChange> modifiedFiles, Consumer<String> progressCallback) {
@@ -266,63 +254,38 @@ public class IncrementalIndexingServiceImpl implements IncrementalIndexingServic
         int totalFiles = modifiedFiles.size();
 
         for (FileChange change : modifiedFiles) {
-            Path filePath = repositoryPath.resolve(change.filePath());
-
-            processedCount++; // Count every file we attempt to process
-
-            if (!Files.exists(filePath)) {
-                LOG.warnf("Modified file does not exist: %s", filePath);
-                continue;
-            }
-
-            try {
-                // Remove old chunks for this file
-                Integer removedCount = indexService.removeChunksForFile(filePath.toString()).await().indefinitely();
-
-                LOG.debugf("Removed %d old chunks for modified file: %s", removedCount, change.filePath());
-
-                // Find appropriate parser for the file
-                Optional<CodeParser> parser = parserRegistry.findParser(filePath);
-                if (parser.isEmpty()) {
-                    LOG.debugf("No parser found for modified file: %s", filePath);
-                    // Report progress even for unparseable files
-                    if (progressCallback != null && processedCount % Math.max(1, totalFiles / 5) == 0) {
-                        progressCallback.accept(String.format("Processed modified file %d/%d: %s (no parser)", processedCount, totalFiles, change.filePath()));
-                    }
-                    continue;
-                }
-
-                // Re-parse the modified file
-                List<TextChunk> newChunks = parser.get().parse(filePath);
-                if (!newChunks.isEmpty()) {
-                    // Index the new chunks
-                    if (progressCallback != null) {
-                        progressCallback.accept(String.format("Indexing %d chunks for modified file: %s", newChunks.size(), change.filePath()));
-                    }
-                    indexService.addChunks(newChunks).await().indefinitely();
-                    LOG.debugf("Re-indexed %d chunks for modified file: %s", newChunks.size(), change.filePath());
-                } else {
-                    LOG.debugf("Parsed 0 chunks from modified file: %s", change.filePath());
-                }
-
-                // Report progress for parsing
-                if (progressCallback != null && processedCount % Math.max(1, totalFiles / 5) == 0) {
-                    progressCallback.accept(String.format("Processed modified file %d/%d: %s", processedCount, totalFiles, change.filePath()));
-                }
-            } catch (Exception e) {
-                LOG.errorf(e, "Failed to process modified file: %s", filePath);
-                // Still count as processed even if processing failed
-            }
+            processedCount++;
+            processModifiedFile(repositoryPath, change, processedCount, totalFiles, progressCallback);
         }
 
         return processedCount;
     }
 
-    /**
-     * Processes added files by parsing and indexing them.
-     */
-    private int processAddedFiles(Path repositoryPath, List<FileChange> addedFiles) {
-        return processAddedFilesWithProgress(repositoryPath, addedFiles, null);
+    private void processModifiedFile(Path repositoryPath, FileChange change, int processedCount, int totalFiles, Consumer<String> progressCallback) {
+        Path filePath = repositoryPath.resolve(change.filePath());
+
+        if (!Files.exists(filePath)) {
+            LOG.warnf("Modified file does not exist: %s", filePath);
+            return;
+        }
+
+        try {
+            Integer removedCount = indexService.removeChunksForFile(filePath.toString()).await().indefinitely();
+            LOG.debugf("Removed %d old chunks for modified file: %s", removedCount, change.filePath());
+
+            Optional<CodeParser> parser = parserRegistry.findParser(filePath);
+            if (parser.isEmpty()) {
+                LOG.debugf("No parser found for modified file: %s", filePath);
+                reportProgress(progressCallback, processedCount, totalFiles, change.filePath(), "no parser");
+                return;
+            }
+
+            indexParsedChunks(parser.get(), filePath, change.filePath(), progressCallback);
+            reportProgress(progressCallback, processedCount, totalFiles, change.filePath(), null);
+
+        } catch (Exception e) {
+            LOG.errorf(e, "Failed to process modified file: %s", filePath);
+        }
     }
 
     /**
@@ -339,61 +302,59 @@ public class IncrementalIndexingServiceImpl implements IncrementalIndexingServic
         int processedCount = 0;
         int totalFiles = addedFiles.size();
 
-        for (int i = 0; i < addedFiles.size(); i++) {
-            FileChange change = addedFiles.get(i);
-            Path filePath = repositoryPath.resolve(change.filePath());
-
-            processedCount++; // Count every file we attempt to process
-
-            if (!Files.exists(filePath)) {
-                LOG.warnf("Added file does not exist: %s", filePath);
-                continue;
-            }
-
-            // Find appropriate parser for the file
-            Optional<CodeParser> parser = parserRegistry.findParser(filePath);
-            if (parser.isEmpty()) {
-                LOG.debugf("No parser found for file: %s", filePath);
-                // Report progress even for unparseable files
-                if (progressCallback != null && (i + 1) % Math.max(1, totalFiles / 5) == 0) {
-                    progressCallback.accept(String.format("Processed added file %d/%d: %s (no parser)", processedCount, totalFiles, change.filePath()));
-                }
-                continue;
-            }
-
-            try {
-                // Parse the file
-                List<TextChunk> chunks = parser.get().parse(filePath);
-                if (!chunks.isEmpty()) {
-                    allChunks.addAll(chunks);
-                    LOG.debugf("Parsed %d chunks from added file: %s", chunks.size(), change.filePath());
-                } else {
-                    LOG.debugf("Parsed 0 chunks from added file: %s", change.filePath());
-                }
-
-                // Report progress for parsing
-                if (progressCallback != null && processedCount % Math.max(1, totalFiles / 5) == 0) {
-                    progressCallback.accept(String.format("Parsed added file %d/%d: %s", processedCount, totalFiles, change.filePath()));
-                }
-            } catch (Exception e) {
-                LOG.errorf(e, "Failed to parse added file: %s", filePath);
-                // Still count as processed even if parsing failed
-            }
+        for (FileChange change : addedFiles) {
+            processedCount++;
+            List<TextChunk> chunks = parseAddedFile(repositoryPath, change, processedCount, totalFiles, progressCallback);
+            allChunks.addAll(chunks);
         }
 
-        // Index all the chunks with progress reporting
-        if (!allChunks.isEmpty()) {
-            if (progressCallback != null) {
-                progressCallback.accept("Indexing " + allChunks.size() + " chunks from added files");
-            }
-            indexService.addChunks(allChunks).await().indefinitely();
-            LOG.debugf("Indexed %d chunks from %d added files", allChunks.size(), processedCount);
-            if (progressCallback != null) {
-                progressCallback.accept("Completed indexing " + allChunks.size() + " chunks");
-            }
-        }
-
+        indexCollectedChunks(allChunks, processedCount, progressCallback);
         return processedCount;
+    }
+
+    private List<TextChunk> parseAddedFile(Path repositoryPath, FileChange change, int processedCount, int totalFiles, Consumer<String> progressCallback) {
+        Path filePath = repositoryPath.resolve(change.filePath());
+
+        if (!Files.exists(filePath)) {
+            LOG.warnf("Added file does not exist: %s", filePath);
+            return List.of();
+        }
+
+        Optional<CodeParser> parser = parserRegistry.findParser(filePath);
+        if (parser.isEmpty()) {
+            LOG.debugf("No parser found for file: %s", filePath);
+            reportProgress(progressCallback, processedCount, totalFiles, change.filePath(), "no parser");
+            return List.of();
+        }
+
+        try {
+            List<TextChunk> chunks = parser.get().parse(filePath);
+            if (!chunks.isEmpty()) {
+                LOG.debugf("Parsed %d chunks from added file: %s", chunks.size(), change.filePath());
+            } else {
+                LOG.debugf("Parsed 0 chunks from added file: %s", change.filePath());
+            }
+            reportProgress(progressCallback, processedCount, totalFiles, change.filePath(), null);
+            return chunks;
+        } catch (Exception e) {
+            LOG.errorf(e, "Failed to parse added file: %s", filePath);
+            return List.of();
+        }
+    }
+
+    private void indexCollectedChunks(List<TextChunk> allChunks, int processedCount, Consumer<String> progressCallback) {
+        if (allChunks.isEmpty()) {
+            return;
+        }
+
+        if (progressCallback != null) {
+            progressCallback.accept("Indexing " + allChunks.size() + " chunks from added files");
+        }
+        indexService.addChunks(allChunks).await().indefinitely();
+        LOG.debugf("Indexed %d chunks from %d added files", allChunks.size(), processedCount);
+        if (progressCallback != null) {
+            progressCallback.accept("Completed indexing " + allChunks.size() + " chunks");
+        }
     }
 
     /**

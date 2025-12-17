@@ -22,8 +22,12 @@ public class RepositoryIndexStateService {
 
     private static final Logger LOG = Logger.getLogger(RepositoryIndexStateService.class);
 
+    private final RepositoryIndexStateRepository repository;
+
     @Inject
-    RepositoryIndexStateRepository repository;
+    public RepositoryIndexStateService(RepositoryIndexStateRepository repository) {
+        this.repository = repository;
+    }
 
     /**
      * Gets the last indexed commit SHA for a repository.

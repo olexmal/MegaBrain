@@ -11,7 +11,6 @@ import io.github.treesitter.jtreesitter.Tree;
 import io.megabrain.ingestion.parser.GrammarManager;
 import io.megabrain.ingestion.parser.GrammarSpec;
 import io.megabrain.ingestion.parser.TextChunk;
-import org.jboss.logging.Logger;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -28,7 +27,6 @@ import java.util.function.Supplier;
  */
 public class PhpTreeSitterParser extends TreeSitterParser {
 
-    private static final Logger LOG = Logger.getLogger(PhpTreeSitterParser.class);
     private static final String LANGUAGE = "php";
     private static final Set<String> SUPPORTED_EXTENSIONS = Set.of("php");
     private static final String LIBRARY_ENV = "TREE_SITTER_PHP_LIB";

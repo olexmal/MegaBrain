@@ -5,24 +5,46 @@
 
 package io.megabrain.ingestion.gitlab;
 
-import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
 
-@QuarkusTest
+@ExtendWith(MockitoExtension.class)
 class GitLabTokenProviderTest {
 
-    // Note: Tests now use the injected configuration instead of direct field access
-    // The actual token provider will be tested through integration with the configuration
+    @Mock
+    private GitLabConfiguration config;
 
     @Test
-    void tokenProvider_shouldBeInjected() {
-        // This test verifies that the CDI injection works
-        // The actual token behavior depends on environment configuration
-        GitLabTokenProvider provider = new GitLabTokenProvider();
+    void tokenProvider_shouldReturnToken_whenConfigured() {
+        when(config.token()).thenReturn(Optional.of("test-token"));
+        GitLabTokenProvider provider = new GitLabTokenProvider(config);
 
-        // The provider should not throw exceptions during construction
-        assertThat(provider).isNotNull();
+        assertThat(provider.getToken()).isEqualTo("test-token");
+        assertThat(provider.hasToken()).isTrue();
+    }
+
+    @Test
+    void tokenProvider_shouldReturnNull_whenNotConfigured() {
+        when(config.token()).thenReturn(Optional.empty());
+        GitLabTokenProvider provider = new GitLabTokenProvider(config);
+
+        assertThat(provider.getToken()).isNull();
+        assertThat(provider.hasToken()).isFalse();
+    }
+
+    @Test
+    void tokenProvider_shouldReturnNull_whenBlank() {
+        when(config.token()).thenReturn(Optional.of("   "));
+        GitLabTokenProvider provider = new GitLabTokenProvider(config);
+
+        assertThat(provider.getToken()).isNull();
+        assertThat(provider.hasToken()).isFalse();
     }
 }

@@ -16,8 +16,12 @@ import java.util.List;
 @ApplicationScoped
 public class CompositeSourceControlClient implements SourceControlClient {
 
+    private final Instance<SourceControlClient> clients;
+
     @Inject
-    Instance<SourceControlClient> clients;
+    public CompositeSourceControlClient(Instance<SourceControlClient> clients) {
+        this.clients = clients;
+    }
 
     @Override
     public boolean canHandle(String repositoryUrl) {

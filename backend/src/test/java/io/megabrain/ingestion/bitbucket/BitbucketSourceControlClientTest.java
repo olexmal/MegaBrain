@@ -7,11 +7,14 @@ package io.megabrain.ingestion.bitbucket;
 
 import io.megabrain.ingestion.IngestionException;
 import io.megabrain.ingestion.ProgressEvent;
-import io.quarkus.test.junit.QuarkusTest;
 import jakarta.enterprise.inject.Vetoed;
 import jakarta.ws.rs.WebApplicationException;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -25,16 +28,27 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
-@QuarkusTest
+@ExtendWith(MockitoExtension.class)
 class BitbucketSourceControlClientTest {
 
-    // Note: For CDI beans, we would typically use @Inject to get the bean instance
-    // For now, we'll create a basic instance for testing public methods
+    @Mock
+    private BitbucketCloudApiClient cloudApiClient;
+
+    @Mock
+    private BitbucketServerApiClient serverApiClient;
+
+    @Mock
+    private BitbucketTokenProvider tokenProvider;
+
+    private BitbucketSourceControlClient client;
+
+    @BeforeEach
+    void setUp() {
+        client = new BitbucketSourceControlClient(cloudApiClient, serverApiClient, tokenProvider, Optional.empty());
+    }
 
     @Test
     void canHandle_shouldReturnTrue_forValidBitbucketCloudUrls() {
-        // Given
-        BitbucketSourceControlClient client = new BitbucketSourceControlClient();
         List<String> validCloudUrls = List.of(
             "https://bitbucket.org/workspace/repo",
             "https://bitbucket.org/workspace/repo.git",
@@ -42,7 +56,6 @@ class BitbucketSourceControlClientTest {
             "https://www.bitbucket.org/workspace/repo"
         );
 
-        // When & Then
         for (String url : validCloudUrls) {
             assertThat(client.canHandle(url)).isTrue();
         }
@@ -50,15 +63,12 @@ class BitbucketSourceControlClientTest {
 
     @Test
     void canHandle_shouldReturnTrue_forValidBitbucketServerUrls() {
-        // Given
-        BitbucketSourceControlClient client = new BitbucketSourceControlClient();
         List<String> validServerUrls = List.of(
             "https://company.bitbucket.com/projects/PROJ/repos/repo",
             "http://localhost:7990/projects/MYPROJ/repos/myrepo",
             "https://bitbucket.company.com/rest/api/1.0/projects/TEST/repos/test"
         );
 
-        // When & Then
         for (String url : validServerUrls) {
             assertThat(client.canHandle(url)).isTrue();
         }
@@ -66,8 +76,6 @@ class BitbucketSourceControlClientTest {
 
     @Test
     void canHandle_shouldReturnFalse_forInvalidUrls() {
-        // Given
-        BitbucketSourceControlClient client = new BitbucketSourceControlClient();
         List<String> invalidUrls = List.of(
             "",
             "   ",
@@ -79,7 +87,6 @@ class BitbucketSourceControlClientTest {
             "https://bitbucket.org//repo"
         );
 
-        // When & Then
         for (String url : invalidUrls) {
             assertThat(client.canHandle(url)).isFalse();
         }
@@ -88,7 +95,7 @@ class BitbucketSourceControlClientTest {
     @Test
     void canHandle_shouldReturnFalse_forNullUrl() {
         // Given
-        BitbucketSourceControlClient client = new BitbucketSourceControlClient();
+        // Using the shared client field
 
         // When & Then
         assertThat(client.canHandle(null)).isFalse();
@@ -97,7 +104,7 @@ class BitbucketSourceControlClientTest {
     @Test
     void extractFiles_shouldEmitProgressEvents_forValidRepository(@TempDir Path tempDir) throws IOException {
         // Given
-        BitbucketSourceControlClient client = new BitbucketSourceControlClient();
+        // Using the shared client field
         Path repoPath = tempDir.resolve("repo");
         Files.createDirectories(repoPath);
 
@@ -120,7 +127,7 @@ class BitbucketSourceControlClientTest {
     @Test
     void extractFiles_shouldHandleInvalidRepositoryPath(@TempDir Path tempDir) {
         // Given
-        BitbucketSourceControlClient client = new BitbucketSourceControlClient();
+        // Using the shared client field
         Path invalidPath = tempDir.resolve("nonexistent");
 
         // When & Then
@@ -134,7 +141,7 @@ class BitbucketSourceControlClientTest {
     @Test
     void getClonedRepositoryPath_shouldReturnNull_whenNotCloned() {
         // Given
-        BitbucketSourceControlClient client = new BitbucketSourceControlClient();
+        // Using the shared client field
 
         // When
         Path result = client.getClonedRepositoryPath();
@@ -146,7 +153,7 @@ class BitbucketSourceControlClientTest {
     @Test
     void parseRepositoryUrl_shouldParseBitbucketCloudUrl() {
         // Given
-        BitbucketSourceControlClient client = new BitbucketSourceControlClient();
+        // Using the shared client field
 
         // When - Test internal method via reflection or by testing behavior
         // For now, we'll test the canHandle method which uses parseRepositoryUrl internally
@@ -159,7 +166,7 @@ class BitbucketSourceControlClientTest {
     @Test
     void parseRepositoryUrl_shouldParseBitbucketServerUrl() {
         // Given
-        BitbucketSourceControlClient client = new BitbucketSourceControlClient();
+        // Using the shared client field
 
         // When
         boolean canHandle = client.canHandle("https://company.bitbucket.com/projects/MYPROJ/repos/myrepo");
@@ -170,7 +177,7 @@ class BitbucketSourceControlClientTest {
 
     @Test
     void canHandle_shouldAcceptServerScmAndSshUrls() {
-        BitbucketSourceControlClient client = new BitbucketSourceControlClient();
+        // Using the shared client field
 
         assertThat(client.canHandle("https://bitbucket.company.com/scm/PROJ/repo.git")).isTrue();
         assertThat(client.canHandle("git@bitbucket.company.com:PROJ/repo.git")).isTrue();
@@ -178,7 +185,7 @@ class BitbucketSourceControlClientTest {
 
     @Test
     void buildCloneUrl_shouldUseConfiguredBaseUrlForServer() throws Exception {
-        BitbucketSourceControlClient client = new BitbucketSourceControlClient();
+        // Using the shared client field
 
         // Inject server base URL
         Field baseField = BitbucketSourceControlClient.class.getDeclaredField("serverBaseUrl");
@@ -200,7 +207,7 @@ class BitbucketSourceControlClientTest {
 
     @Test
     void buildCloneUrl_shouldFailWhenServerBaseUrlMissing() throws Exception {
-        BitbucketSourceControlClient client = new BitbucketSourceControlClient();
+        // Using the shared client field
 
         // Ensure Optional is present but empty instead of null to avoid NPE
         Field baseField = BitbucketSourceControlClient.class.getDeclaredField("serverBaseUrl");
@@ -221,7 +228,7 @@ class BitbucketSourceControlClientTest {
 
     @Test
     void fetchMetadata_shouldMapServerAuthFailure() throws Exception {
-        BitbucketSourceControlClient client = new BitbucketSourceControlClient();
+        // Using the shared client field
         injectServerClient(client, new ThrowingServerApiClient(401));
 
         assertThatThrownBy(() -> client.fetchMetadata("https://company.bitbucket.com/projects/PROJ/repos/repo")
@@ -232,7 +239,7 @@ class BitbucketSourceControlClientTest {
 
     @Test
     void fetchMetadata_shouldMapServerRateLimit() throws Exception {
-        BitbucketSourceControlClient client = new BitbucketSourceControlClient();
+        // Using the shared client field
         injectServerClient(client, new ThrowingServerApiClient(429));
 
         assertThatThrownBy(() -> client.fetchMetadata("https://company.bitbucket.com/projects/PROJ/repos/repo")
@@ -243,7 +250,7 @@ class BitbucketSourceControlClientTest {
 
     @Test
     void fetchMetadata_shouldMapCloudAuthFailure() throws Exception {
-        BitbucketSourceControlClient client = new BitbucketSourceControlClient();
+        // Using the shared client field
         injectCloudClient(client, new ThrowingCloudApiClient(401));
 
         assertThatThrownBy(() -> client.fetchMetadata("https://bitbucket.org/workspace/repo")
@@ -294,7 +301,7 @@ class BitbucketSourceControlClientTest {
 
     @Test
     void mapBitbucketException_shouldProvideAuthMessage() throws Exception {
-        BitbucketSourceControlClient client = new BitbucketSourceControlClient();
+        // Using the shared client field
         Method mapper = BitbucketSourceControlClient.class.getDeclaredMethod("mapBitbucketException", Throwable.class);
         mapper.setAccessible(true);
 
@@ -305,7 +312,7 @@ class BitbucketSourceControlClientTest {
 
     @Test
     void mapBitbucketException_shouldProvideRateLimitMessage() throws Exception {
-        BitbucketSourceControlClient client = new BitbucketSourceControlClient();
+        // Using the shared client field
         Method mapper = BitbucketSourceControlClient.class.getDeclaredMethod("mapBitbucketException", Throwable.class);
         mapper.setAccessible(true);
 
@@ -316,7 +323,7 @@ class BitbucketSourceControlClientTest {
 
     @Test
     void isRateLimit_shouldDetect429() throws Exception {
-        BitbucketSourceControlClient client = new BitbucketSourceControlClient();
+        // Using the shared client field
         Method rate = BitbucketSourceControlClient.class.getDeclaredMethod("isRateLimit", Throwable.class);
         rate.setAccessible(true);
 
@@ -330,7 +337,7 @@ class BitbucketSourceControlClientTest {
     @Test
     void parseRepositoryUrl_shouldThrowException_forInvalidUrl() {
         // Given
-        BitbucketSourceControlClient client = new BitbucketSourceControlClient();
+        // Using the shared client field
 
         // When & Then
         assertThat(client.canHandle("https://invalid-url.com/repo")).isFalse();
@@ -339,7 +346,7 @@ class BitbucketSourceControlClientTest {
     @Test
     void shouldIncludeFile_shouldExcludeHiddenFiles(@TempDir Path tempDir) throws IOException {
         // Given
-        BitbucketSourceControlClient client = new BitbucketSourceControlClient();
+        // Using the shared client field
         Path hiddenFile = tempDir.resolve(".hidden.txt");
         Files.writeString(hiddenFile, "hidden content");
 
@@ -357,7 +364,7 @@ class BitbucketSourceControlClientTest {
     @Test
     void shouldIncludeFile_shouldIncludeSourceFiles(@TempDir Path tempDir) throws IOException {
         // Given
-        BitbucketSourceControlClient client = new BitbucketSourceControlClient();
+        // Using the shared client field
         Path sourceFile = tempDir.resolve("Main.java");
         Files.writeString(sourceFile, "public class Main {}");
 
@@ -371,7 +378,7 @@ class BitbucketSourceControlClientTest {
 
     @Test
     void shouldIncludeFile_shouldRespectRootGitignore(@TempDir Path tempDir) throws IOException {
-        BitbucketSourceControlClient client = new BitbucketSourceControlClient();
+        // Using the shared client field
         Files.writeString(tempDir.resolve(".gitignore"), "*.md");
 
         Path readme = tempDir.resolve("README.md");

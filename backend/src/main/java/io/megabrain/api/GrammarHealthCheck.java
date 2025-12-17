@@ -30,11 +30,14 @@ public class GrammarHealthCheck implements HealthCheck {
     private static final Logger LOG = Logger.getLogger(GrammarHealthCheck.class);
     private static final String GRAMMAR_PREFIX = "grammar.";
 
-    @Inject
-    GrammarManager grammarManager;
+    private final GrammarManager grammarManager;
+    private final ParserRegistry parserRegistry;
 
     @Inject
-    ParserRegistry parserRegistry;
+    public GrammarHealthCheck(GrammarManager grammarManager, ParserRegistry parserRegistry) {
+        this.grammarManager = grammarManager;
+        this.parserRegistry = parserRegistry;
+    }
 
     @Override
     public HealthCheckResponse call() {

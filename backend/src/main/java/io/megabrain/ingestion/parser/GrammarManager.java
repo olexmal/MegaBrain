@@ -56,16 +56,35 @@ public class GrammarManager {
 
     private static final String LANGUAGE = "language";
     private static final String VERSION = "version";
-    @Inject
-    GrammarConfig grammarConfig;
+    private static final String UNKNOWN = "unknown";
+    private final GrammarConfig grammarConfig;
 
-    // Default constructor for CDI
+    /**
+     * Default constructor for non-CDI usage (e.g., from parsers).
+     * Creates a GrammarManager with default configuration.
+     */
     public GrammarManager() {
+        this(new DefaultGrammarConfig());
     }
 
-    // Constructor for testing purposes
-    GrammarManager(GrammarConfig grammarConfig) {
+    @Inject
+    public GrammarManager(GrammarConfig grammarConfig) {
         this.grammarConfig = grammarConfig;
+    }
+
+    /**
+     * Default GrammarConfig implementation for non-CDI contexts.
+     */
+    private static class DefaultGrammarConfig implements GrammarConfig {
+        @Override
+        public Optional<String> defaultVersion() {
+            return Optional.empty();
+        }
+
+        @Override
+        public Map<String, String> languageVersions() {
+            return Map.of();
+        }
     }
 
     /**
@@ -211,36 +230,36 @@ public class GrammarManager {
             recordVersionUsage(pinnedSpec.language(), pinnedSpec.version(), false, null);
 
             if (!ensureNativeLibraryLoaded(pinnedSpec)) {
-                // Record failure
                 recordVersionUsage(pinnedSpec.language(), pinnedSpec.version(), false, "Failed to load native library");
                 return null;
             }
-            try {
-                Language lang = Language.load(SymbolLookup.loaderLookup(), pinnedSpec.symbol());
-                loadedLanguages.put(pinnedSpec.symbol(), lang);
-                // Record success
-                recordVersionUsage(pinnedSpec.language(), pinnedSpec.version(), true, null);
-
-                // Performance monitoring: AC5 requirement (<500ms cold start)
-                long loadTimeMs = (System.nanoTime() - startTime) / 1_000_000;
-                LOG.infof("Loaded Tree-sitter language %s via symbol %s in %d ms", pinnedSpec.language(), pinnedSpec.symbol(), loadTimeMs);
-
-                if (loadTimeMs > 500) {
-                    LOG.warnf("Grammar loading for %s exceeded 500ms threshold: %d ms (AC5 violation)", pinnedSpec.language(), loadTimeMs);
-                }
-
-                return lang;
-            } catch (Exception | UnsatisfiedLinkError e) {
-                long loadTimeMs = (System.nanoTime() - startTime) / 1_000_000;
-                LOG.errorf(e, "Failed to load grammar for %s via symbol %s after %d ms", pinnedSpec.language(), pinnedSpec.symbol(), loadTimeMs);
-                // Record failure and attempt automatic rollback
-                recordVersionUsage(pinnedSpec.language(), pinnedSpec.version(), false, e.getMessage());
-                return tryAutomaticRollback(pinnedSpec);
-            }
+            return loadLanguageFromNative(pinnedSpec, startTime);
         } catch (Exception e) {
             long loadTimeMs = (System.nanoTime() - startTime) / 1_000_000;
             LOG.errorf(e, "Unexpected error loading grammar for %s after %d ms", spec.language(), loadTimeMs);
             throw e;
+        }
+    }
+
+    private Language loadLanguageFromNative(GrammarSpec pinnedSpec, long startTime) {
+        try {
+            Language lang = Language.load(SymbolLookup.loaderLookup(), pinnedSpec.symbol());
+            loadedLanguages.put(pinnedSpec.symbol(), lang);
+            recordVersionUsage(pinnedSpec.language(), pinnedSpec.version(), true, null);
+
+            long loadTimeMs = (System.nanoTime() - startTime) / 1_000_000;
+            LOG.infof("Loaded Tree-sitter language %s via symbol %s in %d ms", pinnedSpec.language(), pinnedSpec.symbol(), loadTimeMs);
+
+            if (loadTimeMs > 500) {
+                LOG.warnf("Grammar loading for %s exceeded 500ms threshold: %d ms (AC5 violation)", pinnedSpec.language(), loadTimeMs);
+            }
+
+            return lang;
+        } catch (Exception | UnsatisfiedLinkError e) {
+            long loadTimeMs = (System.nanoTime() - startTime) / 1_000_000;
+            LOG.errorf(e, "Failed to load grammar for %s via symbol %s after %d ms", pinnedSpec.language(), pinnedSpec.symbol(), loadTimeMs);
+            recordVersionUsage(pinnedSpec.language(), pinnedSpec.version(), false, e.getMessage());
+            return tryAutomaticRollback(pinnedSpec);
         }
     }
 
@@ -801,21 +820,7 @@ public class GrammarManager {
 
             // Keep the first maxVersions, remove the rest
             for (int i = maxVersions; i < versionDirs.size(); i++) {
-                Path versionDir = versionDirs.get(i);
-                try {
-                    deleteDirectoryRecursively(versionDir);
-                    String version = versionDir.getFileName().toString();
-
-                    // Remove from in-memory cache
-                    String platform = platformName();
-                    String cacheKey = language + "-" + version + "-" + platform;
-                    versionCache.remove(cacheKey);
-
-                    LOG.infof("Removed old cached version %s for language %s", version, language);
-                    removedCount++;
-                } catch (Exception e) {
-                    LOG.warnf(e, "Failed to remove cached version %s for language %s", versionDir.getFileName(), language);
-                }
+                removedCount += removeVersionDirectory(versionDirs.get(i), language);
             }
 
             if (removedCount > 0) {
@@ -827,6 +832,23 @@ public class GrammarManager {
         }
 
         return removedCount;
+    }
+
+    private int removeVersionDirectory(Path versionDir, String language) {
+        try {
+            deleteDirectoryRecursively(versionDir);
+            String version = versionDir.getFileName().toString();
+
+            String platform = platformName();
+            String cacheKey = language + "-" + version + "-" + platform;
+            versionCache.remove(cacheKey);
+
+            LOG.infof("Removed old cached version %s for language %s", version, language);
+            return 1;
+        } catch (Exception e) {
+            LOG.warnf(e, "Failed to remove cached version %s for language %s", versionDir.getFileName(), language);
+            return 0;
+        }
     }
 
     /**
@@ -1001,7 +1023,7 @@ public class GrammarManager {
         if (!cachedVersions.contains(version)) {
             String error = String.format("Version %s not found in cache for language %s", version, language);
             LOG.errorf(error);
-            return new RollbackResult(language, "unknown", version, false, error);
+            return new RollbackResult(language, UNKNOWN, version, false, error);
         }
 
         // Find the currently loaded version (if any)
@@ -1017,18 +1039,18 @@ public class GrammarManager {
         if (rollbackSpec == null) {
             String error = String.format("Failed to create grammar spec for %s version %s", language, version);
             LOG.errorf(error);
-            return new RollbackResult(language, currentVersion != null ? currentVersion : "unknown", version, false, error);
+            return new RollbackResult(language, currentVersion != null ? currentVersion : UNKNOWN, version, false, error);
         }
 
         // Try to load the rollback version
         Language loaded = loadLanguageWithVersion(rollbackSpec, false);
         if (loaded != null) {
             LOG.infof("Manual rollback successful for %s to version %s", language, version);
-            return new RollbackResult(language, currentVersion != null ? currentVersion : "unknown", version, true, null);
+            return new RollbackResult(language, currentVersion != null ? currentVersion : UNKNOWN, version, true, null);
         } else {
             String error = String.format("Failed to load language %s with version %s during rollback", language, version);
             LOG.errorf(error);
-            return new RollbackResult(language, currentVersion != null ? currentVersion : "unknown", version, false, error);
+            return new RollbackResult(language, currentVersion != null ? currentVersion : UNKNOWN, version, false, error);
         }
     }
 
@@ -1047,7 +1069,7 @@ public class GrammarManager {
         if (history == null || history.isEmpty()) {
             String error = String.format("No version history available for language %s", language);
             LOG.errorf(error);
-            return new RollbackResult(language, "unknown", "unknown", false, error);
+            return new RollbackResult(language, UNKNOWN, UNKNOWN, false, error);
         }
 
         String currentVersion = findCurrentLoadedVersion(language);
@@ -1061,7 +1083,7 @@ public class GrammarManager {
 
         String error = String.format("No suitable previous version found for language %s", language);
         LOG.errorf(error);
-        return new RollbackResult(language, currentVersion != null ? currentVersion : "unknown", "unknown", false, error);
+        return new RollbackResult(language, currentVersion != null ? currentVersion : UNKNOWN, UNKNOWN, false, error);
     }
 
     /**

@@ -30,11 +30,15 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 public class IngestionResource {
 
     private static final Logger LOG = LoggerFactory.getLogger(IngestionResource.class);
+    private static final String REPOSITORY_URL_KEY = "repositoryUrl";
+
+    private final IngestionService ingestionService;
+    private final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
 
     @Inject
-    IngestionService ingestionService;
-
-    private final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
+    public IngestionResource(IngestionService ingestionService) {
+        this.ingestionService = ingestionService;
+    }
 
     /**
      * Starts ingestion of a repository.
@@ -147,7 +151,7 @@ public class IngestionResource {
                             "errorType", error.getClass().getSimpleName(),
                             "stage", lastStage[0].toString(),
                             "durationMs", duration,
-                            "repositoryUrl", request.getRepositoryUrl()
+                            REPOSITORY_URL_KEY, request.getRepositoryUrl()
                         );
                         emitter.emit(StreamEvent.of(StreamEvent.Stage.FAILED,
                                                   "Ingestion failed: " + error.getMessage(), 0, errorMetadata));
@@ -160,7 +164,7 @@ public class IngestionResource {
                             "filesProcessed", filesProcessed[0],
                             "chunksCreated", chunksCreated[0],
                             "durationMs", duration,
-                            "repositoryUrl", request.getRepositoryUrl(),
+                            REPOSITORY_URL_KEY, request.getRepositoryUrl(),
                             "ingestionType", request.isIncremental() ? "incremental" : "full"
                         );
                         emitter.emit(StreamEvent.of(StreamEvent.Stage.COMPLETE,
@@ -176,7 +180,7 @@ public class IngestionResource {
                 Map<String, Object> errorMetadata = Map.of(
                     "errorType", e.getClass().getSimpleName(),
                     "stage", "INITIALIZATION",
-                    "repositoryUrl", request.getRepositoryUrl()
+                    REPOSITORY_URL_KEY, request.getRepositoryUrl()
                 );
                 emitter.emit(StreamEvent.of(StreamEvent.Stage.FAILED,
                                           "Failed to start ingestion: " + e.getMessage(), 0, errorMetadata));

@@ -5,7 +5,6 @@
 
 package io.megabrain.ingestion.bitbucket;
 
-import io.quarkus.test.junit.QuarkusTest;
 import jakarta.ws.rs.core.MultivaluedHashMap;
 import jakarta.ws.rs.core.MultivaluedMap;
 import org.junit.jupiter.api.Test;
@@ -15,18 +14,19 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@QuarkusTest
 class BitbucketCloudApiHeadersFactoryTest {
 
     @Test
     void update_shouldAddBasicAuthAndDefaultHeaders_whenCloudCredentialsPresent() {
         // given
-        BitbucketTokenProvider tokenProvider = new BitbucketTokenProvider();
-        tokenProvider.cloudUsername = Optional.of("alice");
-        tokenProvider.cloudAppPassword = Optional.of("app-pass");
+        BitbucketTokenProvider tokenProvider = new BitbucketTokenProvider(
+                Optional.of("alice"),
+                Optional.of("app-pass"),
+                Optional.empty(),
+                Optional.empty()
+        );
 
-        BitbucketCloudApiHeadersFactory factory = new BitbucketCloudApiHeadersFactory();
-        factory.tokenProvider = tokenProvider;
+        BitbucketCloudApiHeadersFactory factory = new BitbucketCloudApiHeadersFactory(tokenProvider);
 
         MultivaluedMap<String, String> result = factory.update(new MultivaluedHashMap<>(), new MultivaluedHashMap<>());
 
@@ -40,12 +40,14 @@ class BitbucketCloudApiHeadersFactoryTest {
     @Test
     void update_shouldSkipAuthorization_whenCredentialsMissing() {
         // given
-        BitbucketTokenProvider tokenProvider = new BitbucketTokenProvider();
-        tokenProvider.cloudUsername = Optional.empty();
-        tokenProvider.cloudAppPassword = Optional.empty();
+        BitbucketTokenProvider tokenProvider = new BitbucketTokenProvider(
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty()
+        );
 
-        BitbucketCloudApiHeadersFactory factory = new BitbucketCloudApiHeadersFactory();
-        factory.tokenProvider = tokenProvider;
+        BitbucketCloudApiHeadersFactory factory = new BitbucketCloudApiHeadersFactory(tokenProvider);
 
         MultivaluedMap<String, String> result = factory.update(new MultivaluedHashMap<>(), new MultivaluedHashMap<>());
 

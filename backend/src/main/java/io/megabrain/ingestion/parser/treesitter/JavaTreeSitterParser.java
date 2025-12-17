@@ -35,6 +35,10 @@ public class JavaTreeSitterParser extends TreeSitterParser {
     private static final String LIBRARY_PROPERTY = "tree.sitter.java.library";
     private static final String LANGUAGE_SYMBOL = "tree_sitter_java";
 
+    private static final String FIELD_MODIFIERS = "modifiers";
+    private static final String FIELD_INTERFACES = "interfaces";
+    private static final String FIELD_TYPE_PARAMETERS = "type_parameters";
+
     private static final Set<String> TYPE_NODE_TYPES = Set.of(
             "class_declaration",
             "interface_declaration",
@@ -62,7 +66,7 @@ public class JavaTreeSitterParser extends TreeSitterParser {
                         (class_declaration
                             name: (identifier) @class.name)?
                         """),
-                new QueryDefinition("interfaces", """
+                new QueryDefinition(FIELD_INTERFACES, """
                         (interface_declaration
                             name: (identifier) @interface.name)?
                         """),
@@ -170,14 +174,14 @@ public class JavaTreeSitterParser extends TreeSitterParser {
         if (!context.imports().isEmpty()) {
             attributes.put("imports", String.join(",", context.imports()));
         }
-        modifiers(node, source).ifPresent(mods -> attributes.put("modifiers", mods));
+        modifiers(node, source).ifPresent(mods -> attributes.put(FIELD_MODIFIERS, mods));
         List<String> annotations = collectAnnotations(node, source);
         if (!annotations.isEmpty()) {
             attributes.put("annotations", String.join(",", annotations));
         }
-        sliceField(node, "type_parameters", source).ifPresent(tp -> attributes.put("type_parameters", tp));
+        sliceField(node, FIELD_TYPE_PARAMETERS, source).ifPresent(tp -> attributes.put(FIELD_TYPE_PARAMETERS, tp));
         sliceField(node, "superclass", source).ifPresent(superClass -> attributes.put("superclass", superClass));
-        sliceField(node, "interfaces", source).ifPresent(interfaces -> attributes.put("interfaces", interfaces));
+        sliceField(node, FIELD_INTERFACES, source).ifPresent(interfaces -> attributes.put(FIELD_INTERFACES, interfaces));
         return attributes;
     }
 
@@ -194,12 +198,12 @@ public class JavaTreeSitterParser extends TreeSitterParser {
         if (!typeStack.isEmpty()) {
             attributes.put("enclosing_type", String.join(".", typeStack));
         }
-        modifiers(node, source).ifPresent(mods -> attributes.put("modifiers", mods));
+        modifiers(node, source).ifPresent(mods -> attributes.put(FIELD_MODIFIERS, mods));
         List<String> annotations = collectAnnotations(node, source);
         if (!annotations.isEmpty()) {
             attributes.put("annotations", String.join(",", annotations));
         }
-        sliceField(node, "type_parameters", source).ifPresent(tp -> attributes.put("type_parameters", tp));
+        sliceField(node, FIELD_TYPE_PARAMETERS, source).ifPresent(tp -> attributes.put(FIELD_TYPE_PARAMETERS, tp));
         sliceField(node, "parameters", source).ifPresent(params -> attributes.put("parameters", params));
         if (!isConstructor) {
             sliceField(node, "type", source).ifPresent(ret -> attributes.put("return_type", ret));
@@ -235,13 +239,13 @@ public class JavaTreeSitterParser extends TreeSitterParser {
     }
 
     private Optional<String> modifiers(Node node, TreeSitterSource source) {
-        return node.getChildByFieldName("modifiers")
+        return node.getChildByFieldName(FIELD_MODIFIERS)
                 .map(modNode -> source.slice(modNode.getStartByte(), modNode.getEndByte()).trim());
     }
 
     private List<String> collectAnnotations(Node node, TreeSitterSource source) {
         List<String> annotations = new ArrayList<>();
-        node.getChildByFieldName("modifiers")
+        node.getChildByFieldName(FIELD_MODIFIERS)
                 .ifPresent(modifiers -> modifiers.getChildren().forEach(child -> {
                     if (child.getType().contains("annotation")) {
                         annotations.add(source.slice(child.getStartByte(), child.getEndByte()).trim());

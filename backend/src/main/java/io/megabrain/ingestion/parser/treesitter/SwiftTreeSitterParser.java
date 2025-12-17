@@ -11,7 +11,6 @@ import io.github.treesitter.jtreesitter.Tree;
 import io.megabrain.ingestion.parser.GrammarManager;
 import io.megabrain.ingestion.parser.GrammarSpec;
 import io.megabrain.ingestion.parser.TextChunk;
-import org.jboss.logging.Logger;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -28,7 +27,6 @@ import java.util.function.Supplier;
  */
 public class SwiftTreeSitterParser extends TreeSitterParser {
 
-    private static final Logger LOG = Logger.getLogger(SwiftTreeSitterParser.class);
     private static final String LANGUAGE = "swift";
     private static final Set<String> SUPPORTED_EXTENSIONS = Set.of(LANGUAGE);
     private static final String LIBRARY_ENV = "TREE_SITTER_SWIFT_LIB";
@@ -112,7 +110,7 @@ public class SwiftTreeSitterParser extends TreeSitterParser {
             return;
         }
         if (isFunctionNode(node)) {
-            processFunction(node, source, context, typeStack, seen, out);
+            processFunction(node, source, typeStack, seen, out);
         }
         node.getNamedChildren().forEach(child -> walk(child, source, context, typeStack, seen, out));
     }
@@ -124,7 +122,7 @@ public class SwiftTreeSitterParser extends TreeSitterParser {
                              Set<String> seen,
                              List<TextChunk> out) {
         Optional<String> name = identifier(node, "name");
-        Optional<String> extendedType = extractExtendedType(node, source);
+        Optional<String> extendedType = extractExtendedType(node);
 
         String entityName = name.orElse(extendedType.orElse(""));
         if (entityName.isEmpty()) {
@@ -133,7 +131,7 @@ public class SwiftTreeSitterParser extends TreeSitterParser {
 
         String entityType = typeEntity(node);
         String qualifiedName = qualifyName(typeStack, entityName);
-        Map<String, String> attributes = buildTypeAttributes(node, source, context);
+        Map<String, String> attributes = buildTypeAttributes(node, source);
         extendedType.ifPresent(et -> attributes.put("extended_type", et));
 
         addIfNotSeen(out, seen, toChunk(node, entityType, qualifiedName, source, attributes));
@@ -145,7 +143,6 @@ public class SwiftTreeSitterParser extends TreeSitterParser {
 
     private void processFunction(Node node,
                                  TreeSitterSource source,
-                                 SwiftContext context,
                                  ArrayDeque<String> typeStack,
                                  Set<String> seen,
                                  List<TextChunk> out) {
@@ -154,11 +151,11 @@ public class SwiftTreeSitterParser extends TreeSitterParser {
             return;
         }
         String qualifiedName = qualifyName(typeStack, name.get());
-        Map<String, String> attributes = buildCallableAttributes(node, source, context, typeStack);
+        Map<String, String> attributes = buildCallableAttributes(node, source, typeStack);
         addIfNotSeen(out, seen, toChunk(node, "function", qualifiedName, source, attributes));
     }
 
-    private Map<String, String> buildTypeAttributes(Node node, TreeSitterSource source, SwiftContext context) {
+    private Map<String, String> buildTypeAttributes(Node node, TreeSitterSource source) {
         Map<String, String> attributes = new LinkedHashMap<>();
         sliceField(node, "generic_parameter_clause", source).ifPresent(gp -> attributes.put("generic_parameters", gp));
         sliceField(node, "type_inheritance_clause", source).ifPresent(inheritance -> attributes.put("inheritance", inheritance));
@@ -167,7 +164,6 @@ public class SwiftTreeSitterParser extends TreeSitterParser {
 
     private Map<String, String> buildCallableAttributes(Node node,
                                                         TreeSitterSource source,
-                                                        SwiftContext context,
                                                         ArrayDeque<String> typeStack) {
         Map<String, String> attributes = new LinkedHashMap<>();
         if (!typeStack.isEmpty()) {
@@ -179,7 +175,7 @@ public class SwiftTreeSitterParser extends TreeSitterParser {
         return attributes;
     }
 
-    private Optional<String> extractExtendedType(Node extensionNode, TreeSitterSource source) {
+    private Optional<String> extractExtendedType(Node extensionNode) {
         return extensionNode.getChildByFieldName("extended_type")
                 .map(Node::getText)
                 .map(String::trim);
@@ -236,6 +232,10 @@ public class SwiftTreeSitterParser extends TreeSitterParser {
                     "0.6.0"
             );
 
+    /**
+     * Context record for Swift parsing. May be extended with additional fields
+     * such as module name, import context, or attribute tracking as needed.
+     */
     private record SwiftContext() {
     }
 }
