@@ -196,9 +196,14 @@ public class LuceneIndexService implements IndexService {
             try (IndexReader reader = DirectoryReader.open(directory)) {
                 IndexSearcher searcher = new IndexSearcher(reader);
 
-                // Simple term query for now - will be enhanced in T5
-                TermQuery query = new TermQuery(new Term(LuceneSchema.FIELD_CONTENT, queryString));
-                TopDocs topDocs = searcher.search(query, maxResults);
+                // Search across multiple fields - basic implementation for T2
+                org.apache.lucene.search.BooleanQuery.Builder booleanQuery = new org.apache.lucene.search.BooleanQuery.Builder();
+                booleanQuery.add(new TermQuery(new Term(LuceneSchema.FIELD_CONTENT, queryString)), org.apache.lucene.search.BooleanClause.Occur.SHOULD);
+                booleanQuery.add(new TermQuery(new Term(LuceneSchema.FIELD_DOC_SUMMARY, queryString)), org.apache.lucene.search.BooleanClause.Occur.SHOULD);
+                booleanQuery.add(new TermQuery(new Term(LuceneSchema.FIELD_ENTITY_NAME, queryString)), org.apache.lucene.search.BooleanClause.Occur.SHOULD);
+                booleanQuery.add(new TermQuery(new Term(LuceneSchema.FIELD_REPOSITORY, queryString)), org.apache.lucene.search.BooleanClause.Occur.SHOULD);
+
+                TopDocs topDocs = searcher.search(booleanQuery.build(), maxResults);
 
                 List<Document> results = new java.util.ArrayList<>();
                 for (var scoreDoc : topDocs.scoreDocs) {
