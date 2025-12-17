@@ -12,13 +12,13 @@
 - **Description:** Design the Lucene index schema defining all searchable fields for code chunks. Fields should include: entity_name, content, language, repository, file_path, entity_type, doc_summary, and metadata fields. Define field types (text, keyword, stored) and indexing options.
 - **Estimated Hours:** 3 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** US-01-04, US-01-05 (needs to understand chunk structure)
 - **Acceptance Criteria:**
-  - [ ] Index schema documented with all fields
-  - [ ] Field types appropriate for search needs
-  - [ ] Stored fields for retrieval identified
-  - [ ] Schema supports all required search features
+  - [x] Index schema documented with all fields
+  - [x] Field types appropriate for search needs
+  - [x] Stored fields for retrieval identified
+  - [x] Schema supports all required search features
 - **Technical Notes:** Use Lucene's FieldType API. entity_name should be both text (searchable) and keyword (exact match). Content field should be text with tokenization. Metadata fields as keywords for filtering.
 
 ### T2: Implement LuceneIndexService class
