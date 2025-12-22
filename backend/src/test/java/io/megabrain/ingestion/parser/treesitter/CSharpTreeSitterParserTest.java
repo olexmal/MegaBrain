@@ -60,14 +60,14 @@ class CSharpTreeSitterParserTest {
         try {
             Files.writeString(tempFile, csharpCode);
             List<TextChunk> chunks = parser.parse(tempFile);
-            // Should return empty list if grammar fails to load
+            // Should return an empty list if grammar fails to load
             assertThat(chunks).isNotNull();
-        } catch (Exception e) {
-            // Expected if grammar not available in test environment
+        } catch (Exception _) {
+            // Expected if grammar not available in the test environment
         } finally {
             try {
                 Files.deleteIfExists(tempFile);
-            } catch (Exception e) {
+            } catch (Exception _) {
                 // Ignore cleanup errors
             }
         }

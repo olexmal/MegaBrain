@@ -840,7 +840,7 @@ class GrammarManagerTest {
         Path emptyLangDir = tempDir.resolve("empty-lang");
         try {
             Files.createDirectories(emptyLangDir);
-        } catch (Exception e) {
+        } catch (Exception _) {
             // Ignore for test
         }
 

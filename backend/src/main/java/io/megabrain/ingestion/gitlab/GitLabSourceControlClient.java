@@ -141,7 +141,7 @@ public class GitLabSourceControlClient implements SourceControlClient {
                 CloneCommand cloneCommand = configureCloneCommand(cloneUrl, clonePath, branch, emitter::emit);
                 emitter.emit(ProgressEvent.of("Cloning repository", 40.0));
 
-                try (Git ignored = cloneCommand.call()) {
+                try (var _ = cloneCommand.call()) {
                     emitter.emit(ProgressEvent.of("Repository cloned successfully", 100.0));
                     emitter.complete();
                 }
@@ -555,7 +555,7 @@ public class GitLabSourceControlClient implements SourceControlClient {
                 long waitMs = Long.parseLong(retryAfter) * 1000;
                 LOG.infof("GitLab API rate limited, waiting %d seconds as requested", waitMs / 1000);
                 return waitMs;
-            } catch (NumberFormatException ignored) {
+            } catch (NumberFormatException _) {
                 LOG.warnf("Invalid Retry-After header: %s, using exponential backoff", retryAfter);
             }
         }
