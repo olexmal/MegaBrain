@@ -58,14 +58,22 @@
 - **Description:** Implement logic to convert TextChunk objects into Lucene Documents and add them to the index. Map all chunk metadata to appropriate Lucene fields. Handle batch indexing for efficiency. Support document updates and deletions.
 - **Estimated Hours:** 4 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T1, T2, T3 (needs schema, service, analyzer)
 - **Acceptance Criteria:**
-  - [ ] TextChunks converted to Lucene Documents
-  - [ ] All metadata fields indexed correctly
-  - [ ] Batch indexing supported for efficiency
-  - [ ] Document updates and deletions work
+  - [x] TextChunks converted to Lucene Documents
+  - [x] All metadata fields indexed correctly
+  - [x] Batch indexing supported for efficiency
+  - [x] Document updates and deletions work
 - **Technical Notes:** Create DocumentMapper utility class. Use IndexWriter.addDocument() for new documents, updateDocument() for updates. Implement batch processing with configurable batch size. Use unique document ID for updates.
+
+**Implementation Notes:**
+- Created DocumentMapper utility class to separate document creation logic
+- Added batch indexing with configurable batch sizes (default 1000, configurable via megabrain.index.batch.size)
+- Implemented proper document updates using updateDocument() instead of remove+add
+- Added document ID-based deletions for efficient individual document removal
+- Added comprehensive unit tests covering all new functionality
+- Fixed infinite loop bug in batch processing by validating batch size parameters
 
 ### T5: Implement search query parsing
 - **Description:** Implement query parsing that supports Lucene query syntax including AND/OR/NOT operators, phrase queries, wildcards, and field-specific queries. Parse user query string into Lucene Query object. Handle query syntax errors gracefully.
