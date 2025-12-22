@@ -11,6 +11,7 @@ import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Alternative;
+import jakarta.inject.Inject;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
@@ -62,6 +63,9 @@ public class LuceneIndexService implements IndexService {
     private Analyzer analyzer;
     private IndexWriter indexWriter;
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
+
+    @Inject
+    QueryParserService queryParser;
 
     @PostConstruct
     void initialize() {
@@ -417,42 +421,73 @@ public class LuceneIndexService implements IndexService {
 
     /**
      * Searches the index for documents matching a query.
-     * This is a basic implementation - will be enhanced with proper query parsing in T5.
+     * Supports full Lucene query syntax including boolean operators, phrase queries,
+     * wildcards, and field-specific searches.
      *
-     * @param queryString the search query (currently supports exact field matches)
+     * @param queryString the search query with full Lucene syntax support
      * @param maxResults maximum number of results to return
      * @return list of matching documents
      */
     public Uni<List<Document>> search(String queryString, int maxResults) {
-        return Uni.createFrom().item(() -> {
-            lock.readLock().lock();
-            try (IndexReader reader = DirectoryReader.open(directory)) {
-                IndexSearcher searcher = new IndexSearcher(reader);
+        return queryParser.parseQuery(queryString)
+                .flatMap(parsedQuery -> Uni.createFrom().item(() -> {
+                    lock.readLock().lock();
+                    try (IndexReader reader = DirectoryReader.open(directory)) {
+                        IndexSearcher searcher = new IndexSearcher(reader);
 
-                // Search across multiple fields - basic implementation for T2
-                org.apache.lucene.search.BooleanQuery.Builder booleanQuery = new org.apache.lucene.search.BooleanQuery.Builder();
-                booleanQuery.add(new TermQuery(new Term(LuceneSchema.FIELD_CONTENT, queryString)), org.apache.lucene.search.BooleanClause.Occur.SHOULD);
-                booleanQuery.add(new TermQuery(new Term(LuceneSchema.FIELD_DOC_SUMMARY, queryString)), org.apache.lucene.search.BooleanClause.Occur.SHOULD);
-                booleanQuery.add(new TermQuery(new Term(LuceneSchema.FIELD_ENTITY_NAME, queryString)), org.apache.lucene.search.BooleanClause.Occur.SHOULD);
-                booleanQuery.add(new TermQuery(new Term(LuceneSchema.FIELD_REPOSITORY, queryString)), org.apache.lucene.search.BooleanClause.Occur.SHOULD);
+                        TopDocs topDocs = searcher.search(parsedQuery, maxResults);
 
-                TopDocs topDocs = searcher.search(booleanQuery.build(), maxResults);
+                        List<Document> results = new java.util.ArrayList<>();
+                        for (var scoreDoc : topDocs.scoreDocs) {
+                            Document doc = searcher.storedFields().document(scoreDoc.doc);
+                            results.add(doc);
+                        }
 
-                List<Document> results = new java.util.ArrayList<>();
-                for (var scoreDoc : topDocs.scoreDocs) {
-                    Document doc = searcher.storedFields().document(scoreDoc.doc);
-                    results.add(doc);
-                }
+                        LOG.debugf("Found %d results for parsed query: %s -> %s",
+                                 results.size(), queryString, parsedQuery);
+                        return results;
+                    } catch (IOException e) {
+                        LOG.error("Error searching index", e);
+                        throw new RuntimeException("Failed to search index", e);
+                    } finally {
+                        lock.readLock().unlock();
+                    }
+                }));
+    }
 
-                LOG.debugf("Found %d results for query: %s", results.size(), queryString);
-                return results;
-            } catch (IOException e) {
-                LOG.error("Error searching index", e);
-                throw new RuntimeException("Failed to search index", e);
-            } finally {
-                lock.readLock().unlock();
-            }
-        });
+    /**
+     * Searches within a specific field.
+     *
+     * @param fieldName the field to search in
+     * @param queryString the query string
+     * @param maxResults maximum number of results to return
+     * @return list of matching documents
+     */
+    public Uni<List<Document>> searchField(String fieldName, String queryString, int maxResults) {
+        return queryParser.parseFieldQuery(fieldName, queryString)
+                .flatMap(parsedQuery -> Uni.createFrom().item(() -> {
+                    lock.readLock().lock();
+                    try (IndexReader reader = DirectoryReader.open(directory)) {
+                        IndexSearcher searcher = new IndexSearcher(reader);
+
+                        TopDocs topDocs = searcher.search(parsedQuery, maxResults);
+
+                        List<Document> results = new java.util.ArrayList<>();
+                        for (var scoreDoc : topDocs.scoreDocs) {
+                            Document doc = searcher.storedFields().document(scoreDoc.doc);
+                            results.add(doc);
+                        }
+
+                        LOG.debugf("Found %d results for field query: %s:%s -> %s",
+                                 results.size(), fieldName, queryString, parsedQuery);
+                        return results;
+                    } catch (IOException e) {
+                        LOG.error("Error searching field", e);
+                        throw new RuntimeException("Failed to search field: " + fieldName, e);
+                    } finally {
+                        lock.readLock().unlock();
+                    }
+                }));
     }
 
 
