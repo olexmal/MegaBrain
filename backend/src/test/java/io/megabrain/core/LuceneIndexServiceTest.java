@@ -223,6 +223,219 @@ public class LuceneIndexServiceTest {
         assertIndexContains(1);
     }
 
+    @Test
+    public void testAddChunksBatch_withSmallBatchSize() {
+        // Given
+        List<TextChunk> chunks = List.of(
+                createTestChunk("Class1", ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_1, "class Class1"),
+                createTestChunk("Class2", ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_1, "class Class2"),
+                createTestChunk("Class3", ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_1, "class Class3")
+        );
+
+        // When
+        var result = indexService.addChunksBatch(chunks, 2)
+                .subscribe().withSubscriber(UniAssertSubscriber.create());
+
+        // Then
+        result.assertCompleted();
+        assertIndexContains(3);
+    }
+
+    @Test
+    public void testAddChunksBatch_withLargeBatchSize() {
+        // Given
+        List<TextChunk> chunks = List.of(
+                createTestChunk("Class1", ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_1, "class Class1"),
+                createTestChunk("Class2", ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_1, "class Class2")
+        );
+
+        // When
+        var result = indexService.addChunksBatch(chunks, 10) // batch size larger than chunk count
+                .subscribe().withSubscriber(UniAssertSubscriber.create());
+
+        // Then
+        result.assertCompleted();
+        assertIndexContains(2);
+    }
+
+    @Test
+    public void testAddChunksBatch_withEmptyList() {
+        // When
+        var result = indexService.addChunksBatch(List.of(), 5)
+                .subscribe().withSubscriber(UniAssertSubscriber.create());
+
+        // Then
+        result.assertCompleted();
+        assertIndexContains(0);
+    }
+
+    @Test
+    public void testUpdateDocument_singleDocument() {
+        // Given
+        TextChunk originalChunk = createTestChunk(TEST_CLASS_NAME, ENTITY_TYPE_CLASS, LANGUAGE_JAVA,
+                TEST_FILE_1, TEST_CLASS_CONTENT);
+        indexService.addChunks(List.of(originalChunk)).await().indefinitely();
+
+        TextChunk updatedChunk = new TextChunk(
+                "public class TestClass { /* updated content */ }",
+                LANGUAGE_JAVA, ENTITY_TYPE_CLASS, TEST_CLASS_NAME,
+                TEST_FILE_1, 1, 10, 0, 50, Map.of()
+        );
+
+        // When
+        var result = indexService.updateDocument(updatedChunk)
+                .subscribe().withSubscriber(UniAssertSubscriber.create());
+
+        // Then
+        result.assertCompleted();
+        assertIndexContains(1); // Should still have 1 document
+
+        // Verify we can search for updated content (basic verification)
+        var searchResult = indexService.search("updated", 10)
+                .subscribe().withSubscriber(UniAssertSubscriber.create());
+        searchResult.assertCompleted();
+        assertFalse(searchResult.getItem().isEmpty());
+    }
+
+    @Test
+    public void testUpdateDocuments_multipleDocuments() {
+        // Given
+        List<TextChunk> originalChunks = List.of(
+                createTestChunk("Class1", ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_1, "class Class1"),
+                createTestChunk("Class2", ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_2, "class Class2")
+        );
+        indexService.addChunks(originalChunks).await().indefinitely();
+
+        List<TextChunk> updatedChunks = List.of(
+                new TextChunk("class Class1 { /* updated */ }", LANGUAGE_JAVA, ENTITY_TYPE_CLASS, "Class1",
+                        TEST_FILE_1, 1, 10, 0, 30, Map.of()),
+                new TextChunk("class Class2 { /* updated */ }", LANGUAGE_JAVA, ENTITY_TYPE_CLASS, "Class2",
+                        TEST_FILE_2, 1, 10, 0, 30, Map.of())
+        );
+
+        // When
+        var result = indexService.updateDocuments(updatedChunks)
+                .subscribe().withSubscriber(UniAssertSubscriber.create());
+
+        // Then
+        result.assertCompleted();
+        assertIndexContains(2); // Should still have 2 documents
+    }
+
+    @Test
+    public void testUpdateDocumentsBatch_withBatchSize() {
+        // Given
+        List<TextChunk> originalChunks = List.of(
+                createTestChunk("Class1", ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_1, "class Class1"),
+                createTestChunk("Class2", ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_1, "class Class2"),
+                createTestChunk("Class3", ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_1, "class Class3")
+        );
+        indexService.addChunks(originalChunks).await().indefinitely();
+
+        List<TextChunk> updatedChunks = List.of(
+                new TextChunk("class Class1 { /* v1 */ }", LANGUAGE_JAVA, ENTITY_TYPE_CLASS, "Class1",
+                        TEST_FILE_1, 1, 10, 0, 25, Map.of()),
+                new TextChunk("class Class2 { /* v1 */ }", LANGUAGE_JAVA, ENTITY_TYPE_CLASS, "Class2",
+                        TEST_FILE_1, 11, 20, 26, 50, Map.of()),
+                new TextChunk("class Class3 { /* v1 */ }", LANGUAGE_JAVA, ENTITY_TYPE_CLASS, "Class3",
+                        TEST_FILE_1, 21, 30, 51, 75, Map.of())
+        );
+
+        // When
+        var result = indexService.updateDocumentsBatch(updatedChunks, 2)
+                .subscribe().withSubscriber(UniAssertSubscriber.create());
+
+        // Then
+        result.assertCompleted();
+        assertIndexContains(3);
+    }
+
+    @Test
+    public void testRemoveDocument_byDocumentId() {
+        // Given
+        TextChunk chunk = createTestChunk(TEST_CLASS_NAME, ENTITY_TYPE_CLASS, LANGUAGE_JAVA,
+                TEST_FILE_1, TEST_CLASS_CONTENT);
+        indexService.addChunks(List.of(chunk)).await().indefinitely();
+
+        String documentId = DocumentMapper.generateDocumentId(chunk);
+
+        // When
+        var result = indexService.removeDocument(documentId)
+                .subscribe().withSubscriber(UniAssertSubscriber.create());
+
+        // Then
+        result.assertCompleted();
+        result.assertItem(1); // Should have removed 1 document
+        assertIndexContains(0);
+    }
+
+    @Test
+    public void testRemoveDocument_nonExistentId() {
+        // When
+        var result = indexService.removeDocument("non:existent:id")
+                .subscribe().withSubscriber(UniAssertSubscriber.create());
+
+        // Then
+        result.assertCompleted();
+        result.assertItem(0); // Should have removed 0 documents
+    }
+
+    @Test
+    public void testRemoveDocuments_multipleIds() {
+        // Given
+        List<TextChunk> chunks = List.of(
+                createTestChunk("Class1", ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_1, "class Class1"),
+                createTestChunk("Class2", ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_2, "class Class2")
+        );
+        indexService.addChunks(chunks).await().indefinitely();
+
+        List<String> documentIds = chunks.stream()
+                .map(DocumentMapper::generateDocumentId)
+                .toList();
+
+        // When
+        var result = indexService.removeDocuments(documentIds)
+                .subscribe().withSubscriber(UniAssertSubscriber.create());
+
+        // Then
+        result.assertCompleted();
+        result.assertItem(2); // Should have removed 2 documents
+        assertIndexContains(0);
+    }
+
+    @Test
+    public void testRemoveDocuments_emptyList() {
+        // When
+        var result = indexService.removeDocuments(List.of())
+                .subscribe().withSubscriber(UniAssertSubscriber.create());
+
+        // Then
+        result.assertCompleted();
+        result.assertItem(0);
+    }
+
+    @Test
+    public void testUpdateChunksForFileBatch_withBatchSize() {
+        // Given
+        List<TextChunk> originalChunks = List.of(
+                createTestChunk(TEST_CLASS_NAME, ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_1, TEST_CLASS_CONTENT)
+        );
+        indexService.addChunks(originalChunks).await().indefinitely();
+
+        List<TextChunk> updatedChunks = List.of(
+                createTestChunk(TEST_CLASS_NAME, ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_1, "public class TestClass { /* updated */ }"),
+                createTestChunk(TEST_METHOD_NAME, ENTITY_TYPE_METHOD, LANGUAGE_JAVA, TEST_FILE_1, "public String getUserName() { return null; }")
+        );
+
+        // When
+        var result = indexService.updateChunksForFileBatch(TEST_FILE_1, updatedChunks, 1)
+                .subscribe().withSubscriber(UniAssertSubscriber.create());
+
+        // Then
+        result.assertCompleted();
+        assertIndexContains(2); // Should have new chunks after removing old ones
+    }
+
     private TextChunk createTestChunk(String entityName, String entityType, String language,
                                     String sourceFile, String content) {
         return new TextChunk(

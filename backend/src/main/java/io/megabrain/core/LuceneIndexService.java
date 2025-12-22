@@ -52,6 +52,12 @@ public class LuceneIndexService implements IndexService {
     @ConfigProperty(name = "megabrain.index.directory", defaultValue = "./data/index")
     protected String indexDirectoryPath;
 
+    @ConfigProperty(name = "megabrain.index.batch.size", defaultValue = "1000")
+    protected int batchSize;
+
+    @ConfigProperty(name = "megabrain.index.commit.on.batch", defaultValue = "false")
+    protected boolean commitOnBatch;
+
     private Directory directory;
     private Analyzer analyzer;
     private IndexWriter indexWriter;
@@ -124,6 +130,17 @@ public class LuceneIndexService implements IndexService {
 
     @Override
     public Uni<Void> addChunks(List<TextChunk> chunks) {
+        return addChunksBatch(chunks, batchSize);
+    }
+
+    /**
+     * Adds chunks to the index using batch processing for efficiency.
+     *
+     * @param chunks the text chunks to add
+     * @param batchSize the size of each batch to process
+     * @return a Uni that completes when indexing is done
+     */
+    public Uni<Void> addChunksBatch(List<TextChunk> chunks, int batchSize) {
         return Uni.createFrom().item(() -> {
             lock.writeLock().lock();
             try {
@@ -131,22 +148,48 @@ public class LuceneIndexService implements IndexService {
                     return null;
                 }
 
-                LOG.debugf("Adding %d chunks to index", chunks.size());
-
-                for (TextChunk chunk : chunks) {
-                    Document doc = createDocument(chunk);
-                    String documentId = generateDocumentId(chunk);
-                    doc.add(new Field(LuceneSchema.FIELD_DOCUMENT_ID, documentId,
-                            LuceneSchema.KEYWORD_FIELD_TYPE));
-
-                    indexWriter.addDocument(doc);
-                    LOG.tracef("Added chunk: %s", documentId);
+                // Validate batch size to prevent infinite loops
+                final int validatedBatchSize;
+                if (batchSize <= 0) {
+                    LOG.warnf("Invalid batch size %d, using chunks.size() as batch size", batchSize);
+                    validatedBatchSize = chunks.size();
+                } else {
+                    validatedBatchSize = batchSize;
                 }
 
-                indexWriter.commit();
-                LOG.debugf("Successfully added %d chunks to index", chunks.size());
+                LOG.debugf("Adding %d chunks to index in batches of %d", chunks.size(), validatedBatchSize);
 
+                int totalProcessed = 0;
+                for (int i = 0; i < chunks.size(); i += validatedBatchSize) {
+                    int endIndex = Math.min(i + validatedBatchSize, chunks.size());
+                    List<TextChunk> batch = chunks.subList(i, endIndex);
+
+                    LOG.tracef("Processing batch %d-%d of %d chunks",
+                            i + 1, endIndex, chunks.size());
+
+                    for (TextChunk chunk : batch) {
+                        Document doc = DocumentMapper.toDocumentWithId(chunk);
+                        indexWriter.addDocument(doc);
+                        LOG.tracef("Added chunk: %s", DocumentMapper.generateDocumentId(chunk));
+                    }
+
+                    totalProcessed += batch.size();
+
+                    // Commit after each batch if configured
+                    if (commitOnBatch) {
+                        indexWriter.commit();
+                        LOG.tracef("Committed batch of %d chunks", batch.size());
+                    }
+                }
+
+                // Final commit if not committing on each batch
+                if (!commitOnBatch) {
+                    indexWriter.commit();
+                }
+
+                LOG.debugf("Successfully added %d chunks to index", totalProcessed);
                 return null;
+
             } catch (IOException e) {
                 LOG.error("Error adding chunks to index", e);
                 throw new RuntimeException("Failed to add chunks to index", e);
@@ -178,10 +221,198 @@ public class LuceneIndexService implements IndexService {
         });
     }
 
+    /**
+     * Removes a single document by its document ID.
+     *
+     * @param documentId the document ID to remove
+     * @return a Uni that emits 1 if document was found and removed, 0 otherwise
+     */
+    public Uni<Integer> removeDocument(String documentId) {
+        return Uni.createFrom().item(() -> {
+            lock.writeLock().lock();
+            try {
+                LOG.tracef("Removing document: %s", documentId);
+
+                Term term = new Term(LuceneSchema.FIELD_DOCUMENT_ID, documentId);
+                long deletedCount = indexWriter.deleteDocuments(term);
+                indexWriter.commit();
+
+                LOG.debugf("Removed %d document(s) with ID: %s", deletedCount, documentId);
+                return (int) deletedCount;
+            } catch (IOException e) {
+                LOG.error("Error removing document: " + documentId, e);
+                throw new RuntimeException("Failed to remove document: " + documentId, e);
+            } finally {
+                lock.writeLock().unlock();
+            }
+        });
+    }
+
+    /**
+     * Removes multiple documents by their document IDs.
+     *
+     * @param documentIds the document IDs to remove
+     * @return a Uni that emits the total number of documents removed
+     */
+    public Uni<Integer> removeDocuments(List<String> documentIds) {
+        return Uni.createFrom().item(() -> {
+            lock.writeLock().lock();
+            try {
+                if (documentIds == null || documentIds.isEmpty()) {
+                    return 0;
+                }
+
+                LOG.debugf("Removing %d documents by ID", documentIds.size());
+
+                Term[] terms = documentIds.stream()
+                    .map(id -> new Term(LuceneSchema.FIELD_DOCUMENT_ID, id))
+                    .toArray(Term[]::new);
+
+                long deletedCount = indexWriter.deleteDocuments(terms);
+                indexWriter.commit();
+
+                LOG.debugf("Removed %d documents by ID", deletedCount);
+                return (int) deletedCount;
+            } catch (IOException e) {
+                LOG.error("Error removing documents by ID", e);
+                throw new RuntimeException("Failed to remove documents by ID", e);
+            } finally {
+                lock.writeLock().unlock();
+            }
+        });
+    }
+
     @Override
     public Uni<Void> updateChunksForFile(String filePath, List<TextChunk> newChunks) {
+        return updateChunksForFileBatch(filePath, newChunks, batchSize);
+    }
+
+    /**
+     * Updates chunks for a specific file using efficient batch operations.
+     * First removes existing chunks for the file, then adds the new chunks.
+     *
+     * @param filePath the file path
+     * @param newChunks the new chunks for this file
+     * @param batchSize the batch size for adding operations
+     * @return a Uni that completes when update is done
+     */
+    public Uni<Void> updateChunksForFileBatch(String filePath, List<TextChunk> newChunks, int batchSize) {
         return removeChunksForFile(filePath)
-                .flatMap(removedCount -> addChunks(newChunks));
+                .flatMap(removedCount -> {
+                    LOG.debugf("Updating %d chunks for file: %s", newChunks.size(), filePath);
+                    return addChunksBatch(newChunks, batchSize);
+                });
+    }
+
+    /**
+     * Updates a single document in the index using its document ID.
+     * This is more efficient than remove+add for individual document updates.
+     *
+     * @param chunk the TextChunk to update
+     * @return a Uni that completes when update is done
+     */
+    public Uni<Void> updateDocument(TextChunk chunk) {
+        return Uni.createFrom().item(() -> {
+            lock.writeLock().lock();
+            try {
+                String documentId = DocumentMapper.generateDocumentId(chunk);
+                Document doc = DocumentMapper.toDocumentWithId(chunk);
+                Term term = new Term(LuceneSchema.FIELD_DOCUMENT_ID, documentId);
+
+                LOG.tracef("Updating document: %s", documentId);
+                indexWriter.updateDocument(term, doc);
+                indexWriter.commit();
+
+                LOG.debugf("Successfully updated document: %s", documentId);
+                return null;
+
+            } catch (IOException e) {
+                LOG.error("Error updating document", e);
+                throw new RuntimeException("Failed to update document", e);
+            } finally {
+                lock.writeLock().unlock();
+            }
+        });
+    }
+
+    /**
+     * Updates multiple documents efficiently.
+     * Uses batch processing and updateDocument for better performance.
+     *
+     * @param chunks the TextChunks to update
+     * @return a Uni that completes when all updates are done
+     */
+    public Uni<Void> updateDocuments(List<TextChunk> chunks) {
+        return updateDocumentsBatch(chunks, batchSize);
+    }
+
+    /**
+     * Updates multiple documents with configurable batch size.
+     *
+     * @param chunks the TextChunks to update
+     * @param batchSize the batch size for processing
+     * @return a Uni that completes when all updates are done
+     */
+    public Uni<Void> updateDocumentsBatch(List<TextChunk> chunks, int batchSize) {
+        return Uni.createFrom().item(() -> {
+            lock.writeLock().lock();
+            try {
+                if (chunks == null || chunks.isEmpty()) {
+                    return null;
+                }
+
+                // Validate batch size to prevent infinite loops
+                final int validatedBatchSize;
+                if (batchSize <= 0) {
+                    LOG.warnf("Invalid batch size %d, using chunks.size() as batch size", batchSize);
+                    validatedBatchSize = chunks.size();
+                } else {
+                    validatedBatchSize = batchSize;
+                }
+
+                LOG.debugf("Updating %d documents in batches of %d", chunks.size(), validatedBatchSize);
+
+                int totalProcessed = 0;
+                for (int i = 0; i < chunks.size(); i += validatedBatchSize) {
+                    int endIndex = Math.min(i + validatedBatchSize, chunks.size());
+                    List<TextChunk> batch = chunks.subList(i, endIndex);
+
+                    LOG.tracef("Processing update batch %d-%d of %d documents",
+                            i + 1, endIndex, chunks.size());
+
+                    for (TextChunk chunk : batch) {
+                        String documentId = DocumentMapper.generateDocumentId(chunk);
+                        Document doc = DocumentMapper.toDocumentWithId(chunk);
+                        Term term = new Term(LuceneSchema.FIELD_DOCUMENT_ID, documentId);
+
+                        indexWriter.updateDocument(term, doc);
+                        LOG.tracef("Updated document: %s", documentId);
+                    }
+
+                    totalProcessed += batch.size();
+
+                    // Commit after each batch if configured
+                    if (commitOnBatch) {
+                        indexWriter.commit();
+                        LOG.tracef("Committed update batch of %d documents", batch.size());
+                    }
+                }
+
+                // Final commit if not committing on each batch
+                if (!commitOnBatch) {
+                    indexWriter.commit();
+                }
+
+                LOG.debugf("Successfully updated %d documents", totalProcessed);
+                return null;
+
+            } catch (IOException e) {
+                LOG.error("Error updating documents", e);
+                throw new RuntimeException("Failed to update documents", e);
+            } finally {
+                lock.writeLock().unlock();
+            }
+        });
     }
 
     /**
@@ -224,60 +455,6 @@ public class LuceneIndexService implements IndexService {
         });
     }
 
-    /**
-     * Creates a Lucene Document from a TextChunk.
-     */
-    private Document createDocument(TextChunk chunk) {
-        Document doc = new Document();
-
-        // Core content and metadata fields
-        doc.add(new Field(LuceneSchema.FIELD_CONTENT, chunk.content(), LuceneSchema.CONTENT_FIELD_TYPE));
-        doc.add(new Field(LuceneSchema.FIELD_ENTITY_NAME, chunk.entityName(), LuceneSchema.ENTITY_NAME_FIELD_TYPE));
-        doc.add(new Field(LuceneSchema.FIELD_ENTITY_NAME_KEYWORD, chunk.entityName(), LuceneSchema.KEYWORD_FIELD_TYPE));
-        doc.add(new Field(LuceneSchema.FIELD_LANGUAGE, chunk.language(), LuceneSchema.KEYWORD_FIELD_TYPE));
-        doc.add(new Field(LuceneSchema.FIELD_ENTITY_TYPE, chunk.entityType(), LuceneSchema.KEYWORD_FIELD_TYPE));
-        doc.add(new Field(LuceneSchema.FIELD_FILE_PATH, chunk.sourceFile(), LuceneSchema.KEYWORD_FIELD_TYPE));
-
-        // Repository extraction
-        String repository = LuceneSchema.extractRepositoryFromPath(chunk.sourceFile());
-        doc.add(new Field(LuceneSchema.FIELD_REPOSITORY, repository, LuceneSchema.KEYWORD_FIELD_TYPE));
-
-        // Line and byte information (stored only)
-        doc.add(new Field(LuceneSchema.FIELD_START_LINE, String.valueOf(chunk.startLine()), LuceneSchema.STORED_ONLY_FIELD_TYPE));
-        doc.add(new Field(LuceneSchema.FIELD_END_LINE, String.valueOf(chunk.endLine()), LuceneSchema.STORED_ONLY_FIELD_TYPE));
-        doc.add(new Field(LuceneSchema.FIELD_START_BYTE, String.valueOf(chunk.startByte()), LuceneSchema.STORED_ONLY_FIELD_TYPE));
-        doc.add(new Field(LuceneSchema.FIELD_END_BYTE, String.valueOf(chunk.endByte()), LuceneSchema.STORED_ONLY_FIELD_TYPE));
-
-        // Dynamic metadata fields from attributes
-        if (chunk.attributes() != null) {
-            for (var entry : chunk.attributes().entrySet()) {
-                String key = entry.getKey();
-                String value = entry.getValue();
-
-                if (LuceneSchema.ATTR_DOC_SUMMARY.equals(key)) {
-                    // Special handling for doc summary - make it searchable
-                    doc.add(new Field(LuceneSchema.FIELD_DOC_SUMMARY, value, LuceneSchema.CONTENT_FIELD_TYPE));
-                } else {
-                    // Regular metadata fields as keywords
-                    String fieldName = LuceneSchema.createMetadataFieldName(key);
-                    doc.add(new Field(fieldName, value, LuceneSchema.KEYWORD_FIELD_TYPE));
-                }
-            }
-        }
-
-        return doc;
-    }
-
-    /**
-     * Generates a unique document ID for the chunk.
-     */
-    private String generateDocumentId(TextChunk chunk) {
-        return String.format("%s:%s:%d:%d",
-                chunk.sourceFile(),
-                chunk.entityName(),
-                (int) chunk.startLine(),
-                (int) chunk.endLine());
-    }
 
     /**
      * Gets the current index statistics.
