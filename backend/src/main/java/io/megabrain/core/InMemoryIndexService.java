@@ -8,6 +8,7 @@ package io.megabrain.core;
 import io.megabrain.ingestion.parser.TextChunk;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Default;
 import org.jboss.logging.Logger;
 
 import java.util.List;
@@ -15,11 +16,14 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+
 /**
  * Simple in-memory implementation of IndexService for development and testing.
  * This will be replaced with a proper Lucene implementation later.
  */
+@Default
 @ApplicationScoped
+@IndexType(IndexType.Type.MEMORY)
 public class InMemoryIndexService implements IndexService {
 
     private static final Logger LOG = Logger.getLogger(InMemoryIndexService.class);

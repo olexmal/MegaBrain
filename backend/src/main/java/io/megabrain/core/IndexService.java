@@ -7,8 +7,27 @@ package io.megabrain.core;
 
 import io.megabrain.ingestion.parser.TextChunk;
 import io.smallrye.mutiny.Uni;
+import jakarta.inject.Qualifier;
 
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.util.List;
+
+/**
+ * CDI qualifier for IndexService implementations.
+ */
+@Qualifier
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ElementType.FIELD, ElementType.PARAMETER, ElementType.METHOD, ElementType.TYPE})
+@interface IndexType {
+    Type value();
+
+    enum Type {
+        MEMORY, LUCENE
+    }
+}
 
 /**
  * Service for indexing and managing TextChunks in the search index.

@@ -10,8 +10,8 @@ import io.smallrye.mutiny.Uni;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Alternative;
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.index.DirectoryReader;
@@ -42,6 +42,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * It provides thread-safe operations for indexing, searching, and managing
  * code chunks with proper lifecycle management.
  */
+@Alternative
+@IndexType(IndexType.Type.LUCENE)
 @ApplicationScoped
 public class LuceneIndexService implements IndexService {
 
@@ -69,7 +71,7 @@ public class LuceneIndexService implements IndexService {
 
             // Initialize Lucene components
             this.directory = new NIOFSDirectory(indexPath);
-            this.analyzer = new StandardAnalyzer(); // TODO: Replace with custom code-aware analyzer in T3
+            this.analyzer = new CodeAwareAnalyzer();
 
             IndexWriterConfig config = new IndexWriterConfig(analyzer);
             config.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND);
@@ -290,6 +292,9 @@ public class LuceneIndexService implements IndexService {
                         reader.maxDoc(),
                         reader.numDeletedDocs()
                 );
+            } catch (org.apache.lucene.index.IndexNotFoundException e) {
+                // Index doesn't exist yet, return empty stats
+                return new IndexStats(0, 0, 0);
             } catch (IOException e) {
                 LOG.error("Error getting index stats", e);
                 throw new RuntimeException("Failed to get index stats", e);
