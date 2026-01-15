@@ -134,14 +134,22 @@
 - **Description:** Create a SearchResult DTO class that represents search results returned to clients. Include chunk content, metadata, relevance score, and source information. Make it serializable to JSON for REST API responses.
 - **Estimated Hours:** 2 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T2 (needs search functionality)
 - **Acceptance Criteria:**
-  - [ ] SearchResult DTO includes all required fields
-  - [ ] Serializable to JSON
-  - [ ] Includes relevance score
-  - [ ] Includes source file and entity information
+  - [x] SearchResult DTO includes all required fields
+  - [x] Serializable to JSON
+  - [x] Includes relevance score
+  - [x] Includes source file and entity information
 - **Technical Notes:** Use Java record or POJO with Jackson annotations. Include: content, entity_name, entity_type, source_file, language, repository, score, line_range. Support pagination metadata (total, page, size).
+
+**Implementation Notes:**
+- Created SearchResult DTO with all required fields: content, entity_name, entity_type, source_file, language, repository, score, line_range, doc_summary
+- Added LineRange class for line range information (start/end lines)
+- Created SearchResponse wrapper for paginated results with total count, page info, and results list
+- All classes are JSON serializable using Jackson annotations
+- Comprehensive unit tests added covering serialization, validation, and pagination logic
+- Factory method added to SearchResult to reduce constructor parameter count
 
 ### T8: Write unit tests for indexing and search
 - **Description:** Create comprehensive unit tests for LuceneIndexService covering indexing operations, search operations, and query parsing. Test various query types, edge cases, and error scenarios. Use in-memory index for testing.
