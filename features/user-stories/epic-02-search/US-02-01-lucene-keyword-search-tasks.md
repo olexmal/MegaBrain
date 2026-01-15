@@ -109,14 +109,26 @@
 - **Description:** Implement relevance scoring that boosts matches in certain fields. entity_name matches should rank higher than content matches. Implement field boost configuration and apply boosts during query construction.
 - **Estimated Hours:** 4 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T5 (needs query parsing)
 - **Acceptance Criteria:**
-  - [ ] Field boosts applied to queries
-  - [ ] entity_name matches rank higher
-  - [ ] Boost values configurable
-  - [ ] Scoring is consistent and reproducible
+  - [x] Field boosts applied to queries
+  - [x] entity_name matches rank higher
+  - [x] Boost values configurable
+  - [x] Scoring is consistent and reproducible
 - **Technical Notes:** Use BoostQuery to wrap field queries. Default boosts: entity_name=3.0, doc_summary=2.0, content=1.0. Apply boosts in query construction. Consider using FunctionScoreQuery for more complex boosting.
+
+**Implementation Notes:**
+- Added configurable boost values via Quarkus @ConfigProperty:
+  * megabrain.search.boost.content=1.0
+  * megabrain.search.boost.entity_name=3.0
+  * megabrain.search.boost.doc_summary=2.0
+  * megabrain.search.boost.entity_name_keyword=3.0
+- Modified MultiFieldQueryParser to apply boosts during initialization
+- Field-specific queries wrapped with BoostQuery when boost > 1.0
+- Fallback query methods apply boosts to all sub-queries
+- Comprehensive unit tests added covering all boost scenarios
+- Fixed Lucene 10.x API compatibility (query() instead of getQuery())
 
 ### T7: Create search result DTO
 - **Description:** Create a SearchResult DTO class that represents search results returned to clients. Include chunk content, metadata, relevance score, and source information. Make it serializable to JSON for REST API responses.

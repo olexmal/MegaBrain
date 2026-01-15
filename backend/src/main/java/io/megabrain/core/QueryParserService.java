@@ -10,11 +10,13 @@ import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.apache.lucene.analysis.Analyzer;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.apache.lucene.queryparser.classic.MultiFieldQueryParser;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.BoostQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.WildcardQuery;
@@ -26,7 +28,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Service for parsing user search queries into Lucene Query objects.
+ * Service for parsing user search queries into Lucene Query objects with relevance scoring.
  * <p>
  * Supports advanced Lucene query syntax including:
  * - Boolean operators: AND, OR, NOT
@@ -35,6 +37,12 @@ import java.util.Map;
  * - Field-specific queries: field:value
  * - Fuzzy searches: term~
  * - Proximity searches: "term1 term2"~distance
+ * <p>
+ * Applies configurable field boosts for relevance scoring:
+ * - entity_name: 3.0 (highest priority for exact matches)
+ * - doc_summary: 2.0 (important documentation)
+ * - content: 1.0 (base relevance)
+ * - Other fields: configurable defaults
  * <p>
  * Provides graceful error handling and fallbacks for invalid syntax.
  */
@@ -46,7 +54,29 @@ public class QueryParserService {
     @Inject
     CodeAwareAnalyzer analyzer;
 
-    // Default search fields with their boost values
+    // Configurable field boost values for relevance scoring
+    @ConfigProperty(name = "megabrain.search.boost.content", defaultValue = "1.0")
+    float contentBoost;
+
+    @ConfigProperty(name = "megabrain.search.boost.entity_name", defaultValue = "3.0")
+    float entityNameBoost;
+
+    @ConfigProperty(name = "megabrain.search.boost.doc_summary", defaultValue = "2.0")
+    float docSummaryBoost;
+
+    @ConfigProperty(name = "megabrain.search.boost.entity_name_keyword", defaultValue = "3.0")
+    float entityNameKeywordBoost;
+
+    @ConfigProperty(name = "megabrain.search.boost.repository", defaultValue = "1.0")
+    float repositoryBoost;
+
+    @ConfigProperty(name = "megabrain.search.boost.language", defaultValue = "1.0")
+    float languageBoost;
+
+    @ConfigProperty(name = "megabrain.search.boost.entity_type", defaultValue = "1.0")
+    float entityTypeBoost;
+
+    // Default search fields
     private static final String[] DEFAULT_SEARCH_FIELDS = {
             LuceneSchema.FIELD_CONTENT,
             LuceneSchema.FIELD_ENTITY_NAME,
@@ -57,17 +87,6 @@ public class QueryParserService {
             LuceneSchema.FIELD_ENTITY_TYPE
     };
 
-    // Field boost values for relevance scoring
-    private static final Map<String, Float> FIELD_BOOSTS = Map.of(
-            LuceneSchema.FIELD_CONTENT, 1.0f,
-            LuceneSchema.FIELD_ENTITY_NAME, 2.0f,
-            LuceneSchema.FIELD_DOC_SUMMARY, 1.5f,
-            LuceneSchema.FIELD_ENTITY_NAME_KEYWORD, 3.0f,
-            LuceneSchema.FIELD_REPOSITORY, 1.0f,
-            LuceneSchema.FIELD_LANGUAGE, 1.0f,
-            LuceneSchema.FIELD_ENTITY_TYPE, 1.0f
-    );
-
     private MultiFieldQueryParser multiFieldQueryParser;
     private QueryParser defaultQueryParser;
 
@@ -75,12 +94,23 @@ public class QueryParserService {
     void initialize() {
         LOG.info("Initializing query parser service");
 
-        // Create multi-field query parser for searching across multiple fields
-        multiFieldQueryParser = new MultiFieldQueryParser(DEFAULT_SEARCH_FIELDS, analyzer);
+        // Create field boost map from configured values
+        Map<String, Float> fieldBoosts = Map.of(
+                LuceneSchema.FIELD_CONTENT, contentBoost,
+                LuceneSchema.FIELD_ENTITY_NAME, entityNameBoost,
+                LuceneSchema.FIELD_DOC_SUMMARY, docSummaryBoost,
+                LuceneSchema.FIELD_ENTITY_NAME_KEYWORD, entityNameKeywordBoost,
+                LuceneSchema.FIELD_REPOSITORY, repositoryBoost,
+                LuceneSchema.FIELD_LANGUAGE, languageBoost,
+                LuceneSchema.FIELD_ENTITY_TYPE, entityTypeBoost
+        );
+
+        // Create multi-field query parser with field boosts for relevance scoring
+        multiFieldQueryParser = new MultiFieldQueryParser(DEFAULT_SEARCH_FIELDS, analyzer, fieldBoosts);
         multiFieldQueryParser.setDefaultOperator(QueryParser.Operator.OR);
 
-        // Note: Field boosts are handled at query time, not parser configuration
-        // Boosts will be applied when creating BooleanQuery in search methods
+        LOG.debugf("Configured field boosts: content=%.1f, entity_name=%.1f, doc_summary=%.1f, entity_name_keyword=%.1f",
+                   contentBoost, entityNameBoost, docSummaryBoost, entityNameKeywordBoost);
 
         // Create default query parser for field-specific and complex queries
         defaultQueryParser = new QueryParser(LuceneSchema.FIELD_CONTENT, analyzer);
@@ -148,10 +178,11 @@ public class QueryParserService {
 
     /**
      * Parses a query restricted to a specific field.
+     * Applies field-specific boost values for relevance scoring.
      *
      * @param fieldName the field to search in
      * @param queryString the query string
-     * @return a Uni that emits the parsed Query
+     * @return a Uni that emits the parsed Query with appropriate boosts applied
      */
     public Uni<Query> parseFieldQuery(String fieldName, String queryString) {
         return Uni.createFrom().item(() -> {
@@ -162,7 +193,16 @@ public class QueryParserService {
             try {
                 QueryParser fieldParser = new QueryParser(fieldName, analyzer);
                 fieldParser.setDefaultOperator(QueryParser.Operator.OR);
-                return fieldParser.parse(queryString.trim());
+                Query parsedQuery = fieldParser.parse(queryString.trim());
+
+                // Apply boost if configured for this field
+                float boost = getBoostForField(fieldName);
+                if (boost != 1.0f) {
+                    parsedQuery = new BoostQuery(parsedQuery, boost);
+                    LOG.debugf("Applied boost %.1f to field query for '%s': %s", boost, fieldName, queryString);
+                }
+
+                return parsedQuery;
 
             } catch (ParseException e) {
                 LOG.warnf(e, "Failed to parse field query for field '%s': '%s'",
@@ -224,6 +264,7 @@ public class QueryParserService {
 
     /**
      * Creates a fallback term query when all parsing fails.
+     * Applies field boosts to ensure proper relevance scoring.
      */
     private Query createTermFallbackQuery(String queryString) {
         // Split on whitespace and create OR query
@@ -235,11 +276,21 @@ public class QueryParserService {
                 // Add wildcard support for partial matches
                 if (term.contains("*") || term.contains("?")) {
                     for (String field : DEFAULT_SEARCH_FIELDS) {
-                        builder.add(new WildcardQuery(new Term(field, term)), BooleanClause.Occur.SHOULD);
+                        Query wildcardQuery = new WildcardQuery(new Term(field, term));
+                        float boost = getBoostForField(field);
+                        if (boost != 1.0f) {
+                            wildcardQuery = new BoostQuery(wildcardQuery, boost);
+                        }
+                        builder.add(wildcardQuery, BooleanClause.Occur.SHOULD);
                     }
                 } else {
                     for (String field : DEFAULT_SEARCH_FIELDS) {
-                        builder.add(new TermQuery(new Term(field, term)), BooleanClause.Occur.SHOULD);
+                        Query termQuery = new TermQuery(new Term(field, term));
+                        float boost = getBoostForField(field);
+                        if (boost != 1.0f) {
+                            termQuery = new BoostQuery(termQuery, boost);
+                        }
+                        builder.add(termQuery, BooleanClause.Occur.SHOULD);
                     }
                 }
             }
@@ -250,18 +301,29 @@ public class QueryParserService {
 
     /**
      * Creates a fallback query for a specific field.
+     * Applies field boost for consistent relevance scoring.
      */
     private Query createFieldTermFallbackQuery(String fieldName, String queryString) {
         BooleanQuery.Builder builder = new BooleanQuery.Builder();
 
         String[] terms = queryString.split("\\s+");
+        float boost = getBoostForField(fieldName);
+
         for (String term : terms) {
             if (!term.isEmpty()) {
+                Query baseQuery;
                 if (term.contains("*") || term.contains("?")) {
-                    builder.add(new WildcardQuery(new Term(fieldName, term)), BooleanClause.Occur.SHOULD);
+                    baseQuery = new WildcardQuery(new Term(fieldName, term));
                 } else {
-                    builder.add(new TermQuery(new Term(fieldName, term)), BooleanClause.Occur.SHOULD);
+                    baseQuery = new TermQuery(new Term(fieldName, term));
                 }
+
+                // Apply boost if configured
+                if (boost != 1.0f) {
+                    baseQuery = new BoostQuery(baseQuery, boost);
+                }
+
+                builder.add(baseQuery, BooleanClause.Occur.SHOULD);
             }
         }
 
@@ -325,6 +387,25 @@ public class QueryParserService {
      */
     public Analyzer getAnalyzer() {
         return analyzer;
+    }
+
+    /**
+     * Gets the boost value for a specific field.
+     *
+     * @param fieldName the field name
+     * @return the boost value (1.0f if no boost configured)
+     */
+    private float getBoostForField(String fieldName) {
+        return switch (fieldName) {
+            case LuceneSchema.FIELD_CONTENT -> contentBoost;
+            case LuceneSchema.FIELD_ENTITY_NAME -> entityNameBoost;
+            case LuceneSchema.FIELD_DOC_SUMMARY -> docSummaryBoost;
+            case LuceneSchema.FIELD_ENTITY_NAME_KEYWORD -> entityNameKeywordBoost;
+            case LuceneSchema.FIELD_REPOSITORY -> repositoryBoost;
+            case LuceneSchema.FIELD_LANGUAGE -> languageBoost;
+            case LuceneSchema.FIELD_ENTITY_TYPE -> entityTypeBoost;
+            default -> 1.0f;
+        };
     }
 
     /**

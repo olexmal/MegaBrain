@@ -9,6 +9,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.smallrye.mutiny.helpers.test.UniAssertSubscriber;
 import jakarta.inject.Inject;
 import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.BoostQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.WildcardQuery;
@@ -38,6 +39,16 @@ class QueryParserServiceTest {
         // Manually create QueryParserService for testing
         queryParser = new QueryParserService();
         queryParser.analyzer = new CodeAwareAnalyzer();
+
+        // Set test boost values matching defaults
+        queryParser.contentBoost = 1.0f;
+        queryParser.entityNameBoost = 3.0f;
+        queryParser.docSummaryBoost = 2.0f;
+        queryParser.entityNameKeywordBoost = 3.0f;
+        queryParser.repositoryBoost = 1.0f;
+        queryParser.languageBoost = 1.0f;
+        queryParser.entityTypeBoost = 1.0f;
+
         queryParser.initialize();
     }
 
@@ -338,5 +349,149 @@ class QueryParserServiceTest {
         Query query = result.getItem();
         assertThat(query).isNotNull();
         // The analyzer should handle snake_case splitting during indexing
+    }
+
+    @Test
+    void testFieldSpecificQueryAppliesBoosts() {
+        // When - parse field-specific query for entity_name (should get boost 3.0)
+        var result = queryParser.parseFieldQuery(LuceneSchema.FIELD_ENTITY_NAME, "UserService")
+                .subscribe().withSubscriber(UniAssertSubscriber.create());
+
+        // Then
+        result.assertCompleted();
+        Query query = result.getItem();
+        assertThat(query).isNotNull();
+        assertThat(query).isInstanceOf(BoostQuery.class);
+
+        BoostQuery boostQuery = (BoostQuery) query;
+        assertThat(boostQuery.getBoost()).isEqualTo(3.0f);
+    }
+
+    @Test
+    void testFieldSpecificQueryNoBoostWhenDefault() {
+        // When - parse field-specific query for content (boost 1.0 - no BoostQuery wrapper needed)
+        var result = queryParser.parseFieldQuery(LuceneSchema.FIELD_CONTENT, "some content")
+                .subscribe().withSubscriber(UniAssertSubscriber.create());
+
+        // Then
+        result.assertCompleted();
+        Query query = result.getItem();
+        assertThat(query).isNotNull();
+        // Content has boost 1.0, so no BoostQuery wrapper should be applied
+        assertThat(query).isNotInstanceOf(BoostQuery.class);
+    }
+
+    @Test
+    void testDocSummaryFieldGetsBoost() {
+        // When - parse field-specific query for doc_summary (should get boost 2.0)
+        var result = queryParser.parseFieldQuery(LuceneSchema.FIELD_DOC_SUMMARY, "service description")
+                .subscribe().withSubscriber(UniAssertSubscriber.create());
+
+        // Then
+        result.assertCompleted();
+        Query query = result.getItem();
+        assertThat(query).isNotNull();
+        assertThat(query).isInstanceOf(BoostQuery.class);
+
+        BoostQuery boostQuery = (BoostQuery) query;
+        assertThat(boostQuery.getBoost()).isEqualTo(2.0f);
+    }
+
+    @Test
+    void testFallbackQueryAppliesBoosts() {
+        // When - parse invalid query that triggers fallback parsing
+        var result = queryParser.parseQuery("java AND (")
+                .subscribe().withSubscriber(UniAssertSubscriber.create());
+
+        // Then
+        result.assertCompleted();
+        Query query = result.getItem();
+        assertThat(query).isNotNull();
+        assertThat(query).isInstanceOf(BooleanQuery.class);
+
+        // The fallback query should contain boosted sub-queries
+        BooleanQuery booleanQuery = (BooleanQuery) query;
+        assertThat(booleanQuery.clauses()).isNotEmpty();
+
+        // At least one clause should be boosted (entity_name gets 3.0 boost)
+        boolean hasBoostedClause = booleanQuery.clauses().stream()
+                .anyMatch(clause -> clause.query() instanceof BoostQuery);
+        assertThat(hasBoostedClause).isTrue();
+    }
+
+    @Test
+    void testFieldFallbackQueryAppliesBoost() {
+        // When - parse invalid field query that triggers fallback
+        var result = queryParser.parseFieldQuery(LuceneSchema.FIELD_ENTITY_NAME, "invalid ( query")
+                .subscribe().withSubscriber(UniAssertSubscriber.create());
+
+        // Then
+        result.assertCompleted();
+        Query query = result.getItem();
+        assertThat(query).isNotNull();
+        assertThat(query).isInstanceOf(BooleanQuery.class);
+
+        // The fallback query should contain boosted sub-queries
+        BooleanQuery booleanQuery = (BooleanQuery) query;
+        assertThat(booleanQuery.clauses()).isNotEmpty();
+
+        // All clauses should be boosted for entity_name field
+        boolean allClausesBoosted = booleanQuery.clauses().stream()
+                .allMatch(clause -> clause.query() instanceof BoostQuery);
+        assertThat(allClausesBoosted).isTrue();
+
+        // Verify the boost value is correct
+        BoostQuery firstBoostQuery = (BoostQuery) booleanQuery.clauses().get(0).query();
+        assertThat(firstBoostQuery.getBoost()).isEqualTo(3.0f);
+    }
+
+    @Test
+    void testEntityNameRanksHigherThanContent() {
+        // When - parse queries for entity_name and content fields
+        var entityResult = queryParser.parseFieldQuery(LuceneSchema.FIELD_ENTITY_NAME, "UserService")
+                .subscribe().withSubscriber(UniAssertSubscriber.create());
+        var contentResult = queryParser.parseFieldQuery(LuceneSchema.FIELD_CONTENT, "UserService")
+                .subscribe().withSubscriber(UniAssertSubscriber.create());
+
+        // Then
+        entityResult.assertCompleted();
+        contentResult.assertCompleted();
+
+        Query entityQuery = entityResult.getItem();
+        Query contentQuery = contentResult.getItem();
+
+        // Entity name should be boosted (3.0), content should not be boosted (1.0)
+        assertThat(entityQuery).isInstanceOf(BoostQuery.class);
+        assertThat(contentQuery).isNotInstanceOf(BoostQuery.class);
+
+        BoostQuery entityBoostQuery = (BoostQuery) entityQuery;
+        assertThat(entityBoostQuery.getBoost()).isGreaterThan(1.0f);
+    }
+
+    @Test
+    void testCustomBoostConfiguration() {
+        // Given - create parser with custom boost values
+        QueryParserService customParser = new QueryParserService();
+        customParser.analyzer = new CodeAwareAnalyzer();
+        customParser.contentBoost = 1.0f;
+        customParser.entityNameBoost = 5.0f; // Custom high boost
+        customParser.docSummaryBoost = 2.0f;
+        customParser.entityNameKeywordBoost = 4.0f;
+        customParser.repositoryBoost = 1.0f;
+        customParser.languageBoost = 1.0f;
+        customParser.entityTypeBoost = 1.0f;
+        customParser.initialize();
+
+        // When - parse entity_name query with custom boost
+        var result = customParser.parseFieldQuery(LuceneSchema.FIELD_ENTITY_NAME, "CustomClass")
+                .subscribe().withSubscriber(UniAssertSubscriber.create());
+
+        // Then
+        result.assertCompleted();
+        Query query = result.getItem();
+        assertThat(query).isInstanceOf(BoostQuery.class);
+
+        BoostQuery boostQuery = (BoostQuery) query;
+        assertThat(boostQuery.getBoost()).isEqualTo(5.0f); // Should use custom boost value
     }
 }
