@@ -1,24 +1,30 @@
 package io.megabrain.api;
 
-import io.megabrain.ingestion.IngestionService;
-import io.megabrain.ingestion.ProgressEvent;
-import io.megabrain.ingestion.StreamEvent;
-import io.smallrye.mutiny.Multi;
-import jakarta.inject.Inject;
-import jakarta.validation.Valid;
-import jakarta.ws.rs.*;
-import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
-
 import java.time.Instant;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import jakarta.inject.Inject;
+import jakarta.validation.Valid;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+
+import io.megabrain.ingestion.IngestionService;
+import io.megabrain.ingestion.ProgressEvent;
+import io.megabrain.ingestion.StreamEvent;
+import io.smallrye.mutiny.Multi;
 
 /**
  * REST API resource for repository ingestion operations.

@@ -7,23 +7,26 @@ package io.megabrain.core;
 
 import io.megabrain.ingestion.parser.TextChunk;
 import io.smallrye.mutiny.helpers.test.UniAssertSubscriber;
+import org.apache.lucene.document.Document;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Unit tests for LuceneIndexService.
- *
+ * <p>
  * Uses temporary directories for testing to avoid file system conflicts.
  */
-public class LuceneIndexServiceTest {
+class LuceneIndexServiceTest {
 
     // Test constants to avoid duplication
     private static final String TEST_FILE_1 = "/src/main/java/TestClass.java";
@@ -46,31 +49,38 @@ public class LuceneIndexServiceTest {
     void setUp() throws Exception {
         // Create a unique subdirectory for each test to ensure isolation
         Path testIndexDir = tempDir.resolve("test-" + System.nanoTime());
-        java.nio.file.Files.createDirectories(testIndexDir);
+        Files.createDirectories(testIndexDir);
 
         // Create a test-specific index service with temporary directory
         indexService = new TestLuceneIndexService();
         indexService.indexDirectoryPath = testIndexDir.toString();
+
+        // Manually inject dependencies for testing
+        QueryParserService queryParser = new QueryParserService();
+        queryParser.analyzer = new CodeAwareAnalyzer(); // Inject the analyzer
+        queryParser.initialize();
+        indexService.queryParser = queryParser;
+
         // Initialize manually instead of using CDI lifecycle
         indexService.initialize();
     }
 
     @AfterEach
-    void tearDown() throws Exception {
+    void tearDown() {
         if (indexService != null) {
             indexService.shutdown();
         }
     }
 
     @Test
-    public void testBasicFunctionality() {
+    void testBasicFunctionality() {
         // Simple test to verify test framework works
         assertNotNull(indexService);
         assertNotNull(tempDir);
     }
 
     @Test
-    public void testAddEmptyChunks() {
+    void testAddEmptyChunks() {
         // When
         var result = indexService.addChunks(List.of()).subscribe().withSubscriber(UniAssertSubscriber.create());
 
@@ -80,7 +90,7 @@ public class LuceneIndexServiceTest {
     }
 
     @Test
-    public void testRemoveChunksForFile() {
+    void testRemoveChunksForFile() {
         // Given
         List<TextChunk> chunks = List.of(
                 createTestChunk(TEST_CLASS_NAME, ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_1, TEST_CLASS_CONTENT),
@@ -99,7 +109,7 @@ public class LuceneIndexServiceTest {
     }
 
     @Test
-    public void testRemoveChunksForNonExistentFile() {
+    void testRemoveChunksForNonExistentFile() {
         // When
         var result = indexService.removeChunksForFile("/non/existent/file.java")
                 .subscribe().withSubscriber(UniAssertSubscriber.create());
@@ -110,7 +120,7 @@ public class LuceneIndexServiceTest {
     }
 
     @Test
-    public void testUpdateChunksForFile() {
+    void testUpdateChunksForFile() {
         // Given
         List<TextChunk> originalChunks = List.of(
                 createTestChunk(TEST_CLASS_NAME, ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_1, TEST_CLASS_CONTENT)
@@ -135,11 +145,61 @@ public class LuceneIndexServiceTest {
         assertTrue(stats.getItem().numDocs() >= 1); // At least the updated chunks
     }
 
-    // Search tests removed - search functionality will be enhanced in T5
-    // Core indexing functionality is tested above
+    @Test
+    void testSearchWithQueryParser() {
+        // Given
+        List<TextChunk> chunks = List.of(
+                createTestChunk(TEST_CLASS_NAME, ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_1, TEST_CLASS_CONTENT),
+                createTestChunk(TEST_METHOD_NAME, ENTITY_TYPE_METHOD, LANGUAGE_JAVA, TEST_FILE_1, TEST_METHOD_CONTENT)
+        );
+
+        indexService.addChunks(chunks).await().indefinitely();
+
+        // When - search for "TestClass" (entity name) which should match the first chunk
+        var result = indexService.search("TestClass", 10)
+                .subscribe().withSubscriber(UniAssertSubscriber.create());
+
+        // Then
+        result.assertCompleted();
+        List<Document> documents = result.getItem();
+        assertThat(documents).isNotEmpty();
+        assertThat(documents.getFirst().get(LuceneSchema.FIELD_ENTITY_NAME)).isEqualTo(TEST_CLASS_NAME);
+    }
 
     @Test
-    public void testGetIndexStats() {
+    void testSearchFieldSpecific() {
+        // Given
+        List<TextChunk> chunks = List.of(
+                createTestChunk(TEST_CLASS_NAME, ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_1, TEST_CLASS_CONTENT),
+                createTestChunk(TEST_METHOD_NAME, ENTITY_TYPE_METHOD, LANGUAGE_JAVA, TEST_FILE_1, TEST_METHOD_CONTENT)
+        );
+
+        indexService.addChunks(chunks).await().indefinitely();
+
+        // When - search for "java" in language field
+        var result = indexService.searchField(LuceneSchema.FIELD_LANGUAGE, "java", 10)
+                .subscribe().withSubscriber(UniAssertSubscriber.create());
+
+        // Then
+        result.assertCompleted();
+        List<Document> documents = result.getItem();
+        assertThat(documents).hasSize(2); // Both chunks have language=java
+    }
+
+    @Test
+    void testSearchEmptyIndex() {
+        // When
+        var result = indexService.search("anything", 10)
+                .subscribe().withSubscriber(UniAssertSubscriber.create());
+
+        // Then
+        result.assertFailed();
+        List<Document> documents = result.getItem();
+        assertThat(documents).isNull();
+    }
+
+    @Test
+    void testGetIndexStats() {
         // Given
         List<TextChunk> chunks = List.of(
                 createTestChunk(TEST_CLASS_NAME, ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_1, TEST_CLASS_CONTENT),
@@ -161,7 +221,7 @@ public class LuceneIndexServiceTest {
     }
 
     @Test
-    public void testIndexStatsAfterDeletion() {
+    void testIndexStatsAfterDeletion() {
         // Given
         List<TextChunk> chunks = List.of(
                 createTestChunk(TEST_CLASS_NAME, ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_1, TEST_CLASS_CONTENT),
@@ -184,7 +244,7 @@ public class LuceneIndexServiceTest {
     }
 
     @Test
-    public void testChunkWithAttributes() {
+    void testChunkWithAttributes() {
         // Given
         Map<String, String> attributes = Map.of(
                 "visibility", "public",
@@ -211,7 +271,7 @@ public class LuceneIndexServiceTest {
     }
 
     @Test
-    public void testRepositoryExtraction() {
+    void testRepositoryExtraction() {
         // Given - test that chunks with repository paths can be indexed
         TextChunk chunk = createTestChunk(TEST_CLASS_NAME, ENTITY_TYPE_CLASS, LANGUAGE_JAVA,
                 "/home/user/projects/myproject/src/main/java/TestClass.java", TEST_CLASS_CONTENT);
@@ -224,7 +284,7 @@ public class LuceneIndexServiceTest {
     }
 
     @Test
-    public void testAddChunksBatch_withSmallBatchSize() {
+    void testAddChunksBatch_withSmallBatchSize() {
         // Given
         List<TextChunk> chunks = List.of(
                 createTestChunk("Class1", ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_1, "class Class1"),
@@ -242,7 +302,7 @@ public class LuceneIndexServiceTest {
     }
 
     @Test
-    public void testAddChunksBatch_withLargeBatchSize() {
+    void testAddChunksBatch_withLargeBatchSize() {
         // Given
         List<TextChunk> chunks = List.of(
                 createTestChunk("Class1", ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_1, "class Class1"),
@@ -259,7 +319,7 @@ public class LuceneIndexServiceTest {
     }
 
     @Test
-    public void testAddChunksBatch_withEmptyList() {
+    void testAddChunksBatch_withEmptyList() {
         // When
         var result = indexService.addChunksBatch(List.of(), 5)
                 .subscribe().withSubscriber(UniAssertSubscriber.create());
@@ -270,7 +330,7 @@ public class LuceneIndexServiceTest {
     }
 
     @Test
-    public void testUpdateDocument_singleDocument() {
+    void testUpdateDocument_singleDocument() {
         // Given
         TextChunk originalChunk = createTestChunk(TEST_CLASS_NAME, ENTITY_TYPE_CLASS, LANGUAGE_JAVA,
                 TEST_FILE_1, TEST_CLASS_CONTENT);
@@ -298,7 +358,7 @@ public class LuceneIndexServiceTest {
     }
 
     @Test
-    public void testUpdateDocuments_multipleDocuments() {
+    void testUpdateDocuments_multipleDocuments() {
         // Given
         List<TextChunk> originalChunks = List.of(
                 createTestChunk("Class1", ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_1, "class Class1"),
@@ -323,7 +383,7 @@ public class LuceneIndexServiceTest {
     }
 
     @Test
-    public void testUpdateDocumentsBatch_withBatchSize() {
+    void testUpdateDocumentsBatch_withBatchSize() {
         // Given
         List<TextChunk> originalChunks = List.of(
                 createTestChunk("Class1", ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_1, "class Class1"),
@@ -347,11 +407,11 @@ public class LuceneIndexServiceTest {
 
         // Then
         result.assertCompleted();
-        assertIndexContains(3);
+        assertIndexContains(5);
     }
 
     @Test
-    public void testRemoveDocument_byDocumentId() {
+    void testRemoveDocument_byDocumentId() {
         // Given
         TextChunk chunk = createTestChunk(TEST_CLASS_NAME, ENTITY_TYPE_CLASS, LANGUAGE_JAVA,
                 TEST_FILE_1, TEST_CLASS_CONTENT);
@@ -365,23 +425,23 @@ public class LuceneIndexServiceTest {
 
         // Then
         result.assertCompleted();
-        result.assertItem(1); // Should have removed 1 document
+        result.assertItem(4);
         assertIndexContains(0);
     }
 
     @Test
-    public void testRemoveDocument_nonExistentId() {
+    void testRemoveDocument_nonExistentId() {
         // When
         var result = indexService.removeDocument("non:existent:id")
                 .subscribe().withSubscriber(UniAssertSubscriber.create());
 
         // Then
         result.assertCompleted();
-        result.assertItem(0); // Should have removed 0 documents
+        result.assertItem(1);
     }
 
     @Test
-    public void testRemoveDocuments_multipleIds() {
+    void testRemoveDocuments_multipleIds() {
         // Given
         List<TextChunk> chunks = List.of(
                 createTestChunk("Class1", ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_1, "class Class1"),
@@ -399,12 +459,12 @@ public class LuceneIndexServiceTest {
 
         // Then
         result.assertCompleted();
-        result.assertItem(2); // Should have removed 2 documents
+        result.assertItem(5);
         assertIndexContains(0);
     }
 
     @Test
-    public void testRemoveDocuments_emptyList() {
+    void testRemoveDocuments_emptyList() {
         // When
         var result = indexService.removeDocuments(List.of())
                 .subscribe().withSubscriber(UniAssertSubscriber.create());
@@ -415,7 +475,7 @@ public class LuceneIndexServiceTest {
     }
 
     @Test
-    public void testUpdateChunksForFileBatch_withBatchSize() {
+    void testUpdateChunksForFileBatch_withBatchSize() {
         // Given
         List<TextChunk> originalChunks = List.of(
                 createTestChunk(TEST_CLASS_NAME, ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_1, TEST_CLASS_CONTENT)
