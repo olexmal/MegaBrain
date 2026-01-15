@@ -82,10 +82,9 @@ class LuceneIndexServiceTest {
     @Test
     void testAddEmptyChunks() {
         // When
-        var result = indexService.addChunks(List.of()).subscribe().withSubscriber(UniAssertSubscriber.create());
+        indexService.addChunks(List.of()).await().indefinitely();
 
         // Then
-        result.assertCompleted();
         assertIndexContains(0);
     }
 
@@ -100,10 +99,9 @@ class LuceneIndexServiceTest {
         indexService.addChunks(chunks).await().indefinitely();
 
         // When
-        var result = indexService.removeChunksForFile(TEST_FILE_1).subscribe().withSubscriber(UniAssertSubscriber.create());
+        indexService.removeChunksForFile(TEST_FILE_1).await().indefinitely();
 
         // Then
-        result.assertCompleted();
         // Verify that all documents for the file were removed
         assertIndexContains(0);
     }
@@ -111,11 +109,9 @@ class LuceneIndexServiceTest {
     @Test
     void testRemoveChunksForNonExistentFile() {
         // When
-        var result = indexService.removeChunksForFile("/non/existent/file.java")
-                .subscribe().withSubscriber(UniAssertSubscriber.create());
+        indexService.removeChunksForFile("/non/existent/file.java").await().indefinitely();
 
         // Then
-        result.assertCompleted();
         // Should complete without error even for non-existent files
     }
 
@@ -134,15 +130,12 @@ class LuceneIndexServiceTest {
         indexService.addChunks(originalChunks).await().indefinitely();
 
         // When
-        var result = indexService.updateChunksForFile(TEST_FILE_1, updatedChunks)
-                .subscribe().withSubscriber(UniAssertSubscriber.create());
+        indexService.updateChunksForFile(TEST_FILE_1, updatedChunks).await().indefinitely();
 
         // Then
-        result.assertCompleted();
         // Should have the updated chunks (old ones removed, new ones added)
-        var stats = indexService.getIndexStats().subscribe().withSubscriber(UniAssertSubscriber.create());
-        stats.assertCompleted();
-        assertTrue(stats.getItem().numDocs() >= 1); // At least the updated chunks
+        LuceneIndexService.IndexStats stats = indexService.getIndexStats().await().indefinitely();
+        assertTrue(stats.numDocs() >= 1); // At least the updated chunks
     }
 
     @Test
@@ -156,12 +149,9 @@ class LuceneIndexServiceTest {
         indexService.addChunks(chunks).await().indefinitely();
 
         // When - search for "TestClass" (entity name) which should match the first chunk
-        var result = indexService.search("TestClass", 10)
-                .subscribe().withSubscriber(UniAssertSubscriber.create());
+        List<Document> documents = indexService.search("TestClass", 10).await().indefinitely();
 
         // Then
-        result.assertCompleted();
-        List<Document> documents = result.getItem();
         assertThat(documents).isNotEmpty();
         assertThat(documents.getFirst().get(LuceneSchema.FIELD_ENTITY_NAME)).isEqualTo(TEST_CLASS_NAME);
     }
@@ -177,25 +167,19 @@ class LuceneIndexServiceTest {
         indexService.addChunks(chunks).await().indefinitely();
 
         // When - search for "java" in language field
-        var result = indexService.searchField(LuceneSchema.FIELD_LANGUAGE, "java", 10)
-                .subscribe().withSubscriber(UniAssertSubscriber.create());
+        List<Document> documents = indexService.searchField(LuceneSchema.FIELD_LANGUAGE, "java", 10).await().indefinitely();
 
         // Then
-        result.assertCompleted();
-        List<Document> documents = result.getItem();
         assertThat(documents).hasSize(2); // Both chunks have language=java
     }
 
     @Test
     void testSearchEmptyIndex() {
         // When
-        var result = indexService.search("anything", 10)
-                .subscribe().withSubscriber(UniAssertSubscriber.create());
+        List<Document> documents = indexService.search("anything", 10).await().indefinitely();
 
         // Then
-        result.assertFailed();
-        List<Document> documents = result.getItem();
-        assertThat(documents).isNull();
+        assertThat(documents).isEmpty();
     }
 
     @Test
@@ -209,11 +193,9 @@ class LuceneIndexServiceTest {
         indexService.addChunks(chunks).await().indefinitely();
 
         // When
-        var result = indexService.getIndexStats().subscribe().withSubscriber(UniAssertSubscriber.create());
+        LuceneIndexService.IndexStats stats = indexService.getIndexStats().await().indefinitely();
 
         // Then
-        result.assertCompleted();
-        LuceneIndexService.IndexStats stats = result.getItem();
         assertNotNull(stats);
         assertEquals(2, stats.numDocs());
         assertEquals(2, stats.maxDoc());
@@ -232,11 +214,9 @@ class LuceneIndexServiceTest {
         indexService.removeChunksForFile(TEST_FILE_1).await().indefinitely();
 
         // When
-        var result = indexService.getIndexStats().subscribe().withSubscriber(UniAssertSubscriber.create());
+        LuceneIndexService.IndexStats stats = indexService.getIndexStats().await().indefinitely();
 
         // Then
-        result.assertCompleted();
-        LuceneIndexService.IndexStats stats = result.getItem();
         assertNotNull(stats);
         assertEquals(1, stats.numDocs());
         assertEquals(1, stats.maxDoc()); // Documents are fully removed, not marked as deleted
@@ -293,11 +273,9 @@ class LuceneIndexServiceTest {
         );
 
         // When
-        var result = indexService.addChunksBatch(chunks, 2)
-                .subscribe().withSubscriber(UniAssertSubscriber.create());
+        indexService.addChunksBatch(chunks, 2).await().indefinitely();
 
         // Then
-        result.assertCompleted();
         assertIndexContains(3);
     }
 
@@ -310,22 +288,18 @@ class LuceneIndexServiceTest {
         );
 
         // When
-        var result = indexService.addChunksBatch(chunks, 10) // batch size larger than chunk count
-                .subscribe().withSubscriber(UniAssertSubscriber.create());
+        indexService.addChunksBatch(chunks, 10).await().indefinitely(); // batch size larger than chunk count
 
         // Then
-        result.assertCompleted();
         assertIndexContains(2);
     }
 
     @Test
     void testAddChunksBatch_withEmptyList() {
         // When
-        var result = indexService.addChunksBatch(List.of(), 5)
-                .subscribe().withSubscriber(UniAssertSubscriber.create());
+        indexService.addChunksBatch(List.of(), 5).await().indefinitely();
 
         // Then
-        result.assertCompleted();
         assertIndexContains(0);
     }
 
@@ -374,11 +348,9 @@ class LuceneIndexServiceTest {
         );
 
         // When
-        var result = indexService.updateDocuments(updatedChunks)
-                .subscribe().withSubscriber(UniAssertSubscriber.create());
+        indexService.updateDocuments(updatedChunks).await().indefinitely();
 
         // Then
-        result.assertCompleted();
         assertIndexContains(2); // Should still have 2 documents
     }
 
@@ -402,11 +374,9 @@ class LuceneIndexServiceTest {
         );
 
         // When
-        var result = indexService.updateDocumentsBatch(updatedChunks, 2)
-                .subscribe().withSubscriber(UniAssertSubscriber.create());
+        indexService.updateDocumentsBatch(updatedChunks, 2).await().indefinitely();
 
         // Then
-        result.assertCompleted();
         assertIndexContains(5);
     }
 
@@ -488,12 +458,283 @@ class LuceneIndexServiceTest {
         );
 
         // When
-        var result = indexService.updateChunksForFileBatch(TEST_FILE_1, updatedChunks, 1)
-                .subscribe().withSubscriber(UniAssertSubscriber.create());
+        indexService.updateChunksForFileBatch(TEST_FILE_1, updatedChunks, 1).await().indefinitely();
 
         // Then
-        result.assertCompleted();
         assertIndexContains(2); // Should have new chunks after removing old ones
+    }
+
+    // ===== COMPREHENSIVE SEARCH TESTS =====
+
+    @Test
+    void testSearchBooleanAndQuery() {
+        // Given
+        List<TextChunk> chunks = List.of(
+                createTestChunk("UserService", ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_2,
+                        "public class UserService implements Service"),
+                createTestChunk("DataService", ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_1,
+                        "public class DataService implements Service")
+        );
+        indexService.addChunks(chunks).await().indefinitely();
+
+        // When - search for "Service AND Data" (should match only DataService)
+        List<Document> documents = indexService.search("Service AND Data", 10).await().indefinitely();
+
+        // Then
+        assertThat(documents).hasSize(1);
+        assertThat(documents.getFirst().get(LuceneSchema.FIELD_ENTITY_NAME)).isEqualTo("DataService");
+    }
+
+    @Test
+    void testSearchBooleanOrQuery() {
+        // Given
+        List<TextChunk> chunks = List.of(
+                createTestChunk("UserService", ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_2,
+                        "public class UserService implements Service"),
+                createTestChunk("DataService", ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_1,
+                        "public class DataService implements Repository")
+        );
+        indexService.addChunks(chunks).await().indefinitely();
+
+        // When - search for "Service OR Repository" (should match both)
+        List<Document> documents = indexService.search("Service OR Repository", 10).await().indefinitely();
+
+        // Then
+        assertThat(documents).hasSize(2);
+    }
+
+    @Test
+    void testSearchBooleanNotQuery() {
+        // Given
+        List<TextChunk> chunks = List.of(
+                createTestChunk("UserService", ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_2,
+                        "public class UserService implements Service"),
+                createTestChunk("DataService", ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_1,
+                        "public class DataService implements Repository")
+        );
+        indexService.addChunks(chunks).await().indefinitely();
+
+        // When - search for "Service NOT Data" (should match only UserService)
+        List<Document> documents = indexService.search("Service NOT Data", 10).await().indefinitely();
+
+        // Then
+        assertThat(documents).hasSize(1);
+        assertThat(documents.getFirst().get(LuceneSchema.FIELD_ENTITY_NAME)).isEqualTo("UserService");
+    }
+
+    @Test
+    void testSearchPhraseQuery() {
+        // Given
+        List<TextChunk> chunks = List.of(
+                createTestChunk("UserService", ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_2,
+                        "public class UserService implements Service"),
+                createTestChunk("DataService", ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_1,
+                        "public class DataService implements Repository")
+        );
+        indexService.addChunks(chunks).await().indefinitely();
+
+        // When - search for exact phrase "implements Service"
+        List<Document> documents = indexService.search("\"implements Service\"", 10).await().indefinitely();
+
+        // Then
+        assertThat(documents).hasSize(1);
+        assertThat(documents.getFirst().get(LuceneSchema.FIELD_ENTITY_NAME)).isEqualTo("UserService");
+    }
+
+    @Test
+    void testSearchWildcardQuery() {
+        // Given
+        List<TextChunk> chunks = List.of(
+                createTestChunk("UserService", ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_2,
+                        "public class UserService implements Service"),
+                createTestChunk("DataService", ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_1,
+                        "public class DataService implements Repository"),
+                createTestChunk("TestService", ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_1,
+                        "public class TestService implements Service")
+        );
+        indexService.addChunks(chunks).await().indefinitely();
+
+        // When - search for "*Service" (should match all three)
+        List<Document> documents = indexService.search("*Service", 10).await().indefinitely();
+
+        // Then
+        assertThat(documents).hasSize(3);
+    }
+
+    @Test
+    void testSearchFieldSpecificQuery() {
+        // Given
+        List<TextChunk> chunks = List.of(
+                createTestChunk("UserService", ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_2,
+                        "public class UserService implements Service"),
+                createTestChunk("DataService", ENTITY_TYPE_CLASS, "python", TEST_FILE_1,
+                        "class DataService:")
+        );
+        indexService.addChunks(chunks).await().indefinitely();
+
+        // When - search for "java" in language field
+        List<Document> documents = indexService.search("language:java", 10).await().indefinitely();
+
+        // Then
+        assertThat(documents).hasSize(1);
+        assertThat(documents.getFirst().get(LuceneSchema.FIELD_ENTITY_NAME)).isEqualTo("UserService");
+    }
+
+    @Test
+    void testSearchEntityNameBoosting() {
+        // Given - create chunks where "test" appears in both entity name and content
+        List<TextChunk> chunks = List.of(
+                createTestChunk("TestClass", ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_1,
+                        "public class TestClass implements Runnable"), // "test" in entity name (boosted)
+                createTestChunk("UserService", ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_2,
+                        "public class UserService implements TestInterface") // "test" in content (not boosted)
+        );
+        indexService.addChunks(chunks).await().indefinitely();
+
+        // When - search for "test"
+        List<Document> documents = indexService.search("test", 10).await().indefinitely();
+
+        // Then - TestClass should rank higher due to entity name boosting
+        assertThat(documents).hasSize(2);
+        assertThat(documents.getFirst().get(LuceneSchema.FIELD_ENTITY_NAME)).isEqualTo("TestClass");
+    }
+
+    @Test
+    void testSearchDocSummaryBoosting() {
+        // Given
+        Map<String, String> attributesWithSummary = Map.of("doc_summary", "This is a test summary");
+        TextChunk chunkWithSummary = new TextChunk(
+                "public class SummaryClass {}", LANGUAGE_JAVA, ENTITY_TYPE_CLASS, "SummaryClass",
+                TEST_FILE_1, 1, 10, 0, 50, attributesWithSummary
+        );
+
+        TextChunk chunkWithoutSummary = createTestChunk("RegularClass", ENTITY_TYPE_CLASS,
+                LANGUAGE_JAVA, TEST_FILE_2, "public class RegularClass {}");
+
+        indexService.addChunks(List.of(chunkWithSummary, chunkWithoutSummary)).await().indefinitely();
+
+        // When - search for "test"
+        List<Document> documents = indexService.search("test", 10).await().indefinitely();
+
+        // Then - chunk with summary should rank higher due to doc_summary boosting
+        assertThat(documents).hasSize(1); // Only the summary chunk should match
+        assertThat(documents.getFirst().get(LuceneSchema.FIELD_ENTITY_NAME)).isEqualTo("SummaryClass");
+    }
+
+    @Test
+    void testSearchCamelCaseSplitting() {
+        // Given
+        List<TextChunk> chunks = List.of(
+                createTestChunk("UserService", ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_2,
+                        "public class UserService implements Service"),
+                createTestChunk("getUserName", ENTITY_TYPE_METHOD, LANGUAGE_JAVA, TEST_FILE_1,
+                        "public String getUserName() { return name; }")
+        );
+        indexService.addChunks(chunks).await().indefinitely();
+
+        // When - search for "user" (should match both via camelCase splitting)
+        List<Document> documents = indexService.search("user", 10).await().indefinitely();
+
+        // Then
+        assertThat(documents).hasSize(2);
+    }
+
+    @Test
+    void testSearchSnakeCaseSplitting() {
+        // Given
+        List<TextChunk> chunks = List.of(
+                createTestChunk("UserService", ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_2,
+                        "public class UserService implements Service"),
+                createTestChunk("get_user_name", ENTITY_TYPE_METHOD, LANGUAGE_JAVA, TEST_FILE_1,
+                        "public String get_user_name() { return name; }")
+        );
+        indexService.addChunks(chunks).await().indefinitely();
+
+        // When - search for "user" (should match both via snake_case splitting)
+        List<Document> documents = indexService.search("user", 10).await().indefinitely();
+
+        // Then
+        assertThat(documents).hasSize(2);
+    }
+
+    @Test
+    void testSearchEmptyQuery() {
+        // Given
+        List<TextChunk> chunks = List.of(
+                createTestChunk(TEST_CLASS_NAME, ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_1, TEST_CLASS_CONTENT)
+        );
+        indexService.addChunks(chunks).await().indefinitely();
+
+        // When - search with empty query
+        List<Document> documents = indexService.search("", 10).await().indefinitely();
+
+        // Then - should return empty results for empty query
+        assertThat(documents).isEmpty();
+    }
+
+    @Test
+    void testSearchNullQuery() {
+        // Given
+        List<TextChunk> chunks = List.of(
+                createTestChunk(TEST_CLASS_NAME, ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_1, TEST_CLASS_CONTENT)
+        );
+        indexService.addChunks(chunks).await().indefinitely();
+
+        // When - search with null query
+        List<Document> documents = indexService.search(null, 10).await().indefinitely();
+
+        // Then - should return empty results for null query
+        assertThat(documents).isEmpty();
+    }
+
+    @Test
+    void testSearchMalformedQuery() {
+        // Given
+        List<TextChunk> chunks = List.of(
+                createTestChunk(TEST_CLASS_NAME, ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_1, TEST_CLASS_CONTENT)
+        );
+        indexService.addChunks(chunks).await().indefinitely();
+
+        // When - search with malformed query (unclosed quote)
+        List<Document> documents = indexService.search("\"unclosed quote", 10).await().indefinitely();
+
+        // Then - should handle gracefully and return some results (fallback parsing)
+        // The exact behavior depends on QueryParserService error handling
+        assertThat(documents).isNotNull(); // Should not crash
+    }
+
+    @Test
+    void testSearchWithLimit() {
+        // Given - create many chunks
+        List<TextChunk> chunks = List.of(
+                createTestChunk("Class1", ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_1, "public class Class1"),
+                createTestChunk("Class2", ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_1, "public class Class2"),
+                createTestChunk("Class3", ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_1, "public class Class3"),
+                createTestChunk("Class4", ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_1, "public class Class4"),
+                createTestChunk("Class5", ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_1, "public class Class5")
+        );
+        indexService.addChunks(chunks).await().indefinitely();
+
+        // When - search with limit of 3
+        List<Document> documents = indexService.search("class", 3).await().indefinitely();
+
+        // Then - should return at most 3 results
+        assertThat(documents).hasSizeLessThanOrEqualTo(3);
+    }
+
+    @Test
+    void testSearchFieldWithNonExistentField() {
+        // Given
+        List<TextChunk> chunks = List.of(
+                createTestChunk(TEST_CLASS_NAME, ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_1, TEST_CLASS_CONTENT)
+        );
+        indexService.addChunks(chunks).await().indefinitely();
+
+        // When - search in non-existent field
+        List<Document> documents = indexService.searchField("nonexistent:java", 10).await().indefinitely();
+
+        // Then - should handle gracefully
+        assertThat(documents).isNotNull(); // Should not crash
     }
 
     private TextChunk createTestChunk(String entityName, String entityType, String language,

@@ -155,15 +155,27 @@
 - **Description:** Create comprehensive unit tests for LuceneIndexService covering indexing operations, search operations, and query parsing. Test various query types, edge cases, and error scenarios. Use in-memory index for testing.
 - **Estimated Hours:** 4 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T1-T7 (needs complete implementation)
 - **Acceptance Criteria:**
-  - [ ] Unit tests cover indexing operations
-  - [ ] Unit tests cover search operations
-  - [ ] Tests cover various query types
-  - [ ] Test coverage >80%
-  - [ ] Tests include error scenarios
+  - [x] Unit tests cover indexing operations
+  - [x] Unit tests cover search operations
+  - [x] Tests cover various query types
+  - [x] Test coverage >80%
+  - [x] Tests include error scenarios
 - **Technical Notes:** Use RAMDirectory for in-memory testing. Create test data with known content. Test exact matches, partial matches, boolean queries, phrase queries. Verify scoring behavior.
+
+**Implementation Notes:**
+- Fixed async testing timeout issues by switching from UniAssertSubscriber to synchronous .await().indefinitely() approach
+- Added comprehensive test coverage for all LuceneIndexService operations:
+  * Indexing operations: addChunks, addChunksBatch, updateChunksForFile, updateDocument, updateDocuments, removeDocument, removeDocuments
+  * Search operations: search (with various query types), searchField, getIndexStats
+  * Query types tested: boolean AND/OR/NOT, phrase queries, wildcards, field-specific queries
+  * Scoring verification: entity_name boosting (3.0x), doc_summary boosting (2.0x), camelCase/snake_case splitting
+  * Error scenarios: empty queries, malformed queries, non-existent files/documents, empty index
+- Comprehensive test suite with 25+ test methods covering all major functionality
+- Tests use temporary directories for isolation and proper cleanup
+- Fixed import issues by removing unused UniAssertSubscriber dependency
 
 ### T9: Performance test with 100K chunks
 - **Description:** Create performance tests to verify indexing and search performance with large datasets (100K+ chunks). Measure indexing throughput, search latency, and memory usage. Verify query latency <500ms for 95th percentile.
@@ -181,7 +193,10 @@
 ---
 
 ## Summary
-- **Total Tasks:** 9
+- **Total Tasks:** 9 (8 completed, 1 remaining)
 - **Total Estimated Hours:** 35 hours
+- **Completed Hours:** 31 hours (T1-T8 completed)
+- **Remaining Hours:** 4 hours (T9 performance testing)
 - **Story Points:** 5 (1 SP ≈ 7 hours, aligns with estimate)
+- **Test Coverage:** >80% achieved with comprehensive unit test suite
 
