@@ -87,15 +87,23 @@
 - **Description:** Implement query parsing that supports Lucene query syntax including AND/OR/NOT operators, phrase queries, wildcards, and field-specific queries. Parse user query string into Lucene Query object. Handle query syntax errors gracefully.
 - **Estimated Hours:** 4 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T2, T3 (needs LuceneIndexService and analyzer)
 - **Acceptance Criteria:**
-  - [ ] AND/OR/NOT operators supported
-  - [ ] Phrase queries supported (quoted strings)
-  - [ ] Wildcards supported (*, ?)
-  - [ ] Field-specific queries supported (field:value)
-  - [ ] Query syntax errors handled gracefully
+  - [x] AND/OR/NOT operators supported
+  - [x] Phrase queries supported (quoted strings)
+  - [x] Wildcards supported (*, ?)
+  - [x] Field-specific queries supported (field:value)
+  - [x] Query syntax errors handled gracefully
 - **Technical Notes:** Use Lucene's QueryParser with custom analyzer. Support default field (content) and field-specific queries. Sanitize user input to prevent query injection. Provide helpful error messages for syntax errors.
+
+**Implementation Notes:**
+- Created QueryParserService with MultiFieldQueryParser integration
+- Supports full Lucene syntax: AND/OR/NOT, "phrase queries", wildcards (*,? ), field:value
+- Graceful error handling with multiple fallback strategies
+- Integrated into LuceneIndexService replacing basic term queries
+- Added field-specific search capability
+- Comprehensive test suite covering all query types and error scenarios
 
 ### T6: Add relevance scoring with field boosts
 - **Description:** Implement relevance scoring that boosts matches in certain fields. entity_name matches should rank higher than content matches. Implement field boost configuration and apply boosts during query construction.

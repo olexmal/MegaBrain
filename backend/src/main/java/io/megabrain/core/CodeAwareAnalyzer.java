@@ -7,6 +7,7 @@ package io.megabrain.core;
 
 import java.io.Reader;
 
+import jakarta.enterprise.context.ApplicationScoped;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.CharArraySet;
 import org.apache.lucene.analysis.LowerCaseFilter;
@@ -34,6 +35,7 @@ import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
  * 3. LowerCaseFilter for case normalization
  * 4. StopFilter for removing common programming noise words
  */
+@ApplicationScoped
 public class CodeAwareAnalyzer extends Analyzer {
 
     // Stop words that are common programming noise but not useful for search

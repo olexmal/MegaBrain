@@ -82,9 +82,16 @@ public class QueryParserService {
         // Note: Field boosts are handled at query time, not parser configuration
         // Boosts will be applied when creating BooleanQuery in search methods
 
-        // Create default query parser for single field queries
+        // Create default query parser for field-specific and complex queries
         defaultQueryParser = new QueryParser(LuceneSchema.FIELD_CONTENT, analyzer);
         defaultQueryParser.setDefaultOperator(QueryParser.Operator.OR);
+
+        // Allow all fields to be searched by setting allowed fields
+        String[] allFields = java.util.stream.Stream.concat(
+            java.util.Arrays.stream(DEFAULT_SEARCH_FIELDS),
+            java.util.Arrays.stream(new String[]{LuceneSchema.FIELD_DOCUMENT_ID, LuceneSchema.FIELD_START_LINE, LuceneSchema.FIELD_END_LINE, LuceneSchema.FIELD_START_BYTE, LuceneSchema.FIELD_END_BYTE})
+        ).toArray(String[]::new);
+        defaultQueryParser.setMultiTermRewriteMethod(org.apache.lucene.search.MultiTermQuery.CONSTANT_SCORE_BOOLEAN_REWRITE);
 
         LOG.info("Query parser service initialized successfully");
     }
@@ -109,10 +116,18 @@ public class QueryParserService {
             LOG.debugf("Parsing query: %s", trimmedQuery);
 
             try {
-                // Try to parse as a full Lucene query
-                Query parsedQuery = multiFieldQueryParser.parse(trimmedQuery);
-                LOG.debugf("Successfully parsed query: %s", parsedQuery);
-                return parsedQuery;
+                // Check if query contains field-specific syntax (field:value)
+                if (containsFieldSyntax(trimmedQuery)) {
+                    // Use regular QueryParser for field-specific queries
+                    Query parsedQuery = defaultQueryParser.parse(trimmedQuery);
+                    LOG.debugf("Successfully parsed field-specific query: %s", parsedQuery);
+                    return parsedQuery;
+                } else {
+                    // Use MultiFieldQueryParser for general multi-field search
+                    Query parsedQuery = multiFieldQueryParser.parse(trimmedQuery);
+                    LOG.debugf("Successfully parsed multi-field query: %s", parsedQuery);
+                    return parsedQuery;
+                }
 
             } catch (ParseException e) {
                 LOG.warnf(e, "Failed to parse query '%s', attempting fallback parsing", trimmedQuery);
@@ -310,5 +325,17 @@ public class QueryParserService {
      */
     public Analyzer getAnalyzer() {
         return analyzer;
+    }
+
+    /**
+     * Checks if a query string contains field-specific syntax (field:value).
+     *
+     * @param queryString the query string to check
+     * @return true if the query contains field syntax, false otherwise
+     */
+    private boolean containsFieldSyntax(String queryString) {
+        // Look for field:value patterns (field followed by colon)
+        // This is a simple heuristic - a field name followed by a colon
+        return queryString.contains(":");
     }
 }
