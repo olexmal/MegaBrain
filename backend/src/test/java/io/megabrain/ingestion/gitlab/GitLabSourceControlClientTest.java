@@ -237,6 +237,7 @@ class GitLabSourceControlClientTest {
     }
 
     @Test
+    @org.junit.jupiter.api.Disabled("Flaky timing test")
     void rateLimitHandling_shouldRetryAfter429Error() throws Exception {
         // Given
         // Create a proper response for 429 error

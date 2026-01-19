@@ -25,7 +25,7 @@ import java.util.List;
     Type value();
 
     enum Type {
-        MEMORY, LUCENE
+        MEMORY, LUCENE, HYBRID
     }
 }
 
