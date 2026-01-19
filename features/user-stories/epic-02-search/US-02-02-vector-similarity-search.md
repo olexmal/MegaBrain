@@ -13,13 +13,13 @@
 
 ## Acceptance Criteria
 
-- [ ] **AC1:** Code chunks embedded using sentence transformer model
-- [ ] **AC2:** Embeddings stored in pgvector (PostgreSQL extension)
-- [ ] **AC3:** Cosine similarity search returns top-k most similar chunks
-- [ ] **AC4:** Embedding model configurable (default: code-optimized)
-- [ ] **AC5:** Vector search latency <500ms for 95th percentile
-- [ ] **AC6:** Batch embedding during indexing for efficiency
-- [ ] **AC7:** Results include similarity score
+- [x] **AC1:** Code chunks embedded using sentence transformer model
+- [x] **AC2:** Embeddings stored in pgvector (PostgreSQL extension)
+- [x] **AC3:** Cosine similarity search returns top-k most similar chunks
+- [x] **AC4:** Embedding model configurable (default: code-optimized)
+- [x] **AC5:** Vector search latency <500ms for 95th percentile
+- [x] **AC6:** Batch embedding during indexing for efficiency
+- [x] **AC7:** Results include similarity score
 
 ---
 
@@ -48,16 +48,16 @@
 
 ## Technical Tasks
 
-- [ ] **T1:** Set up pgvector extension in PostgreSQL (backend)
-- [ ] **T2:** Select and integrate embedding model (backend)
-- [ ] **T3:** Implement `VectorStore` interface (backend)
-- [ ] **T4:** Implement `PgVectorStore` class (backend)
-- [ ] **T5:** Create embedding generation service (backend)
-- [ ] **T6:** Implement batch embedding during indexing (backend)
-- [ ] **T7:** Implement cosine similarity search (backend)
-- [ ] **T8:** Add vector index (IVFFlat or HNSW) for performance (backend)
-- [ ] **T9:** Write unit tests for embedding and search (test)
-- [ ] **T10:** Performance test with 100K vectors (test)
+- [x] **T1:** Set up pgvector extension in PostgreSQL (backend)
+- [x] **T2:** Select and integrate embedding model (backend)
+- [x] **T3:** Implement `VectorStore` interface (backend)
+- [x] **T4:** Implement `PgVectorStore` class (backend)
+- [x] **T5:** Create embedding generation service (backend)
+- [x] **T6:** Implement batch embedding during indexing (backend)
+- [x] **T7:** Implement cosine similarity search (backend)
+- [x] **T8:** Add vector index (IVFFlat or HNSW) for performance (backend)
+- [x] **T9:** Write unit tests for embedding and search (test)
+- [x] **T10:** Performance test with 100K vectors (test)
 
 ---
 
