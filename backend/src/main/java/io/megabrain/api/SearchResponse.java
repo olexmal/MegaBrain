@@ -35,6 +35,16 @@ public class SearchResponse {
     @JsonProperty("took_ms")
     private final long tookMs;
 
+    // Default constructor for Jackson deserialization
+    public SearchResponse() {
+        this.results = List.of();
+        this.total = 0;
+        this.page = 0;
+        this.size = 10;
+        this.query = "";
+        this.tookMs = 0;
+    }
+
     /**
      * Creates a new SearchResponse.
      *
@@ -80,7 +90,7 @@ public class SearchResponse {
     }
 
     public boolean hasNextPage() {
-        return (page + 1) * size < total;
+        return size > 0 && (page + 1) * size < total;
     }
 
     public boolean hasPreviousPage() {

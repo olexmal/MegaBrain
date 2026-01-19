@@ -5,6 +5,7 @@
 
 package io.megabrain.api;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
@@ -20,6 +21,12 @@ public class LineRange {
 
     @JsonProperty("end")
     private final int endLine;
+
+    // Default constructor for Jackson deserialization
+    public LineRange() {
+        this.startLine = 1;
+        this.endLine = 1;
+    }
 
     /**
      * Creates a new LineRange.
@@ -46,6 +53,7 @@ public class LineRange {
         return endLine;
     }
 
+    @JsonIgnore
     public int getLineCount() {
         return endLine - startLine + 1;
     }

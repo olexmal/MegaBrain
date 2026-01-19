@@ -10,6 +10,7 @@ import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.apache.lucene.queryparser.classic.MultiFieldQueryParser;
 import org.apache.lucene.queryparser.classic.ParseException;
@@ -17,6 +18,7 @@ import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.BoostQuery;
+import org.apache.lucene.search.PhraseQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.WildcardQuery;
@@ -87,6 +89,13 @@ public class QueryParserService {
             LuceneSchema.FIELD_ENTITY_TYPE
     };
 
+    // Fields that support phrase queries (must have position data)
+    private static final String[] PHRASE_SEARCH_FIELDS = {
+            LuceneSchema.FIELD_CONTENT,
+            LuceneSchema.FIELD_ENTITY_NAME,
+            LuceneSchema.FIELD_DOC_SUMMARY
+    };
+
     private MultiFieldQueryParser multiFieldQueryParser;
     private QueryParser defaultQueryParser;
 
@@ -152,6 +161,16 @@ public class QueryParserService {
                     Query parsedQuery = defaultQueryParser.parse(trimmedQuery);
                     LOG.debugf("Successfully parsed field-specific query: %s", parsedQuery);
                     return parsedQuery;
+                } else if (containsWildcard(trimmedQuery)) {
+                    // Handle wildcard queries with special parsing
+                    Query wildcardQuery = parseWildcardQuery(trimmedQuery);
+                    LOG.debugf("Successfully parsed wildcard query: %s", wildcardQuery);
+                    return wildcardQuery;
+                } else if (isPhraseQuery(trimmedQuery)) {
+                    // Handle phrase queries with special parsing across all fields
+                    Query parsedQuery = parsePhraseQuery(trimmedQuery);
+                    LOG.debugf("Successfully parsed phrase query: %s", parsedQuery);
+                    return parsedQuery;
                 } else {
                     // Use MultiFieldQueryParser for general multi-field search
                     Query parsedQuery = multiFieldQueryParser.parse(trimmedQuery);
@@ -215,6 +234,81 @@ public class QueryParserService {
     /**
      * Attempts fallback parsing strategies when main parsing fails.
      */
+    /**
+     * Checks if a query string contains wildcard characters.
+     */
+    private boolean containsWildcard(String queryString) {
+        return queryString.contains("*") || queryString.contains("?");
+    }
+
+    /**
+     * Checks if a query string is a phrase query (enclosed in quotes).
+     */
+    private boolean isPhraseQuery(String queryString) {
+        return queryString.trim().startsWith("\"") && queryString.trim().endsWith("\"");
+    }
+
+    /**
+     * Parses a wildcard query by creating a boolean query across all fields.
+     */
+    private Query parseWildcardQuery(String queryString) throws ParseException {
+        BooleanQuery.Builder booleanQuery = new BooleanQuery.Builder();
+
+        // For each field, create a wildcard query and add it to the boolean query
+        for (String field : DEFAULT_SEARCH_FIELDS) {
+            Query fieldQuery = new WildcardQuery(new Term(field, queryString));
+            booleanQuery.add(fieldQuery, BooleanClause.Occur.SHOULD);
+        }
+
+        return booleanQuery.build();
+    }
+
+    /**
+     * Parses a phrase query by creating a boolean query with phrase queries across supported fields.
+     */
+    private Query parsePhraseQuery(String queryString) throws ParseException {
+        // Remove quotes from the phrase
+        String phrase = queryString.trim().substring(1, queryString.length() - 1);
+
+        BooleanQuery.Builder booleanQuery = new BooleanQuery.Builder();
+
+        // For each field that supports phrase queries, create a phrase query manually
+        for (String field : PHRASE_SEARCH_FIELDS) {
+            if (analyzer != null) {
+                try {
+                    // Analyze the phrase terms to get the actual tokens
+                    java.util.List<String> analyzedTerms = new java.util.ArrayList<>();
+                    try (org.apache.lucene.analysis.TokenStream tokenStream = analyzer.tokenStream(field, phrase)) {
+                        tokenStream.reset();
+                        while (tokenStream.incrementToken()) {
+                            CharTermAttribute attr = tokenStream.getAttribute(CharTermAttribute.class);
+                            analyzedTerms.add(attr.toString());
+                        }
+                        tokenStream.end();
+                    }
+
+                    if (!analyzedTerms.isEmpty()) {
+                        PhraseQuery.Builder phraseBuilder = new PhraseQuery.Builder();
+                        for (String term : analyzedTerms) {
+                            phraseBuilder.add(new Term(field, term));
+                        }
+                        Query fieldQuery = phraseBuilder.build();
+                        booleanQuery.add(fieldQuery, BooleanClause.Occur.SHOULD);
+                    }
+                } catch (Exception e) {
+                    LOG.debugf("Could not create phrase query for field %s: %s", field, e.getMessage());
+                }
+            }
+        }
+
+        Query result = booleanQuery.build();
+        if (result instanceof BooleanQuery && ((BooleanQuery) result).clauses().isEmpty()) {
+            throw new ParseException("No valid phrase query could be created for: " + queryString);
+        }
+
+        return result;
+    }
+
     private Query tryFallbackParsing(String queryString) {
         // Try 1: Simple phrase query if the query looks like a phrase
         if (queryString.contains(" ") && !queryString.contains("\"")) {

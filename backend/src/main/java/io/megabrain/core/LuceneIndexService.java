@@ -446,6 +446,10 @@ public class LuceneIndexService implements IndexService {
                         LOG.debugf("Found %d results for parsed query: %s -> %s",
                                  results.size(), queryString, parsedQuery);
                         return results;
+                    } catch (org.apache.lucene.index.IndexNotFoundException e) {
+                        // Index doesn't exist yet or is empty
+                        LOG.debugf("Index not found for query: %s, returning empty results", queryString);
+                        return java.util.Collections.emptyList();
                     } catch (IOException e) {
                         LOG.error("Error searching index", e);
                         throw new RuntimeException("Failed to search index", e);

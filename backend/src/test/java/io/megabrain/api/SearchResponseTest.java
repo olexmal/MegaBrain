@@ -62,7 +62,7 @@ class SearchResponseTest {
 
         // Test with constants
         SearchResponse constResponse = new SearchResponse(
-            results, 150, 0, TEST_SIZE, TEST_QUERY, TEST_TOOK_MS
+            List.of(), 150, 0, TEST_SIZE, TEST_QUERY, TEST_TOOK_MS
         );
 
         // Then

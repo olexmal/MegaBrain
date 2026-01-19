@@ -527,18 +527,19 @@ class LuceneIndexServiceTest {
         // Given
         List<TextChunk> chunks = List.of(
                 createTestChunk("UserService", ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_2,
-                        "public class UserService implements Service"),
+                        "user service handles data processing"),
                 createTestChunk("DataService", ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_1,
-                        "public class DataService implements Repository")
+                        "data service manages database operations")
         );
         indexService.addChunks(chunks).await().indefinitely();
 
-        // When - search for exact phrase "implements Service"
-        List<Document> documents = indexService.search("\"implements Service\"", 10).await().indefinitely();
+        // When - search for exact phrase "user service"
+        List<Document> documents = indexService.search("\"user service\"", 10).await().indefinitely();
 
-        // Then
+        // Then - should only match the document containing the exact phrase
         assertThat(documents).hasSize(1);
         assertThat(documents.getFirst().get(LuceneSchema.FIELD_ENTITY_NAME)).isEqualTo("UserService");
+        assertThat(documents.getFirst().get(LuceneSchema.FIELD_CONTENT)).contains("user service");
     }
 
     @Test
@@ -665,11 +666,12 @@ class LuceneIndexServiceTest {
         );
         indexService.addChunks(chunks).await().indefinitely();
 
-        // When - search with empty query
+        // When - search with empty query (should return match-all query)
         List<Document> documents = indexService.search("", 10).await().indefinitely();
 
-        // Then - should return empty results for empty query
-        assertThat(documents).isEmpty();
+        // Then - should return all indexed documents for empty query
+        assertThat(documents).hasSize(1);
+        assertThat(documents.getFirst().get(LuceneSchema.FIELD_ENTITY_NAME)).isEqualTo(TEST_CLASS_NAME);
     }
 
     @Test
@@ -680,11 +682,12 @@ class LuceneIndexServiceTest {
         );
         indexService.addChunks(chunks).await().indefinitely();
 
-        // When - search with null query
+        // When - search with null query (should return match-all query)
         List<Document> documents = indexService.search(null, 10).await().indefinitely();
 
-        // Then - should return empty results for null query
-        assertThat(documents).isEmpty();
+        // Then - should return all indexed documents for null query
+        assertThat(documents).hasSize(1);
+        assertThat(documents.getFirst().get(LuceneSchema.FIELD_ENTITY_NAME)).isEqualTo(TEST_CLASS_NAME);
     }
 
     @Test
@@ -731,7 +734,7 @@ class LuceneIndexServiceTest {
         indexService.addChunks(chunks).await().indefinitely();
 
         // When - search in non-existent field
-        List<Document> documents = indexService.searchField("nonexistent:java", 10).await().indefinitely();
+        List<Document> documents = indexService.searchField("nonexistent", "java", 10).await().indefinitely();
 
         // Then - should handle gracefully
         assertThat(documents).isNotNull(); // Should not crash

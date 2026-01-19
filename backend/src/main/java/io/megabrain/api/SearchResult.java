@@ -42,6 +42,19 @@ public class SearchResult {
     @JsonProperty("doc_summary")
     private final String docSummary;
 
+    // Default constructor for Jackson deserialization
+    public SearchResult() {
+        this.content = "";
+        this.entityName = "";
+        this.entityType = "";
+        this.sourceFile = "";
+        this.language = "";
+        this.repository = "";
+        this.score = 0.0f;
+        this.lineRange = new LineRange(1, 1);
+        this.docSummary = null;
+    }
+
     /**
      * Creates a new SearchResult.
      *
@@ -128,8 +141,12 @@ public class SearchResult {
 
     @Override
     public String toString() {
+        String truncatedContent = truncateContent(content, 42);
+        String truncatedDocSummary = docSummary != null ?
+            docSummary.substring(0, Math.min(30, docSummary.length())) + "..." : null;
+
         return "SearchResult{" +
-                "content='" + content.substring(0, Math.min(50, content.length())) + "...'" +
+                "content='" + truncatedContent + '\'' +
                 ", entityName='" + entityName + '\'' +
                 ", entityType='" + entityType + '\'' +
                 ", sourceFile='" + sourceFile + '\'' +
@@ -137,7 +154,14 @@ public class SearchResult {
                 ", repository='" + repository + '\'' +
                 ", score=" + score +
                 ", lineRange=" + lineRange +
-                ", docSummary='" + (docSummary != null ? docSummary.substring(0, Math.min(30, docSummary.length())) + "..." : null) + '\'' +
+                ", docSummary='" + truncatedDocSummary + '\'' +
                 '}';
+    }
+
+    private String truncateContent(String text, int maxLength) {
+        if (text == null || text.length() <= maxLength) {
+            return text;
+        }
+        return text.substring(0, maxLength) + "...";
     }
 }
