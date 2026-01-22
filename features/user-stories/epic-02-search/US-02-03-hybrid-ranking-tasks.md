@@ -25,14 +25,14 @@
 - **Description:** Implement score normalization for vector similarity results. Convert cosine distance (or similarity) scores into normalized range (0.0-1.0) to match Lucene score format. Ensure normalization is consistent with Lucene normalization.
 - **Estimated Hours:** 3 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** US-02-02 (needs vector search working)
 - **Acceptance Criteria:**
-  - [ ] Vector similarity scores normalized to 0.0-1.0 range
-  - [ ] Normalization consistent with Lucene normalization
-  - [ ] Handles edge cases (identical vectors, orthogonal vectors)
-  - [ ] Normalization function is well-tested
-- **Technical Notes:** Cosine similarity is already 0.0-1.0, but may need adjustment. Cosine distance (1 - similarity) needs conversion. Ensure both systems use same scale for fair combination.
+  - [x] Vector similarity scores normalized to 0.0-1.0 range
+  - [x] Normalization consistent with Lucene normalization
+  - [x] Handles edge cases (identical vectors, orthogonal vectors)
+  - [x] Normalization function is well-tested
+- **Technical Notes:** Cosine similarity is already 0.0-1.0, but may need adjustment. Cosine distance (1 - similarity) needs conversion. Ensure both systems use same scale for fair combination. **Implementation:** `VectorScoreNormalizer` in `io.megabrain.core` uses min-max normalization (same as T1) on `List<VectorStore.SearchResult>`; 12 unit tests cover null/empty, single, multiple, equal scores, orthogonal/identical vectors, order preservation, reproducibility.
 
 ### T3: Create weighted score combination algorithm
 - **Description:** Implement algorithm that combines normalized Lucene and vector scores using configurable weights. Default weights: 0.6 keyword, 0.4 vector. Formula: final_score = (keyword_weight * lucene_score) + (vector_weight * vector_score). Ensure weights sum to 1.0.
