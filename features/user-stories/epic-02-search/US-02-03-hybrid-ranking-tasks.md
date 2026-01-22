@@ -38,27 +38,27 @@
 - **Description:** Implement algorithm that combines normalized Lucene and vector scores using configurable weights. Default weights: 0.6 keyword, 0.4 vector. Formula: final_score = (keyword_weight * lucene_score) + (vector_weight * vector_score). Ensure weights sum to 1.0.
 - **Estimated Hours:** 4 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T1, T2 (needs normalized scores)
 - **Acceptance Criteria:**
-  - [ ] Weighted combination algorithm implemented
-  - [ ] Configurable weights supported
-  - [ ] Weights validated (sum to 1.0)
-  - [ ] Algorithm is efficient (no performance impact)
-- **Technical Notes:** Create HybridScorer class. Validate weights on configuration load. Support per-request weight override. Cache weight configuration for performance.
+  - [x] Weighted combination algorithm implemented
+  - [x] Configurable weights supported
+  - [x] Weights validated (sum to 1.0)
+  - [x] Algorithm is efficient (no performance impact)
+- **Technical Notes:** Create HybridScorer class. Validate weights on configuration load. Support per-request weight override. Cache weight configuration for performance. **Implementation:** `HybridScorer` in `io.megabrain.core` with `HybridWeights` record; `@ConfigProperty` for `megabrain.search.hybrid.keyword-weight` / `vector-weight`; `combine(lucene, vector)` and `combine(lucene, vector, kw, vw)`; 23 unit tests (HybridScorerTest, HybridWeightsTest).
 
 ### T4: Implement result set merging and deduplication
 - **Description:** Implement logic to merge results from Lucene and vector searches, deduplicating chunks that appear in both result sets. When a chunk appears in both, use the combined score. Sort final results by combined score.
 - **Estimated Hours:** 5 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T3 (needs score combination)
 - **Acceptance Criteria:**
-  - [ ] Results from both searches merged
-  - [ ] Duplicate chunks appear only once
-  - [ ] Combined score used for duplicates
-  - [ ] Final results sorted by combined score
-- **Technical Notes:** Use chunk ID or (file_path, entity_name) as deduplication key. Merge using Map for O(1) lookup. Sort results by final combined score. Handle cases where one system returns no results.
+  - [x] Results from both searches merged
+  - [x] Duplicate chunks appear only once
+  - [x] Combined score used for duplicates
+  - [x] Final results sorted by combined score
+- **Technical Notes:** Use chunk ID or (file_path, entity_name) as deduplication key. Merge using Map for O(1) lookup. Sort results by final combined score. Handle cases where one system returns no results. **Implementation:** `ResultMerger` in `io.megabrain.core` with `merge()` method; deduplication using chunk ID (document_id or file_path + entity_name); combines scores via `HybridScorer` when duplicates found; sorts by combined score descending; 14 comprehensive unit tests covering all scenarios (>80% coverage).
 
 ### T5: Add configuration for weight parameters
 - **Description:** Add configuration support for hybrid ranking weights. Allow global configuration via application.properties and per-request override via API parameters. Validate weights (must be 0.0-1.0, must sum to 1.0 for both weights).
