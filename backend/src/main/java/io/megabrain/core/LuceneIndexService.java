@@ -521,6 +521,95 @@ public class LuceneIndexService implements IndexService {
     }
 
     /**
+     * Represents a Lucene search result with its raw score.
+     */
+    public record LuceneScoredResult(Document document, float score) {}
+
+    /**
+     * Searches the index and returns results with their raw Lucene scores.
+     * This method preserves the original Lucene scoring for normalization.
+     *
+     * @param queryString the search query with full Lucene syntax support
+     * @param maxResults maximum number of results to return
+     * @return list of scored search results
+     */
+    public Uni<List<LuceneScoredResult>> searchWithScores(String queryString, int maxResults) {
+        return queryParser.parseQuery(queryString)
+                .flatMap(parsedQuery -> Uni.createFrom().item(() -> {
+                    lock.readLock().lock();
+                    try (IndexReader reader = DirectoryReader.open(directory)) {
+                        IndexSearcher searcher = new IndexSearcher(reader);
+
+                        TopDocs topDocs = searcher.search(parsedQuery, maxResults);
+
+                        List<LuceneScoredResult> results = new java.util.ArrayList<>();
+                        for (var scoreDoc : topDocs.scoreDocs) {
+                            Document doc = searcher.storedFields().document(scoreDoc.doc);
+                            results.add(new LuceneScoredResult(doc, scoreDoc.score));
+                        }
+
+                        LOG.debugf("Found %d scored results for parsed query: %s -> %s",
+                                 results.size(), queryString, parsedQuery);
+                        return results;
+                    } catch (org.apache.lucene.index.IndexNotFoundException e) {
+                        // Index doesn't exist yet or is empty
+                        LOG.debugf("Index not found for query: %s, returning empty results", queryString);
+                        return java.util.Collections.emptyList();
+                    } catch (IOException e) {
+                        LOG.error("Error searching index with scores", e);
+                        throw new RuntimeException("Failed to search index with scores", e);
+                    } finally {
+                        lock.readLock().unlock();
+                    }
+                }));
+    }
+
+    /**
+     * Normalizes Lucene scores to a 0.0-1.0 range using min-max normalization.
+     * This ensures fair combination with vector similarity scores.
+     *
+     * @param scoredResults the list of scored search results to normalize
+     * @return list of results with normalized scores (0.0-1.0 range)
+     */
+    public static List<LuceneScoredResult> normalizeScores(List<LuceneScoredResult> scoredResults) {
+        if (scoredResults == null || scoredResults.isEmpty()) {
+            return scoredResults != null ? scoredResults : java.util.Collections.emptyList();
+        }
+
+        // Handle single result case - assign score of 1.0
+        if (scoredResults.size() == 1) {
+            LuceneScoredResult result = scoredResults.get(0);
+            return List.of(new LuceneScoredResult(result.document(), 1.0f));
+        }
+
+        // Find min and max scores using simple iteration
+        float minScore = Float.MAX_VALUE;
+        float maxScore = Float.MIN_VALUE;
+
+        for (LuceneScoredResult result : scoredResults) {
+            float score = result.score();
+            if (score < minScore) minScore = score;
+            if (score > maxScore) maxScore = score;
+        }
+
+        // Handle case where all scores are equal (would cause division by zero)
+        if (maxScore == minScore) {
+            // All results get score 1.0 (they are equally relevant)
+            return scoredResults.stream()
+                    .map(result -> new LuceneScoredResult(result.document(), 1.0f))
+                    .collect(java.util.stream.Collectors.toList());
+        }
+
+        // Apply min-max normalization: normalized = (score - min) / (max - min)
+        List<LuceneScoredResult> normalizedResults = new java.util.ArrayList<>();
+        for (LuceneScoredResult result : scoredResults) {
+            float normalizedScore = (result.score() - minScore) / (maxScore - minScore);
+            normalizedResults.add(new LuceneScoredResult(result.document(), normalizedScore));
+        }
+        return normalizedResults;
+    }
+
+    /**
      * Index statistics record.
      */
     public record IndexStats(int numDocs, int maxDoc, int numDeletedDocs) {}

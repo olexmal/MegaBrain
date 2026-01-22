@@ -20,6 +20,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import org.assertj.core.data.Offset;
 
 /**
  * Unit tests for LuceneIndexService.
@@ -758,6 +759,204 @@ class LuceneIndexServiceTest {
         statsResult.assertCompleted();
         LuceneIndexService.IndexStats stats = statsResult.getItem();
         assertEquals(expectedCount, stats.numDocs());
+    }
+
+    // ===== SCORE NORMALIZATION TESTS =====
+
+    @Test
+    void testNormalizeScores_emptyList() {
+        // When
+        List<LuceneIndexService.LuceneScoredResult> normalized = LuceneIndexService.normalizeScores(List.of());
+
+        // Then
+        assertThat(normalized).isEmpty();
+    }
+
+    @Test
+    void testNormalizeScores_nullList() {
+        // When
+        List<LuceneIndexService.LuceneScoredResult> normalized = LuceneIndexService.normalizeScores(null);
+
+        // Then
+        assertThat(normalized).isEmpty();
+    }
+
+    @Test
+    void testNormalizeScores_singleResult() {
+        // Given
+        Document doc = new Document();
+        doc.add(new org.apache.lucene.document.Field("test", "test", org.apache.lucene.document.TextField.TYPE_STORED));
+        LuceneIndexService.LuceneScoredResult result = new LuceneIndexService.LuceneScoredResult(doc, 0.8f);
+
+        // When
+        List<LuceneIndexService.LuceneScoredResult> normalized = LuceneIndexService.normalizeScores(List.of(result));
+
+        // Then
+        assertThat(normalized).hasSize(1);
+        assertThat(normalized.get(0).score()).isEqualTo(1.0f);
+        assertThat(normalized.get(0).document()).isSameAs(doc);
+    }
+
+    @Test
+    void testNormalizeScores_multipleResults() {
+        // Given - create test documents with different scores
+        Document doc1 = new Document();
+        doc1.add(new org.apache.lucene.document.Field("content", "doc1", org.apache.lucene.document.TextField.TYPE_STORED));
+
+        Document doc2 = new Document();
+        doc2.add(new org.apache.lucene.document.Field("content", "doc2", org.apache.lucene.document.TextField.TYPE_STORED));
+
+        Document doc3 = new Document();
+        doc3.add(new org.apache.lucene.document.Field("content", "doc3", org.apache.lucene.document.TextField.TYPE_STORED));
+
+        List<LuceneIndexService.LuceneScoredResult> results = List.of(
+            new LuceneIndexService.LuceneScoredResult(doc1, 0.5f),  // min score
+            new LuceneIndexService.LuceneScoredResult(doc2, 0.8f),  // middle score
+            new LuceneIndexService.LuceneScoredResult(doc3, 1.0f)   // max score
+        );
+
+        // When
+        List<LuceneIndexService.LuceneScoredResult> normalized = LuceneIndexService.normalizeScores(results);
+
+        // Then
+        assertThat(normalized).hasSize(3);
+
+        // Check normalized scores: (score - min) / (max - min)
+        // doc1: (0.5 - 0.5) / (1.0 - 0.5) = 0.0 / 0.5 = 0.0
+        assertThat(normalized.get(0).score()).isEqualTo(0.0f);
+
+        // doc2: (0.8 - 0.5) / (1.0 - 0.5) = 0.3 / 0.5 = 0.6
+        assertThat(normalized.get(1).score()).isEqualTo(0.6f);
+
+        // doc3: (1.0 - 0.5) / (1.0 - 0.5) = 0.5 / 0.5 = 1.0
+        assertThat(normalized.get(2).score()).isEqualTo(1.0f);
+    }
+
+    @Test
+    void testNormalizeScores_equalScores() {
+        // Given - all results have the same score
+        Document doc1 = new Document();
+        Document doc2 = new Document();
+        Document doc3 = new Document();
+
+        List<LuceneIndexService.LuceneScoredResult> results = List.of(
+            new LuceneIndexService.LuceneScoredResult(doc1, 0.7f),
+            new LuceneIndexService.LuceneScoredResult(doc2, 0.7f),
+            new LuceneIndexService.LuceneScoredResult(doc3, 0.7f)
+        );
+
+        // When
+        List<LuceneIndexService.LuceneScoredResult> normalized = LuceneIndexService.normalizeScores(results);
+
+        // Then - all should get score 1.0 since they're equally relevant
+        assertThat(normalized).hasSize(3);
+        assertThat(normalized.get(0).score()).isEqualTo(1.0f);
+        assertThat(normalized.get(1).score()).isEqualTo(1.0f);
+        assertThat(normalized.get(2).score()).isEqualTo(1.0f);
+    }
+
+    @Test
+    void testNormalizeScores_zeroScores() {
+        // Given - results with zero scores
+        Document doc1 = new Document();
+        Document doc2 = new Document();
+
+        List<LuceneIndexService.LuceneScoredResult> results = List.of(
+            new LuceneIndexService.LuceneScoredResult(doc1, 0.0f),
+            new LuceneIndexService.LuceneScoredResult(doc2, 0.2f)
+        );
+
+        // When
+        List<LuceneIndexService.LuceneScoredResult> normalized = LuceneIndexService.normalizeScores(results);
+
+        // Then - normalization should handle zero scores correctly
+        assertThat(normalized).hasSize(2);
+        assertThat(normalized.get(0).score()).isEqualTo(0.0f);  // (0.0 - 0.0) / (0.2 - 0.0) = 0.0
+        assertThat(normalized.get(1).score()).isEqualTo(1.0f);  // (0.2 - 0.0) / (0.2 - 0.0) = 1.0
+    }
+
+    @Test
+    void testNormalizeScores_negativeScores() {
+        // Given - results with negative scores (edge case, though Lucene typically doesn't produce negative scores)
+        Document doc1 = new Document();
+        Document doc2 = new Document();
+
+        List<LuceneIndexService.LuceneScoredResult> results = List.of(
+            new LuceneIndexService.LuceneScoredResult(doc1, -0.1f),  // negative score
+            new LuceneIndexService.LuceneScoredResult(doc2, 0.9f)    // positive score
+        );
+
+        // When
+        List<LuceneIndexService.LuceneScoredResult> normalized = LuceneIndexService.normalizeScores(results);
+
+        // Then - should normalize correctly even with negative scores
+        assertThat(normalized).hasSize(2);
+        assertThat(normalized.get(0).score()).isEqualTo(0.0f);  // (-0.1 - (-0.1)) / (0.9 - (-0.1)) = 0.0
+        assertThat(normalized.get(1).score()).isEqualTo(1.0f);  // (0.9 - (-0.1)) / (0.9 - (-0.1)) = 1.0
+    }
+
+    @Test
+    void testNormalizeScores_preservesOrder() {
+        // Given - results in specific order
+        Document doc1 = new Document();
+        doc1.add(new org.apache.lucene.document.Field("id", "1", org.apache.lucene.document.TextField.TYPE_STORED));
+
+        Document doc2 = new Document();
+        doc2.add(new org.apache.lucene.document.Field("id", "2", org.apache.lucene.document.TextField.TYPE_STORED));
+
+        Document doc3 = new Document();
+        doc3.add(new org.apache.lucene.document.Field("id", "3", org.apache.lucene.document.TextField.TYPE_STORED));
+
+        List<LuceneIndexService.LuceneScoredResult> results = List.of(
+            new LuceneIndexService.LuceneScoredResult(doc1, 0.3f),
+            new LuceneIndexService.LuceneScoredResult(doc2, 0.6f),
+            new LuceneIndexService.LuceneScoredResult(doc3, 0.9f)
+        );
+
+        // When
+        List<LuceneIndexService.LuceneScoredResult> normalized = LuceneIndexService.normalizeScores(results);
+
+        // Then - order should be preserved, scores normalized
+        assertThat(normalized).hasSize(3);
+        assertThat(normalized.get(0).document().get("id")).isEqualTo("1");
+        assertThat(normalized.get(0).score()).isEqualTo(0.0f);  // (0.3 - 0.3) / (0.9 - 0.3) = 0.0
+
+        assertThat(normalized.get(1).document().get("id")).isEqualTo("2");
+        assertThat(normalized.get(1).score()).isCloseTo(0.5f, Offset.offset(0.001f));  // (0.6 - 0.3) / (0.9 - 0.3) = 0.5
+
+        assertThat(normalized.get(2).document().get("id")).isEqualTo("3");
+        assertThat(normalized.get(2).score()).isEqualTo(1.0f);  // (0.9 - 0.3) / (0.9 - 0.3) = 1.0
+    }
+
+    @Test
+    void testSearchWithScores_returnsScoredResults() {
+        // Given
+        List<TextChunk> chunks = List.of(
+                createTestChunk(TEST_CLASS_NAME, ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_1, TEST_CLASS_CONTENT),
+                createTestChunk(TEST_METHOD_NAME, ENTITY_TYPE_METHOD, LANGUAGE_JAVA, TEST_FILE_1, TEST_METHOD_CONTENT)
+        );
+
+        indexService.addChunks(chunks).await().indefinitely();
+
+        // When - search with scores (use field-specific query to ensure match)
+        List<LuceneIndexService.LuceneScoredResult> scoredResults =
+                indexService.searchWithScores("entity_name:TestClass", 10).await().indefinitely();
+
+        // Then
+        assertThat(scoredResults).isNotEmpty();
+        // Score should be positive (Lucene gives scores > 0 for matches)
+        assertThat(scoredResults.get(0).score()).isGreaterThanOrEqualTo(0.0f);
+        assertThat(scoredResults.get(0).document().get(LuceneSchema.FIELD_ENTITY_NAME)).isEqualTo(TEST_CLASS_NAME);
+    }
+
+    @Test
+    void testSearchWithScores_emptyIndex() {
+        // When
+        List<LuceneIndexService.LuceneScoredResult> scoredResults =
+                indexService.searchWithScores("anything", 10).await().indefinitely();
+
+        // Then
+        assertThat(scoredResults).isEmpty();
     }
 
     /**
