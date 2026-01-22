@@ -12,13 +12,13 @@
 - **Description:** Implement score normalization for Lucene search results to convert raw Lucene scores (which can vary widely) into a normalized range (e.g., 0.0-1.0). This ensures fair combination with vector similarity scores. Handle edge cases like zero scores and very high scores.
 - **Estimated Hours:** 4 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** US-02-01 (needs Lucene search working)
 - **Acceptance Criteria:**
-  - [ ] Lucene scores normalized to 0.0-1.0 range
-  - [ ] Normalization is consistent and reproducible
-  - [ ] Handles edge cases (zero scores, single result)
-  - [ ] Normalization function is well-tested
+  - [x] Lucene scores normalized to 0.0-1.0 range
+  - [x] Normalization is consistent and reproducible
+  - [x] Handles edge cases (zero scores, single result)
+  - [x] Normalization function is well-tested
 - **Technical Notes:** Use min-max normalization or sigmoid function. Consider using Lucene's Explanation API to understand score distribution. Test with various query types and result sets.
 
 ### T2: Implement score normalization for vector results
