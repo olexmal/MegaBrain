@@ -13,12 +13,12 @@
 
 ## Acceptance Criteria
 
-- [ ] **AC1:** Final score = weighted combination of Lucene and vector scores
-- [ ] **AC2:** Weights configurable (default: 0.6 keyword, 0.4 vector)
-- [ ] **AC3:** Results deduplicated when same chunk in both result sets
-- [ ] **AC4:** Option to use keyword-only or vector-only mode
-- [ ] **AC5:** Hybrid improves relevance over either approach alone
-- [ ] **AC6:** Score normalization for fair combination
+- [x] **AC1:** Final score = weighted combination of Lucene and vector scores
+- [x] **AC2:** Weights configurable (default: 0.6 keyword, 0.4 vector)
+- [x] **AC3:** Results deduplicated when same chunk in both result sets
+- [x] **AC4:** Option to use keyword-only or vector-only mode
+- [x] **AC5:** Hybrid improves relevance over either approach alone
+- [x] **AC6:** Score normalization for fair combination
 
 ---
 
@@ -47,14 +47,14 @@
 
 ## Technical Tasks
 
-- [ ] **T1:** Implement score normalization for Lucene results (backend)
-- [ ] **T2:** Implement score normalization for vector results (backend)
-- [ ] **T3:** Create weighted score combination algorithm (backend)
-- [ ] **T4:** Implement result set merging and deduplication (backend)
-- [ ] **T5:** Add configuration for weight parameters (backend)
-- [ ] **T6:** Add search mode parameter (hybrid/keyword/vector) (backend)
-- [ ] **T7:** Write unit tests for ranking algorithm (test)
-- [ ] **T8:** A/B test harness for relevance comparison (test)
+- [x] **T1:** Implement score normalization for Lucene results (backend)
+- [x] **T2:** Implement score normalization for vector results (backend)
+- [x] **T3:** Create weighted score combination algorithm (backend)
+- [x] **T4:** Implement result set merging and deduplication (backend)
+- [x] **T5:** Add configuration for weight parameters (backend)
+- [x] **T6:** Add search mode parameter (hybrid/keyword/vector) (backend)
+- [x] **T7:** Write unit tests for ranking algorithm (test)
+- [x] **T8:** A/B test harness for relevance comparison (test)
 
 ---
 
