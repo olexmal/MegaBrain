@@ -90,15 +90,15 @@
 - **Description:** Create comprehensive unit tests for hybrid ranking algorithm. Test score normalization, weighted combination, result merging, deduplication, and different search modes. Use mock search results for testing.
 - **Estimated Hours:** 4 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T1-T6 (needs complete implementation)
 - **Acceptance Criteria:**
-  - [ ] Unit tests for score normalization
-  - [ ] Unit tests for weighted combination
-  - [ ] Unit tests for result merging
-  - [ ] Unit tests for deduplication
-  - [ ] Test coverage >80%
-- **Technical Notes:** Use JUnit 5 and mocks. Create test data with known scores. Test edge cases: empty results, single result, all duplicates. Verify score calculations are correct.
+  - [x] Unit tests for score normalization
+  - [x] Unit tests for weighted combination
+  - [x] Unit tests for result merging
+  - [x] Unit tests for deduplication
+  - [x] Test coverage >80%
+- **Technical Notes:** Use JUnit 5 and mocks. Create test data with known scores. Test edge cases: empty results, single result, all duplicates. Verify score calculations are correct. **Implementation:** Added `HybridRankingAlgorithmTest` (US-02-03, T7) in `io.megabrain.core`: nested suites for score normalization (Lucene + vector), weighted combination, result merging, deduplication, and edge cases; uses mock Lucene/vector results with known scores; >80% coverage for `VectorScoreNormalizer`, `HybridScorer`, and `ResultMerger`. Complements existing `VectorScoreNormalizerTest`, `LuceneIndexServiceTest` (normalizeScores), `HybridScorerTest`, `HybridWeightsTest`, `ResultMergerTest`, and `HybridIndexServiceSearchModeTest`.
 
 ### T8: A/B test harness for relevance comparison
 - **Description:** Create A/B testing harness to compare hybrid ranking against keyword-only and vector-only approaches. Measure relevance metrics (e.g., precision@k, recall) and collect user feedback. Provide framework for tuning weights based on results.
