@@ -104,14 +104,14 @@
 - **Description:** Create A/B testing harness to compare hybrid ranking against keyword-only and vector-only approaches. Measure relevance metrics (e.g., precision@k, recall) and collect user feedback. Provide framework for tuning weights based on results.
 - **Estimated Hours:** 4 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T1-T7 (needs complete implementation)
 - **Acceptance Criteria:**
-  - [ ] A/B test harness implemented
-  - [ ] Can compare different ranking approaches
-  - [ ] Collects relevance metrics
-  - [ ] Framework for weight tuning
-- **Technical Notes:** Create test queries and expected results. Measure precision@5, precision@10, recall. Compare hybrid vs single-approach results. Provide weight tuning recommendations based on metrics.
+  - [x] A/B test harness implemented
+  - [x] Can compare different ranking approaches
+  - [x] Collects relevance metrics
+  - [x] Framework for weight tuning
+- **Technical Notes:** Create test queries and expected results. Measure precision@5, precision@10, recall. Compare hybrid vs single-approach results. Provide weight tuning recommendations based on metrics. **Implementation:** `ABTestHarness` in `io.megabrain.core` with `TestQuery`, `RelevanceMetrics`, `ComparisonResult`, and `WeightTuningRecommendation` records; computes precision@5, precision@10, and recall; compares HYBRID, KEYWORD, and VECTOR modes; generates weight tuning recommendations based on performance analysis; 22 comprehensive unit tests covering all scenarios (>80% coverage).
 
 ---
 
