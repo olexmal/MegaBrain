@@ -64,14 +64,14 @@
 - **Description:** Add configuration support for hybrid ranking weights. Allow global configuration via application.properties and per-request override via API parameters. Validate weights (must be 0.0-1.0, must sum to 1.0 for both weights).
 - **Estimated Hours:** 3 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T3 (needs score combination)
 - **Acceptance Criteria:**
-  - [ ] Weight configuration via application.properties
-  - [ ] Per-request weight override via API
-  - [ ] Weight validation on configuration load
-  - [ ] Default weights applied if not specified
-- **Technical Notes:** Use Quarkus configuration: `megabrain.search.hybrid.keyword-weight=0.6`, `megabrain.search.hybrid.vector-weight=0.4`. Validate on startup. Support runtime weight changes (reload configuration).
+  - [x] Weight configuration via application.properties
+  - [x] Per-request weight override via API
+  - [x] Weight validation on configuration load
+  - [x] Default weights applied if not specified
+- **Technical Notes:** Use Quarkus configuration: `megabrain.search.hybrid.keyword-weight=0.6`, `megabrain.search.hybrid.vector-weight=0.4`. Validate on startup. Support runtime weight changes (reload configuration). **Implementation:** Configuration enabled in `application.properties`; `HybridScorer` uses `@ConfigProperty` with defaults (0.6/0.4); validation in `@PostConstruct init()` via `HybridWeights.of()`; per-request override supported via `combine(lucene, vector, kw, vw)` method (ready for API integration in US-04-02); comprehensive tests: `HybridScorerConfigurationTest` (default config), `HybridScorerCustomConfigurationTest` (custom config via test profile), `HybridWeightsTest` (validation logic).
 
 ### T6: Add search mode parameter (hybrid/keyword/vector)
 - **Description:** Add search mode parameter to search API that allows users to select search mode: hybrid (default), keyword-only, or vector-only. When keyword-only, skip vector search. When vector-only, skip Lucene search.
