@@ -77,14 +77,14 @@
 - **Description:** Add search mode parameter to search API that allows users to select search mode: hybrid (default), keyword-only, or vector-only. When keyword-only, skip vector search. When vector-only, skip Lucene search.
 - **Estimated Hours:** 3 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T4 (needs result merging)
 - **Acceptance Criteria:**
-  - [ ] Search mode parameter added to API
-  - [ ] hybrid mode uses both searches
-  - [ ] keyword mode uses only Lucene
-  - [ ] vector mode uses only vector search
-- **Technical Notes:** Add `mode` query parameter to search API. Enum values: HYBRID, KEYWORD, VECTOR. Default to HYBRID. Update API documentation.
+  - [x] Search mode parameter added to API
+  - [x] hybrid mode uses both searches
+  - [x] keyword mode uses only Lucene
+  - [x] vector mode uses only vector search
+- **Technical Notes:** Add `mode` query parameter to search API. Enum values: HYBRID, KEYWORD, VECTOR. Default to HYBRID. Update API documentation. **Implementation:** Created `SearchMode` enum (HYBRID, KEYWORD, VECTOR) in `io.megabrain.core`; updated `HybridIndexService` with `search(query, limit, mode)` method that conditionally executes Lucene and/or vector searches based on mode; handles zero/negative limits gracefully; comprehensive unit tests (11 tests) covering all modes, edge cases, and datasource unavailability scenarios.
 
 ### T7: Write unit tests for ranking algorithm
 - **Description:** Create comprehensive unit tests for hybrid ranking algorithm. Test score normalization, weighted combination, result merging, deduplication, and different search modes. Use mock search results for testing.

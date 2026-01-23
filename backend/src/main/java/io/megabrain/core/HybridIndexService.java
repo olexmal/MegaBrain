@@ -36,10 +36,17 @@ public class HybridIndexService implements IndexService {
     IndexService luceneIndexService;
 
     @Inject
+    @IndexType(IndexType.Type.LUCENE)
+    LuceneIndexService luceneService;
+
+    @Inject
     EmbeddingService embeddingService;
 
     @Inject
     PgVectorStore vectorStore;
+
+    @Inject
+    ResultMerger resultMerger;
 
     @PostConstruct
     void init() {
@@ -163,9 +170,82 @@ public class HybridIndexService implements IndexService {
     }
 
     /**
+     * Performs search with configurable mode (hybrid/keyword/vector) for hybrid ranking (US-02-03, T6).
+     * <p>
+     * Supports three modes:
+     * <ul>
+     *   <li>{@link SearchMode#HYBRID}: Executes both Lucene and vector searches, merges results</li>
+     *   <li>{@link SearchMode#KEYWORD}: Executes only Lucene search, skips vector search</li>
+     *   <li>{@link SearchMode#VECTOR}: Executes only vector search, skips Lucene search</li>
+     * </ul>
+     * <p>
+     * Results are normalized and merged (for HYBRID mode) using {@link ResultMerger}.
+     *
+     * @param query the search query string
+     * @param limit maximum number of results to return
+     * @param mode search mode (HYBRID, KEYWORD, or VECTOR)
+     * @return merged search results sorted by combined score
+     */
+    public Uni<List<ResultMerger.MergedResult>> search(String query, int limit, SearchMode mode) {
+        LOG.debugf("Performing %s search for query: %s", mode, query);
+
+        if (mode == null) {
+            mode = SearchMode.HYBRID; // Default to hybrid
+        }
+
+        // Handle zero or negative limit
+        if (limit <= 0) {
+            return Uni.createFrom().item(List.<ResultMerger.MergedResult>of());
+        }
+
+        boolean performLucene = (mode == SearchMode.HYBRID || mode == SearchMode.KEYWORD);
+        boolean performVector = (mode == SearchMode.HYBRID || mode == SearchMode.VECTOR);
+
+        // Execute Lucene search if needed
+        Uni<List<LuceneIndexService.LuceneScoredResult>> luceneUni;
+        if (performLucene) {
+            luceneUni = luceneService.searchWithScores(query, limit)
+                    .map(LuceneIndexService::normalizeScores);
+        } else {
+            luceneUni = Uni.createFrom().item(List.<LuceneIndexService.LuceneScoredResult>of());
+        }
+
+        // Execute vector search if needed
+        Uni<List<VectorStore.SearchResult>> vectorUni;
+        if (performVector) {
+            vectorUni = embeddingService.generateEmbedding(createQueryChunk(query))
+                    .flatMap(embeddingResult -> {
+                        if (!embeddingResult.isSuccess()) {
+                            LOG.warn("Failed to generate embedding for query, returning empty vector results");
+                            return Uni.createFrom().item(List.<VectorStore.SearchResult>of());
+                        }
+                        return vectorStore.search(embeddingResult.getEmbedding(), limit)
+                                .map(VectorScoreNormalizer::normalizeScores);
+                    });
+        } else {
+            vectorUni = Uni.createFrom().item(List.<VectorStore.SearchResult>of());
+        }
+
+        // Combine both searches and merge results
+        return Uni.combine().all().unis(luceneUni, vectorUni)
+                .asTuple()
+                .map(tuple -> {
+                    List<LuceneIndexService.LuceneScoredResult> luceneResults = tuple.getItem1();
+                    List<VectorStore.SearchResult> vectorResults = tuple.getItem2();
+                    return resultMerger.merge(luceneResults, vectorResults);
+                });
+    }
+
+    /**
      * Performs hybrid search combining keyword and semantic similarity.
      * This is an extension method beyond the basic IndexService interface.
+     * <p>
+     * This method is deprecated in favor of {@link #search(String, int, SearchMode)}.
+     * It defaults to {@link SearchMode#HYBRID} mode.
+     *
+     * @deprecated Use {@link #search(String, int, SearchMode)} instead
      */
+    @Deprecated
     public Uni<HybridSearchResult> hybridSearch(String query, int limit) {
         LOG.debugf("Performing hybrid search for query: %s", query);
 
