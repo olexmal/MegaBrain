@@ -7,6 +7,7 @@ package io.megabrain.core;
 
 import io.megabrain.ingestion.parser.TextChunk;
 import io.smallrye.mutiny.Uni;
+import jakarta.annotation.Priority;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -24,6 +25,7 @@ import java.util.stream.Collectors;
  * This service provides both traditional keyword-based search through Lucene and
  * semantic similarity search through vector embeddings stored in pgvector.
  */
+@Priority(1)
 @Alternative
 @IndexType(IndexType.Type.HYBRID)
 @ApplicationScoped
@@ -251,20 +253,19 @@ public class HybridIndexService implements IndexService {
 
         // For now, implement semantic search using the query as text to embed
         return embeddingService.generateEmbedding(createQueryChunk(query))
-                .map(embeddingResult -> {
+                .flatMap(embeddingResult -> {
                     if (!embeddingResult.isSuccess()) {
                         LOG.warn("Failed to generate embedding for query, returning empty results");
-                        return new HybridSearchResult(List.of(), List.of());
+                        return Uni.createFrom().item(new HybridSearchResult(List.of(), List.of()));
                     }
 
                     // Search vectors
-                    List<VectorStore.SearchResult> vectorResults = vectorStore.search(
-                        embeddingResult.getEmbedding(), limit)
-                        .await().indefinitely();
-
-                    // TODO: Also search Lucene for keyword matches
-                    // For now, return only vector results
-                    return new HybridSearchResult(vectorResults, List.of());
+                    return vectorStore.search(embeddingResult.getEmbedding(), limit)
+                            .map(vectorResults -> {
+                                // TODO: Also search Lucene for keyword matches
+                                // For now, return only vector results
+                                return new HybridSearchResult(vectorResults, List.of());
+                            });
                 });
     }
 

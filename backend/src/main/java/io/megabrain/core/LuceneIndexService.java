@@ -7,6 +7,7 @@ package io.megabrain.core;
 
 import io.megabrain.ingestion.parser.TextChunk;
 import io.smallrye.mutiny.Uni;
+import jakarta.annotation.Priority;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -43,6 +44,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * It provides thread-safe operations for indexing, searching, and managing
  * code chunks with proper lifecycle management.
  */
+@Priority(1)
 @Alternative
 @IndexType(IndexType.Type.LUCENE)
 @ApplicationScoped
