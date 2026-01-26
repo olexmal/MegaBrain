@@ -7,6 +7,7 @@ package io.megabrain.api;
 
 import io.megabrain.core.HybridIndexService;
 import io.megabrain.core.ResultMerger;
+import io.megabrain.core.SearchFilters;
 import io.megabrain.core.SearchMode;
 import io.megabrain.core.VectorStore;
 import io.smallrye.mutiny.Uni;
@@ -27,6 +28,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.when;
 
 /**
@@ -52,7 +54,7 @@ class SearchResourceTest {
         // Given
         String query = "authentication";
         List<ResultMerger.MergedResult> mockResults = createMockMergedResults(2);
-        when(hybridIndexService.search(eq(query), anyInt(), eq(SearchMode.HYBRID)))
+        when(hybridIndexService.search(eq(query), anyInt(), eq(SearchMode.HYBRID), nullable(SearchFilters.class)))
                 .thenReturn(Uni.createFrom().item(mockResults));
 
         // When
@@ -73,7 +75,7 @@ class SearchResourceTest {
         String query = "service";
         List<String> languages = List.of("java", "python");
         List<ResultMerger.MergedResult> mockResults = createMockMergedResults(1);
-        when(hybridIndexService.search(eq(query), anyInt(), any(SearchMode.class)))
+        when(hybridIndexService.search(eq(query), anyInt(), any(SearchMode.class), any(SearchFilters.class)))
                 .thenReturn(Uni.createFrom().item(mockResults));
 
         // When
@@ -95,7 +97,7 @@ class SearchResourceTest {
         List<String> filePaths = List.of("src/main");
         List<String> entityTypes = List.of("class");
         List<ResultMerger.MergedResult> mockResults = createMockMergedResults(1);
-        when(hybridIndexService.search(anyString(), anyInt(), any(SearchMode.class)))
+        when(hybridIndexService.search(anyString(), anyInt(), any(SearchMode.class), any(SearchFilters.class)))
                 .thenReturn(Uni.createFrom().item(mockResults));
 
         // When
@@ -113,7 +115,7 @@ class SearchResourceTest {
         String query = "query";
         List<String> languages = List.of("java", "python", "typescript");
         List<ResultMerger.MergedResult> mockResults = createMockMergedResults(0);
-        when(hybridIndexService.search(anyString(), anyInt(), any(SearchMode.class)))
+        when(hybridIndexService.search(anyString(), anyInt(), any(SearchMode.class), any(SearchFilters.class)))
                 .thenReturn(Uni.createFrom().item(mockResults));
 
         // When
@@ -190,7 +192,7 @@ class SearchResourceTest {
         // Given
         String query = "test";
         List<ResultMerger.MergedResult> mockResults = createMockMergedResults(1);
-        when(hybridIndexService.search(eq(query), anyInt(), eq(SearchMode.KEYWORD)))
+        when(hybridIndexService.search(eq(query), anyInt(), eq(SearchMode.KEYWORD), nullable(SearchFilters.class)))
                 .thenReturn(Uni.createFrom().item(mockResults));
 
         // When
@@ -207,7 +209,7 @@ class SearchResourceTest {
         // Given
         String query = "test";
         List<ResultMerger.MergedResult> mockResults = createMockMergedResults(1);
-        when(hybridIndexService.search(eq(query), anyInt(), eq(SearchMode.HYBRID)))
+        when(hybridIndexService.search(eq(query), anyInt(), eq(SearchMode.HYBRID), nullable(SearchFilters.class)))
                 .thenReturn(Uni.createFrom().item(mockResults));
 
         // When
@@ -224,7 +226,7 @@ class SearchResourceTest {
         // Given
         String query = "test";
         List<ResultMerger.MergedResult> mockResults = createMockMergedResults(10);
-        when(hybridIndexService.search(anyString(), anyInt(), any(SearchMode.class)))
+        when(hybridIndexService.search(anyString(), anyInt(), any(SearchMode.class), nullable(SearchFilters.class)))
                 .thenReturn(Uni.createFrom().item(mockResults));
 
         // When
@@ -245,7 +247,7 @@ class SearchResourceTest {
     void search_withServiceFailure_shouldReturnInternalServerError() {
         // Given
         String query = "test";
-        when(hybridIndexService.search(anyString(), anyInt(), any(SearchMode.class)))
+        when(hybridIndexService.search(anyString(), anyInt(), any(SearchMode.class), nullable(SearchFilters.class)))
                 .thenReturn(Uni.createFrom().failure(new RuntimeException("Search failed")));
 
         // When
@@ -265,7 +267,7 @@ class SearchResourceTest {
         String query = "test";
         List<String> emptyList = new ArrayList<>();
         List<ResultMerger.MergedResult> mockResults = createMockMergedResults(1);
-        when(hybridIndexService.search(anyString(), anyInt(), any(SearchMode.class)))
+        when(hybridIndexService.search(anyString(), anyInt(), any(SearchMode.class), nullable(SearchFilters.class)))
                 .thenReturn(Uni.createFrom().item(mockResults));
 
         // When

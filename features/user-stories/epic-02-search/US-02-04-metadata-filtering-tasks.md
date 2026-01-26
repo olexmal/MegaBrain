@@ -31,15 +31,22 @@
 - **Description:** Implement Lucene filter queries for metadata fields. Create TermQuery or BooleanQuery filters for language, repository, file_path (prefix), and entity_type. Apply filters before scoring for efficiency.
 - **Estimated Hours:** 4 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T1 (needs filter parameters), US-02-01 (needs Lucene index)
 - **Acceptance Criteria:**
-  - [ ] Language filter implemented
-  - [ ] Repository filter implemented
-  - [ ] File path prefix filter implemented
-  - [ ] Entity type filter implemented
-  - [ ] Filters applied before scoring
+  - [x] Language filter implemented
+  - [x] Repository filter implemented
+  - [x] File path prefix filter implemented
+  - [x] Entity type filter implemented
+  - [x] Filters applied before scoring
 - **Technical Notes:** Use Lucene's TermQuery for exact matches, PrefixQuery for path prefixes. Combine multiple filters with BooleanQuery (MUST clauses). Use Filter API for efficiency (filters don't affect scoring).
+- **Implementation Notes:**
+  - Added `SearchFilters` record in core for filter data (language, repository, file_path, entity_type).
+  - Added `LuceneFilterQueryBuilder` to build filter BooleanQuery (TermQuery for exact, PrefixQuery for path prefix; OR within dimension, AND across dimensions).
+  - Extended `LuceneIndexService.searchWithScores` with optional `SearchFilters`; combines main query with filter as `BooleanClause.Occur.FILTER` so filtering runs before scoring.
+  - Extended `HybridIndexService.search` to accept and pass `SearchFilters` to Lucene; vector search does not apply filters.
+  - Updated `SearchResource` to build `SearchFilters` from `SearchRequest` and pass to search.
+  - Unit tests: `LuceneFilterQueryBuilderTest`, filter integration tests in `LuceneIndexServiceTest`; `SearchResourceTest` mocks updated for 4-arg `search`.
 
 ### T3: Implement facet aggregation
 - **Description:** Implement facet aggregation to compute available filter values and their counts. Use Lucene's Facets API to aggregate values for language, repository, entity_type fields. Return facet information in search response.

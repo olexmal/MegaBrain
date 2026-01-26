@@ -173,6 +173,19 @@ public class HybridIndexService implements IndexService {
 
     /**
      * Performs search with configurable mode (hybrid/keyword/vector) for hybrid ranking (US-02-03, T6).
+     * No metadata filters are applied. Use {@link #search(String, int, SearchMode, SearchFilters)} for filtered search.
+     *
+     * @param query the search query string
+     * @param limit maximum number of results to return
+     * @param mode search mode (HYBRID, KEYWORD, or VECTOR)
+     * @return merged search results sorted by combined score
+     */
+    public Uni<List<ResultMerger.MergedResult>> search(String query, int limit, SearchMode mode) {
+        return search(query, limit, mode, null);
+    }
+
+    /**
+     * Performs search with configurable mode and optional metadata filters (US-02-04, T2).
      * <p>
      * Supports three modes:
      * <ul>
@@ -181,15 +194,20 @@ public class HybridIndexService implements IndexService {
      *   <li>{@link SearchMode#VECTOR}: Executes only vector search, skips Lucene search</li>
      * </ul>
      * <p>
+     * When filters are present, Lucene search applies them (language, repository, file_path, entity_type)
+     * before scoring. Vector search does not apply filters.
+     * <p>
      * Results are normalized and merged (for HYBRID mode) using {@link ResultMerger}.
      *
      * @param query the search query string
      * @param limit maximum number of results to return
      * @param mode search mode (HYBRID, KEYWORD, or VECTOR)
+     * @param filters optional metadata filters; null or empty to skip
      * @return merged search results sorted by combined score
      */
-    public Uni<List<ResultMerger.MergedResult>> search(String query, int limit, SearchMode mode) {
-        LOG.debugf("Performing %s search for query: %s", mode, query);
+    public Uni<List<ResultMerger.MergedResult>> search(String query, int limit, SearchMode mode, SearchFilters filters) {
+        LOG.debugf("Performing %s search for query: %s%s", mode, query,
+                filters != null && filters.hasFilters() ? " (with filters)" : "");
 
         if (mode == null) {
             mode = SearchMode.HYBRID; // Default to hybrid
@@ -203,10 +221,10 @@ public class HybridIndexService implements IndexService {
         boolean performLucene = (mode == SearchMode.HYBRID || mode == SearchMode.KEYWORD);
         boolean performVector = (mode == SearchMode.HYBRID || mode == SearchMode.VECTOR);
 
-        // Execute Lucene search if needed
+        // Execute Lucene search if needed (with filters when present)
         Uni<List<LuceneIndexService.LuceneScoredResult>> luceneUni;
         if (performLucene) {
-            luceneUni = luceneService.searchWithScores(query, limit)
+            luceneUni = luceneService.searchWithScores(query, limit, filters)
                     .map(LuceneIndexService::normalizeScores);
         } else {
             luceneUni = Uni.createFrom().item(List.<LuceneIndexService.LuceneScoredResult>of());
