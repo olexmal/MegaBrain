@@ -959,6 +959,125 @@ class LuceneIndexServiceTest {
         assertThat(scoredResults).isEmpty();
     }
 
+    // ===== FILTER INTEGRATION TESTS (US-02-04, T2) =====
+
+    @Test
+    void testSearchWithScores_languageFilter() {
+        List<TextChunk> chunks = List.of(
+                createTestChunk("JavaClass", ENTITY_TYPE_CLASS, "java", TEST_FILE_1, "public class JavaClass"),
+                createTestChunk("PythonClass", ENTITY_TYPE_CLASS, "python", TEST_FILE_2, "class PythonClass:")
+        );
+        indexService.addChunks(chunks).await().indefinitely();
+
+        SearchFilters filters = new SearchFilters(List.of("java"), List.of(), List.of(), List.of());
+        List<LuceneIndexService.LuceneScoredResult> results =
+                indexService.searchWithScores("entity_name:JavaClass", 10, filters).await().indefinitely();
+
+        assertThat(results).hasSize(1);
+        assertThat(results.get(0).document().get(LuceneSchema.FIELD_LANGUAGE)).isEqualTo("java");
+    }
+
+    @Test
+    void testSearchWithScores_entityTypeFilter() {
+        List<TextChunk> chunks = List.of(
+                createTestChunk(TEST_CLASS_NAME, ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_1, TEST_CLASS_CONTENT),
+                createTestChunk(TEST_METHOD_NAME, ENTITY_TYPE_METHOD, LANGUAGE_JAVA, TEST_FILE_1, TEST_METHOD_CONTENT)
+        );
+        indexService.addChunks(chunks).await().indefinitely();
+
+        SearchFilters filters = new SearchFilters(List.of(), List.of(), List.of(), List.of("class"));
+        List<LuceneIndexService.LuceneScoredResult> results =
+                indexService.searchWithScores("entity_name:TestClass", 10, filters).await().indefinitely();
+
+        assertThat(results).hasSize(1);
+        assertThat(results.get(0).document().get(LuceneSchema.FIELD_ENTITY_TYPE)).isEqualTo("class");
+    }
+
+    @Test
+    void testSearchWithScores_filePathPrefixFilter() {
+        String path = "src/main/java/Foo.java";
+        List<TextChunk> chunks = List.of(
+                createTestChunk("Foo", ENTITY_TYPE_CLASS, LANGUAGE_JAVA, path, "public class Foo"),
+                createTestChunk("Bar", ENTITY_TYPE_CLASS, LANGUAGE_JAVA, "test/java/Bar.java", "public class Bar")
+        );
+        indexService.addChunks(chunks).await().indefinitely();
+
+        SearchFilters filters = new SearchFilters(List.of(), List.of(), List.of("src/main"), List.of());
+        List<LuceneIndexService.LuceneScoredResult> results =
+                indexService.searchWithScores("entity_name:Foo", 10, filters).await().indefinitely();
+
+        assertThat(results).hasSize(1);
+        assertThat(results.get(0).document().get(LuceneSchema.FIELD_FILE_PATH)).isEqualTo(path);
+    }
+
+    @Test
+    void testSearchWithScores_repositoryFilter() {
+        String pathWithRepo = "/home/user/projects/myproject/src/main/java/RepoClass.java";
+        List<TextChunk> chunks = List.of(
+                createTestChunk("RepoClass", ENTITY_TYPE_CLASS, LANGUAGE_JAVA, pathWithRepo, "public class RepoClass"),
+                createTestChunk("OtherClass", ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_1, "public class OtherClass")
+        );
+        indexService.addChunks(chunks).await().indefinitely();
+
+        SearchFilters filters = new SearchFilters(List.of(), List.of("myproject"), List.of(), List.of());
+        List<LuceneIndexService.LuceneScoredResult> results =
+                indexService.searchWithScores("entity_name:RepoClass", 10, filters).await().indefinitely();
+
+        assertThat(results).hasSize(1);
+        assertThat(results.get(0).document().get(LuceneSchema.FIELD_REPOSITORY)).isEqualTo("myproject");
+    }
+
+    @Test
+    void testSearchWithScores_combinedFilters() {
+        List<TextChunk> chunks = List.of(
+                createTestChunk("JavaClass", ENTITY_TYPE_CLASS, "java", TEST_FILE_1, "public class JavaClass"),
+                createTestChunk("JavaMethod", ENTITY_TYPE_METHOD, "java", TEST_FILE_1, "void run()"),
+                createTestChunk("PythonClass", ENTITY_TYPE_CLASS, "python", TEST_FILE_2, "class PythonClass:")
+        );
+        indexService.addChunks(chunks).await().indefinitely();
+
+        SearchFilters filters = new SearchFilters(
+                List.of("java"), List.of(), List.of(), List.of("class"));
+        List<LuceneIndexService.LuceneScoredResult> results =
+                indexService.searchWithScores("entity_name:JavaClass", 10, filters).await().indefinitely();
+
+        assertThat(results).hasSize(1);
+        assertThat(results.get(0).document().get(LuceneSchema.FIELD_LANGUAGE)).isEqualTo("java");
+        assertThat(results.get(0).document().get(LuceneSchema.FIELD_ENTITY_TYPE)).isEqualTo("class");
+    }
+
+    @Test
+    void testSearchWithScores_filterExcludesAll() {
+        List<TextChunk> chunks = List.of(
+                createTestChunk("JavaClass", ENTITY_TYPE_CLASS, "java", TEST_FILE_1, "public class JavaClass")
+        );
+        indexService.addChunks(chunks).await().indefinitely();
+
+        SearchFilters filters = new SearchFilters(List.of("python"), List.of(), List.of(), List.of());
+        List<LuceneIndexService.LuceneScoredResult> results =
+                indexService.searchWithScores("class", 10, filters).await().indefinitely();
+
+        assertThat(results).isEmpty();
+    }
+
+    @Test
+    void testSearchWithScores_nullFiltersSameAsNoFilters() {
+        List<TextChunk> chunks = List.of(
+                createTestChunk(TEST_CLASS_NAME, ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_1, TEST_CLASS_CONTENT)
+        );
+        indexService.addChunks(chunks).await().indefinitely();
+
+        List<LuceneIndexService.LuceneScoredResult> withNull =
+                indexService.searchWithScores("entity_name:TestClass", 10, null).await().indefinitely();
+        List<LuceneIndexService.LuceneScoredResult> noFilters =
+                indexService.searchWithScores("entity_name:TestClass", 10).await().indefinitely();
+
+        assertThat(withNull).hasSize(1);
+        assertThat(noFilters).hasSize(1);
+        assertThat(withNull.get(0).document().get(LuceneSchema.FIELD_ENTITY_NAME))
+                .isEqualTo(noFilters.get(0).document().get(LuceneSchema.FIELD_ENTITY_NAME));
+    }
+
     /**
      * Test-specific subclass to allow injection of test directory.
      */

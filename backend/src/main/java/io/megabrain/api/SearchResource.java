@@ -8,6 +8,7 @@ package io.megabrain.api;
 import io.megabrain.core.HybridIndexService;
 import io.megabrain.core.IndexType;
 import io.megabrain.core.ResultMerger;
+import io.megabrain.core.SearchFilters;
 import io.megabrain.core.SearchMode;
 import io.smallrye.mutiny.Uni;
 import jakarta.inject.Inject;
@@ -139,8 +140,16 @@ public class SearchResource {
                     searchRequest.getQuery(), searchRequest.hasFilters() ? "present" : "none",
                     searchRequest.getLimit(), searchRequest.getOffset(), searchMode);
 
-            // Perform search (filters will be applied in T2)
-            return hybridIndexService.search(searchRequest.getQuery(), searchRequest.getLimit(), searchMode)
+            SearchFilters filters = searchRequest.hasFilters()
+                    ? new SearchFilters(
+                            searchRequest.getLanguages(),
+                            searchRequest.getRepositories(),
+                            searchRequest.getFilePaths(),
+                            searchRequest.getEntityTypes())
+                    : null;
+
+            return hybridIndexService.search(
+                    searchRequest.getQuery(), searchRequest.getLimit(), searchMode, filters)
                     .map(mergedResults -> {
                         long tookMs = System.currentTimeMillis() - startTime;
 

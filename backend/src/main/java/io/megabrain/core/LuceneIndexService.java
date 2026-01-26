@@ -21,7 +21,10 @@ import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.Term;
+import org.apache.lucene.search.BooleanClause;
+import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.Directory;
@@ -536,13 +539,38 @@ public class LuceneIndexService implements IndexService {
      * @return list of scored search results
      */
     public Uni<List<LuceneScoredResult>> searchWithScores(String queryString, int maxResults) {
+        return searchWithScores(queryString, maxResults, null);
+    }
+
+    /**
+     * Searches the index with optional metadata filters and returns results with raw Lucene scores (US-02-04, T2).
+     * <p>
+     * When filters are present, builds a filter query (TermQuery for language, repository, entity_type;
+     * PrefixQuery for file_path) and applies it as a {@link BooleanClause.Occur#FILTER} clause so that
+     * filtering runs before scoring and does not affect relevance scores.
+     *
+     * @param queryString the search query with full Lucene syntax support
+     * @param maxResults maximum number of results to return
+     * @param filters optional metadata filters (language, repository, file_path, entity_type); null or empty to skip
+     * @return list of scored search results
+     */
+    public Uni<List<LuceneScoredResult>> searchWithScores(String queryString, int maxResults, SearchFilters filters) {
         return queryParser.parseQuery(queryString)
                 .flatMap(parsedQuery -> Uni.createFrom().item(() -> {
                     lock.readLock().lock();
                     try (IndexReader reader = DirectoryReader.open(directory)) {
                         IndexSearcher searcher = new IndexSearcher(reader);
+                        Query searchQuery = parsedQuery;
 
-                        TopDocs topDocs = searcher.search(parsedQuery, maxResults);
+                        var filterOpt = LuceneFilterQueryBuilder.build(filters);
+                        if (filterOpt.isPresent()) {
+                            BooleanQuery.Builder builder = new BooleanQuery.Builder();
+                            builder.add(parsedQuery, BooleanClause.Occur.MUST);
+                            builder.add(filterOpt.get(), BooleanClause.Occur.FILTER);
+                            searchQuery = builder.build();
+                        }
+
+                        TopDocs topDocs = searcher.search(searchQuery, maxResults);
 
                         List<LuceneScoredResult> results = new java.util.ArrayList<>();
                         for (var scoreDoc : topDocs.scoreDocs) {
@@ -551,7 +579,7 @@ public class LuceneIndexService implements IndexService {
                         }
 
                         LOG.debugf("Found %d scored results for parsed query: %s -> %s",
-                                 results.size(), queryString, parsedQuery);
+                                 results.size(), queryString, searchQuery);
                         return results;
                     } catch (org.apache.lucene.index.IndexNotFoundException e) {
                         // Index doesn't exist yet or is empty
