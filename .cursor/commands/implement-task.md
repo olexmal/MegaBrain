@@ -58,12 +58,11 @@ Use this checklist to track progress through the implementation process:
 - Achieve >80% test coverage
 
 ### Compilation & Test Verification Phase
-- Verify compilation succeeds: `mvn compile test-compile`
-- Run unit tests: `mvn test -Dtest=TestClass`
+- During development: Run specific tests as needed: `mvn test -Dtest=TestClass`
 - Fix any compilation errors (imports, syntax, AssertJ issues)
 - Fix any test failures (assertions, mocking, logic errors)
+- **MANDATORY (Final Validation)**: Compile whole backend: `mvn clean install`
 - Verify test coverage meets requirements
-- Run integration tests if applicable
 
 ### Documentation & Completion Phase
 - Update task status in user story files (mark as completed)
@@ -195,10 +194,10 @@ class ServiceTest {
 **Input:** Implementation and tests
 
 **Activities:**
-- Verify compilation succeeds: `mvn compile test-compile`
-- Run unit tests: `mvn test -Dtest=TestClass`
+- During development: Run specific tests as needed: `mvn test -Dtest=TestClass`
 - Fix compilation errors (imports, syntax, AssertJ issues)
 - Fix test failures (assertions, mocking, logic)
+- **MANDATORY (Final Validation)**: Compile whole backend: `mvn clean install`
 - Verify coverage meets requirements
 
 **Common Fixes:**
@@ -242,7 +241,7 @@ class ServiceTest {
 
 ## Success Criteria
 
-- [ ] **Code Compiles**: `mvn compile` succeeds
+- [ ] **Code Compiles**: `mvn clean install` succeeds
 - [ ] **Tests Pass**: `mvn test` passes all tests
 - [ ] **Coverage**: >80% test coverage achieved
 - [ ] **Requirements**: All acceptance criteria met
