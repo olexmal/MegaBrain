@@ -5,12 +5,15 @@
 
 package io.megabrain.api;
 
+import io.megabrain.core.FacetValue;
 import io.megabrain.core.HybridIndexService;
 import io.megabrain.core.IndexType;
+import io.megabrain.core.LuceneIndexService;
 import io.megabrain.core.ResultMerger;
 import io.megabrain.core.SearchFilters;
 import io.megabrain.core.SearchMode;
 import io.smallrye.mutiny.Uni;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import jakarta.inject.Inject;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -26,6 +29,7 @@ import org.apache.lucene.document.Document;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -45,10 +49,16 @@ public class SearchResource {
     private static final Logger LOG = Logger.getLogger(SearchResource.class);
 
     private final HybridIndexService hybridIndexService;
+    private final LuceneIndexService luceneIndexService;
+
+    @ConfigProperty(name = "megabrain.search.facets.limit", defaultValue = "10")
+    int facetLimit;
 
     @Inject
-    public SearchResource(@IndexType(IndexType.Type.HYBRID) HybridIndexService hybridIndexService) {
+    public SearchResource(@IndexType(IndexType.Type.HYBRID) HybridIndexService hybridIndexService,
+                          @IndexType(IndexType.Type.LUCENE) LuceneIndexService luceneIndexService) {
         this.hybridIndexService = hybridIndexService;
+        this.luceneIndexService = luceneIndexService;
     }
 
     /**
@@ -148,10 +158,20 @@ public class SearchResource {
                             searchRequest.getEntityTypes())
                     : null;
 
-            return hybridIndexService.search(
-                    searchRequest.getQuery(), searchRequest.getLimit(), searchMode, filters)
-                    .map(mergedResults -> {
+            Uni<Map<String, List<FacetValue>>> facetsUni = searchMode == SearchMode.VECTOR
+                    ? Uni.createFrom().item(Map.of())
+                    : luceneIndexService.computeFacets(searchRequest.getQuery(), filters, facetLimit)
+                        .onFailure().recoverWithItem(Map.of());
+
+            return Uni.combine().all().unis(
+                            hybridIndexService.search(
+                                    searchRequest.getQuery(), searchRequest.getLimit(), searchMode, filters),
+                            facetsUni)
+                    .asTuple()
+                    .map(tuple -> {
                         long tookMs = System.currentTimeMillis() - startTime;
+                        List<ResultMerger.MergedResult> mergedResults = tuple.getItem1();
+                        Map<String, List<FacetValue>> facets = tuple.getItem2();
 
                         // Convert merged results to SearchResult DTOs
                         List<SearchResult> results = mergedResults.stream()
@@ -174,7 +194,8 @@ public class SearchResource {
                                 page,
                                 searchRequest.getLimit(),
                                 searchRequest.getQuery(),
-                                tookMs
+                                tookMs,
+                                facets
                         );
 
                         LOG.infof("Search completed: query='%s', results=%d, total=%d, took=%d ms",

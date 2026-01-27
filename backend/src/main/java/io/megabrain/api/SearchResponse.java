@@ -6,8 +6,10 @@
 package io.megabrain.api;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.megabrain.core.FacetValue;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Represents a paginated search response containing multiple search results.
@@ -35,6 +37,9 @@ public class SearchResponse {
     @JsonProperty("took_ms")
     private final long tookMs;
 
+    @JsonProperty("facets")
+    private final Map<String, List<FacetValue>> facets;
+
     // Default constructor for Jackson deserialization
     public SearchResponse() {
         this.results = List.of();
@@ -43,6 +48,7 @@ public class SearchResponse {
         this.size = 10;
         this.query = "";
         this.tookMs = 0;
+        this.facets = Map.of();
     }
 
     /**
@@ -63,6 +69,29 @@ public class SearchResponse {
         this.size = size;
         this.query = query;
         this.tookMs = tookMs;
+        this.facets = Map.of();
+    }
+
+    /**
+     * Creates a new SearchResponse with facet aggregation.
+     *
+     * @param results the list of search results for this page
+     * @param total the total number of matching results across all pages
+     * @param page the current page number (0-based)
+     * @param size the number of results per page
+     * @param query the original search query
+     * @param tookMs the time taken for the search in milliseconds
+     * @param facets facet counts by field name
+     */
+    public SearchResponse(List<SearchResult> results, long total, int page, int size,
+                          String query, long tookMs, Map<String, List<FacetValue>> facets) {
+        this.results = results != null ? List.copyOf(results) : List.of();
+        this.total = total;
+        this.page = page;
+        this.size = size;
+        this.query = query;
+        this.tookMs = tookMs;
+        this.facets = facets != null ? Map.copyOf(facets) : Map.of();
     }
 
     public List<SearchResult> getResults() {
@@ -89,6 +118,10 @@ public class SearchResponse {
         return tookMs;
     }
 
+    public Map<String, List<FacetValue>> getFacets() {
+        return facets;
+    }
+
     public boolean hasNextPage() {
         return size > 0 && (page + 1) * size < total;
     }
@@ -110,6 +143,7 @@ public class SearchResponse {
                 ", size=" + size +
                 ", query='" + query + '\'' +
                 ", tookMs=" + tookMs +
+                ", facets=" + (facets != null ? facets.keySet() : "none") +
                 ", totalPages=" + getTotalPages() +
                 '}';
     }

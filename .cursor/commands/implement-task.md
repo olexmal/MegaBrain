@@ -69,6 +69,7 @@ Use this checklist to track progress through the implementation process:
 - Mark all acceptance criteria as completed
 - Add implementation notes and technical details
 - Update API documentation if applicable
+- **MANDATORY:** Run the relevant test suite(s) before marking tasks as complete by compiling whole backend: `mvn clean install`
 - Verify all requirements and success criteria are met
 - Commit changes following Git workflow standards
 
