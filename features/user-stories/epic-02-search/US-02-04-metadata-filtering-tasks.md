@@ -52,15 +52,27 @@
 - **Description:** Implement facet aggregation to compute available filter values and their counts. Use Lucene's Facets API to aggregate values for language, repository, entity_type fields. Return facet information in search response.
 - **Estimated Hours:** 5 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T2 (needs filter queries), US-02-01 (needs Lucene index)
 - **Acceptance Criteria:**
-  - [ ] Facet aggregation for language field
-  - [ ] Facet aggregation for repository field
-  - [ ] Facet aggregation for entity_type field
-  - [ ] Facet counts returned in response
-  - [ ] Facet computation is efficient
+  - [x] Facet aggregation for language field
+  - [x] Facet aggregation for repository field
+  - [x] Facet aggregation for entity_type field
+  - [x] Facet counts returned in response
+  - [x] Facet computation is efficient
 - **Technical Notes:** Use Lucene's Facets API with SortedSetDocValuesFacetCounts. Aggregate top N values per field. Cache facet results if possible. Include facet counts in SearchResponse DTO.
+- **Implementation Notes:**
+  - Added facet doc values fields for language, repository, entity_type in `DocumentMapper` using `SortedSetDocValuesFacetField` and indexed via `FacetsConfig`.
+  - Implemented facet aggregation in `LuceneIndexService.computeFacets` using `SortedSetDocValuesFacetCounts` with `FacetsCollector` pattern:
+    - Creates `FacetsCollector` to collect matching documents
+    - Uses `DefaultSortedSetDocValuesReaderState` with `FacetsConfig` to create facet state
+    - Computes counts using `SortedSetDocValuesFacetCounts`
+    - Extracts top N facet values per field using `getTopChildren`
+  - Added `FacetValue` DTO (value, count) and included facets in `SearchResponse` and `SearchResource`.
+  - Facets are computed based on the search query and optional filters, returning counts for matching documents only.
+  - Comprehensive unit tests added: basic facets, facets with filters, empty index, maxFacetValues limit, facets with queries, zero maxFacetValues.
+  - Fixed issue: Replaced incorrect `FacetsCollectorManager.search()` API usage with standard `FacetsCollector` pattern.
+  - Always returns consistent map structure with all facet keys (language, repository, entity_type) even for empty indexes.
 
 ### T4: Optimize filter application before scoring
 - **Description:** Optimize filter application to run before expensive scoring operations. Use Lucene's Filter API which applies filters efficiently using bitsets. Ensure filters don't impact search performance significantly.

@@ -16,6 +16,13 @@ import jakarta.inject.Inject;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
+import org.apache.lucene.facet.FacetResult;
+import org.apache.lucene.facet.Facets;
+import org.apache.lucene.facet.FacetsCollector;
+import org.apache.lucene.facet.FacetsConfig;
+import org.apache.lucene.facet.LabelAndValue;
+import org.apache.lucene.facet.sortedset.DefaultSortedSetDocValuesReaderState;
+import org.apache.lucene.facet.sortedset.SortedSetDocValuesFacetCounts;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
@@ -24,6 +31,7 @@ import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TopDocs;
@@ -37,6 +45,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -67,6 +76,7 @@ public class LuceneIndexService implements IndexService {
     private Directory directory;
     private Analyzer analyzer;
     private IndexWriter indexWriter;
+    private FacetsConfig facetsConfig;
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
 
     @Inject
@@ -87,6 +97,7 @@ public class LuceneIndexService implements IndexService {
             // Initialize Lucene components
             this.directory = new NIOFSDirectory(indexPath);
             this.analyzer = new CodeAwareAnalyzer();
+            this.facetsConfig = buildFacetsConfig();
 
             IndexWriterConfig config = new IndexWriterConfig(analyzer);
             config.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND);
@@ -178,7 +189,7 @@ public class LuceneIndexService implements IndexService {
 
                     for (TextChunk chunk : batch) {
                         Document doc = DocumentMapper.toDocumentWithId(chunk);
-                        indexWriter.addDocument(doc);
+                        indexWriter.addDocument(facetsConfig.build(doc));
                         LOG.tracef("Added chunk: %s", DocumentMapper.generateDocumentId(chunk));
                     }
 
@@ -329,7 +340,7 @@ public class LuceneIndexService implements IndexService {
                 Term term = new Term(LuceneSchema.FIELD_DOCUMENT_ID, documentId);
 
                 LOG.tracef("Updating document: %s", documentId);
-                indexWriter.updateDocument(term, doc);
+                indexWriter.updateDocument(term, facetsConfig.build(doc));
                 indexWriter.commit();
 
                 LOG.debugf("Successfully updated document: %s", documentId);
@@ -394,7 +405,7 @@ public class LuceneIndexService implements IndexService {
                         Document doc = DocumentMapper.toDocumentWithId(chunk);
                         Term term = new Term(LuceneSchema.FIELD_DOCUMENT_ID, documentId);
 
-                        indexWriter.updateDocument(term, doc);
+                        indexWriter.updateDocument(term, facetsConfig.build(doc));
                         LOG.tracef("Updated document: %s", documentId);
                     }
 
@@ -560,15 +571,8 @@ public class LuceneIndexService implements IndexService {
                     lock.readLock().lock();
                     try (IndexReader reader = DirectoryReader.open(directory)) {
                         IndexSearcher searcher = new IndexSearcher(reader);
-                        Query searchQuery = parsedQuery;
-
-                        var filterOpt = LuceneFilterQueryBuilder.build(filters);
-                        if (filterOpt.isPresent()) {
-                            BooleanQuery.Builder builder = new BooleanQuery.Builder();
-                            builder.add(parsedQuery, BooleanClause.Occur.MUST);
-                            builder.add(filterOpt.get(), BooleanClause.Occur.FILTER);
-                            searchQuery = builder.build();
-                        }
+                        Query baseQuery = normalizeFacetQuery(parsedQuery);
+                        Query searchQuery = buildFilteredQuery(baseQuery, filters);
 
                         TopDocs topDocs = searcher.search(searchQuery, maxResults);
 
@@ -592,6 +596,115 @@ public class LuceneIndexService implements IndexService {
                         lock.readLock().unlock();
                     }
                 }));
+    }
+
+    /**
+     * Computes facet counts for metadata fields (US-02-04, T3).
+     *
+     * @param queryString the search query string
+     * @param filters optional metadata filters (language, repository, file_path, entity_type)
+     * @param maxFacetValues maximum number of facet values to return per field
+     * @return map of facet field -> list of facet values with counts
+     */
+    public Uni<Map<String, List<FacetValue>>> computeFacets(String queryString,
+                                                            SearchFilters filters,
+                                                            int maxFacetValues) {
+        if (maxFacetValues <= 0) {
+            return Uni.createFrom().item(Map.of());
+        }
+
+        return queryParser.parseQuery(queryString)
+                .flatMap(parsedQuery -> Uni.createFrom().item(() -> {
+                    lock.readLock().lock();
+                    try {
+                        // Open a fresh reader to ensure we see the latest committed changes
+                        IndexReader reader = DirectoryReader.open(directory);
+                        try {
+                            IndexSearcher searcher = new IndexSearcher(reader);
+                            Query searchQuery = buildFilteredQuery(parsedQuery, filters);
+
+                            // Create a FacetsCollector to collect matching documents
+                            FacetsCollector facetsCollector = new FacetsCollector();
+                            searcher.search(searchQuery, facetsCollector);
+
+                            // Create facet state and compute counts
+                            DefaultSortedSetDocValuesReaderState state =
+                                    new DefaultSortedSetDocValuesReaderState(reader, facetsConfig);
+                            Facets facets = new SortedSetDocValuesFacetCounts(state, facetsCollector);
+                            
+                            Map<String, List<FacetValue>> result = Map.of(
+                                    LuceneSchema.FIELD_LANGUAGE, extractFacetValues(facets, LuceneSchema.FIELD_LANGUAGE, maxFacetValues),
+                                    LuceneSchema.FIELD_REPOSITORY, extractFacetValues(facets, LuceneSchema.FIELD_REPOSITORY, maxFacetValues),
+                                    LuceneSchema.FIELD_ENTITY_TYPE, extractFacetValues(facets, LuceneSchema.FIELD_ENTITY_TYPE, maxFacetValues)
+                            );
+                            
+                            LOG.debugf("Computed facets for query '%s': language=%d, repository=%d, entity_type=%d",
+                                    queryString,
+                                    result.get(LuceneSchema.FIELD_LANGUAGE).size(),
+                                    result.get(LuceneSchema.FIELD_REPOSITORY).size(),
+                                    result.get(LuceneSchema.FIELD_ENTITY_TYPE).size());
+                            
+                            return result;
+                        } finally {
+                            reader.close();
+                        }
+                    } catch (org.apache.lucene.index.IndexNotFoundException e) {
+                        LOG.debugf("Index not found for facets on query: %s, returning empty facets", queryString);
+                        return Map.of(
+                                LuceneSchema.FIELD_LANGUAGE, List.<FacetValue>of(),
+                                LuceneSchema.FIELD_REPOSITORY, List.<FacetValue>of(),
+                                LuceneSchema.FIELD_ENTITY_TYPE, List.<FacetValue>of()
+                        );
+                    } catch (IOException e) {
+                        LOG.error("Error computing facets", e);
+                        throw new RuntimeException("Failed to compute facets", e);
+                    } finally {
+                        lock.readLock().unlock();
+                    }
+                }));
+    }
+
+    private FacetsConfig buildFacetsConfig() {
+        FacetsConfig config = new FacetsConfig();
+        config.setMultiValued(LuceneSchema.FIELD_LANGUAGE, false);
+        config.setMultiValued(LuceneSchema.FIELD_REPOSITORY, false);
+        config.setMultiValued(LuceneSchema.FIELD_ENTITY_TYPE, false);
+        return config;
+    }
+
+    private Query buildFilteredQuery(Query parsedQuery, SearchFilters filters) {
+        Query searchQuery = parsedQuery;
+        var filterOpt = LuceneFilterQueryBuilder.build(filters);
+        if (filterOpt.isPresent()) {
+            BooleanQuery.Builder builder = new BooleanQuery.Builder();
+            builder.add(parsedQuery, BooleanClause.Occur.MUST);
+            builder.add(filterOpt.get(), BooleanClause.Occur.FILTER);
+            searchQuery = builder.build();
+        }
+        return searchQuery;
+    }
+
+    private Query normalizeFacetQuery(Query parsedQuery) {
+        if (parsedQuery == null) {
+            return new MatchAllDocsQuery();
+        }
+        String queryString = parsedQuery.toString();
+        if (queryString == null || queryString.isBlank()) {
+            return new MatchAllDocsQuery();
+        }
+        return parsedQuery;
+    }
+
+    private List<FacetValue> extractFacetValues(Facets facets, String fieldName, int maxFacetValues) throws IOException {
+        FacetResult facetResult = facets.getTopChildren(maxFacetValues, fieldName);
+        if (facetResult == null || facetResult.labelValues == null) {
+            return List.of();
+        }
+        List<FacetValue> values = new java.util.ArrayList<>();
+        for (LabelAndValue labelAndValue : facetResult.labelValues) {
+            values.add(new FacetValue(labelAndValue.label, labelAndValue.value.longValue()));
+        }
+        return values;
     }
 
     /**

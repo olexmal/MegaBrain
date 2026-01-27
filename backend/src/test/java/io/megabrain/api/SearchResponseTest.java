@@ -6,9 +6,11 @@
 package io.megabrain.api;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.megabrain.core.FacetValue;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -39,9 +41,14 @@ class SearchResponseTest {
         );
         List<SearchResult> results = List.of(result1, result2);
 
+        Map<String, List<FacetValue>> facets = Map.of(
+                "language", List.of(new FacetValue("java", 120)),
+                "repository", List.of(new FacetValue("test-repo", 80))
+        );
+
         // When
         SearchResponse response = new SearchResponse(
-            results, 150, 0, TEST_SIZE, TEST_QUERY, TEST_TOOK_MS
+            results, 150, 0, TEST_SIZE, TEST_QUERY, TEST_TOOK_MS, facets
         );
 
         // Then
@@ -51,6 +58,7 @@ class SearchResponseTest {
         assertThat(response.getSize()).isEqualTo(TEST_SIZE);
         assertThat(response.getQuery()).isEqualTo(TEST_QUERY);
         assertThat(response.getTookMs()).isEqualTo(TEST_TOOK_MS);
+        assertThat(response.getFacets()).isEqualTo(facets);
     }
 
     @Test
@@ -142,8 +150,11 @@ class SearchResponseTest {
             "file.java", "java", "repo",
             0.9f, lineRange, "summary"
         );
+        Map<String, List<FacetValue>> facets = Map.of(
+                "language", List.of(new FacetValue("java", 2))
+        );
         SearchResponse response = new SearchResponse(
-            List.of(result), 42, 1, 10, "test query", 123
+            List.of(result), 42, 1, 10, "test query", 123, facets
         );
 
         // When
@@ -156,6 +167,7 @@ class SearchResponseTest {
         assertThat(json).contains("\"size\":10");
         assertThat(json).contains("\"query\":\"test query\"");
         assertThat(json).contains("\"took_ms\":123");
+        assertThat(json).contains("\"facets\"");
     }
 
     @Test
@@ -178,7 +190,10 @@ class SearchResponseTest {
                 "page": 0,
                 "size": 20,
                 "query": "sample search",
-                "took_ms": 67
+                "took_ms": 67,
+                "facets": {
+                    "language": [{"value": "java", "count": 1}]
+                }
             }
             """;
 
@@ -194,6 +209,7 @@ class SearchResponseTest {
         assertThat(response.getSize()).isEqualTo(20);
         assertThat(response.getQuery()).isEqualTo("sample search");
         assertThat(response.getTookMs()).isEqualTo(67);
+        assertThat(response.getFacets()).containsKey("language");
     }
 
     @Test
@@ -202,7 +218,7 @@ class SearchResponseTest {
         SearchResult result1 = new SearchResult("code1", "e1", "t1", "f1", "lang", "repo", 1.0f, new LineRange(1, 1), null);
         SearchResult result2 = new SearchResult("code2", "e2", "t2", "f2", "lang", "repo", 2.0f, new LineRange(2, 2), null);
         SearchResponse response = new SearchResponse(
-            List.of(result1, result2), 75, 1, 25, "complex query", 89
+            List.of(result1, result2), 75, 1, 25, "complex query", 89, Map.of()
         );
 
         // When

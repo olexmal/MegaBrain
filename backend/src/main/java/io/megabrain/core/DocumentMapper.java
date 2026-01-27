@@ -8,6 +8,7 @@ package io.megabrain.core;
 import io.megabrain.ingestion.parser.TextChunk;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
+import org.apache.lucene.facet.sortedset.SortedSetDocValuesFacetField;
 
 /**
  * Utility class for mapping TextChunk objects to Lucene Documents.
@@ -42,6 +43,11 @@ public final class DocumentMapper {
         String repository = LuceneSchema.extractRepositoryFromPath(chunk.sourceFile());
         doc.add(new Field(LuceneSchema.FIELD_REPOSITORY, repository, LuceneSchema.KEYWORD_FIELD_TYPE));
 
+        // Facet fields for aggregation (US-02-04, T3)
+        addFacetValue(doc, LuceneSchema.FIELD_LANGUAGE, chunk.language());
+        addFacetValue(doc, LuceneSchema.FIELD_REPOSITORY, repository);
+        addFacetValue(doc, LuceneSchema.FIELD_ENTITY_TYPE, chunk.entityType());
+
         // Line and byte information (stored only)
         doc.add(new Field(LuceneSchema.FIELD_START_LINE, String.valueOf(chunk.startLine()), LuceneSchema.STORED_ONLY_FIELD_TYPE));
         doc.add(new Field(LuceneSchema.FIELD_END_LINE, String.valueOf(chunk.endLine()), LuceneSchema.STORED_ONLY_FIELD_TYPE));
@@ -66,6 +72,13 @@ public final class DocumentMapper {
         }
 
         return doc;
+    }
+
+    private static void addFacetValue(Document doc, String field, String value) {
+        if (value == null || value.isBlank()) {
+            return;
+        }
+        doc.add(new SortedSetDocValuesFacetField(field, value));
     }
 
     /**

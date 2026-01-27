@@ -6,6 +6,8 @@
 package io.megabrain.api;
 
 import io.megabrain.core.HybridIndexService;
+import io.megabrain.core.FacetValue;
+import io.megabrain.core.LuceneIndexService;
 import io.megabrain.core.ResultMerger;
 import io.megabrain.core.SearchFilters;
 import io.megabrain.core.SearchMode;
@@ -22,6 +24,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -29,6 +32,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.nullable;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 /**
@@ -41,12 +45,17 @@ class SearchResourceTest {
     @Mock
     private HybridIndexService hybridIndexService;
 
+    @Mock
+    private LuceneIndexService luceneIndexService;
+
     @InjectMocks
     private SearchResource searchResource;
 
     @BeforeEach
     void setUp() {
-        // Setup is handled by MockitoExtension
+        searchResource.facetLimit = 10;
+        lenient().when(luceneIndexService.computeFacets(anyString(), nullable(SearchFilters.class), anyInt()))
+                .thenReturn(Uni.createFrom().item(Map.of()));
     }
 
     @Test
@@ -56,6 +65,10 @@ class SearchResourceTest {
         List<ResultMerger.MergedResult> mockResults = createMockMergedResults(2);
         when(hybridIndexService.search(eq(query), anyInt(), eq(SearchMode.HYBRID), nullable(SearchFilters.class)))
                 .thenReturn(Uni.createFrom().item(mockResults));
+        when(luceneIndexService.computeFacets(eq(query), nullable(SearchFilters.class), anyInt()))
+                .thenReturn(Uni.createFrom().item(Map.of(
+                        "language", List.of(new FacetValue("java", 3))
+                )));
 
         // When
         Uni<Response> responseUni = searchResource.search(
@@ -67,6 +80,7 @@ class SearchResourceTest {
         SearchResponse searchResponse = (SearchResponse) response.getEntity();
         assertThat(searchResponse.getResults()).hasSize(2);
         assertThat(searchResponse.getQuery()).isEqualTo(query);
+        assertThat(searchResponse.getFacets()).containsKey("language");
     }
 
     @Test
