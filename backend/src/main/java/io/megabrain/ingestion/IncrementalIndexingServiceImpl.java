@@ -32,6 +32,10 @@ import java.util.Optional;
 @ApplicationScoped
 public class IncrementalIndexingServiceImpl implements IncrementalIndexingService {
 
+    private static final String NO_PARSER = "no parser";
+
+    private static final String PROCESSED = "Processed ";
+
     private static final Logger LOG = Logger.getLogger(IncrementalIndexingServiceImpl.class);
 
     private final GitDiffService gitDiffService;
@@ -101,25 +105,25 @@ public class IncrementalIndexingServiceImpl implements IncrementalIndexingServic
             // Process added files (T3)
             processedFiles += processAddedFilesWithProgress(repositoryPath, addedFiles, progressCallback);
             if (progressCallback != null) {
-                progressCallback.accept("Processed " + processedFiles + "/" + totalFiles + " files (added)");
+                progressCallback.accept(PROCESSED + processedFiles + "/" + totalFiles + " files (added)");
             }
 
             // Process modified files (T4)
             processedFiles += processModifiedFilesWithProgress(repositoryPath, modifiedFiles, progressCallback);
             if (progressCallback != null) {
-                progressCallback.accept("Processed " + processedFiles + "/" + totalFiles + " files (modified)");
+                progressCallback.accept(PROCESSED + processedFiles + "/" + totalFiles + " files (modified)");
             }
 
             // Process deleted files (T5)
             processedFiles += processDeletedFiles(repositoryPath, deletedFiles);
             if (progressCallback != null) {
-                progressCallback.accept("Processed " + processedFiles + "/" + totalFiles + " files (deleted)");
+                progressCallback.accept(PROCESSED + processedFiles + "/" + totalFiles + " files (deleted)");
             }
 
             // Process renamed files (T6)
             processedFiles += processRenamedFilesWithProgress(repositoryPath, renamedFiles, progressCallback);
             if (progressCallback != null) {
-                progressCallback.accept("Processed " + processedFiles + "/" + totalFiles + " files (renamed)");
+                progressCallback.accept(PROCESSED + processedFiles + "/" + totalFiles + " files (renamed)");
             }
 
             // Update the last indexed commit SHA after successful processing
@@ -173,7 +177,7 @@ public class IncrementalIndexingServiceImpl implements IncrementalIndexingServic
             Optional<CodeParser> parser = parserRegistry.findParser(newFilePath);
             if (parser.isEmpty()) {
                 LOG.debugf("No parser found for renamed file: %s", newFilePath);
-                reportProgress(progressCallback, processedCount, totalFiles, change.filePath(), "no parser");
+                reportProgress(progressCallback, processedCount, totalFiles, change.filePath(), NO_PARSER);
                 return;
             }
 
@@ -276,7 +280,7 @@ public class IncrementalIndexingServiceImpl implements IncrementalIndexingServic
             Optional<CodeParser> parser = parserRegistry.findParser(filePath);
             if (parser.isEmpty()) {
                 LOG.debugf("No parser found for modified file: %s", filePath);
-                reportProgress(progressCallback, processedCount, totalFiles, change.filePath(), "no parser");
+                reportProgress(progressCallback, processedCount, totalFiles, change.filePath(), NO_PARSER);
                 return;
             }
 
@@ -323,7 +327,7 @@ public class IncrementalIndexingServiceImpl implements IncrementalIndexingServic
         Optional<CodeParser> parser = parserRegistry.findParser(filePath);
         if (parser.isEmpty()) {
             LOG.debugf("No parser found for file: %s", filePath);
-            reportProgress(progressCallback, processedCount, totalFiles, change.filePath(), "no parser");
+            reportProgress(progressCallback, processedCount, totalFiles, change.filePath(), NO_PARSER);
             return List.of();
         }
 

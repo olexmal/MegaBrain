@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 /**
  * Unit tests for {@link HybridScorer}.
@@ -44,13 +45,13 @@ class HybridScorerTest {
     @Test
     void combine_defaultWeightsBothOne() {
         double s = hybridScorer.combine(1.0, 1.0);
-        assertThat(s).isEqualTo(1.0);
+        assertThat(s).isOne();
     }
 
     @Test
     void combine_defaultWeightsBothZero() {
         double s = hybridScorer.combine(0.0, 0.0);
-        assertThat(s).isEqualTo(0.0);
+        assertThat(s).isZero();
     }
 
     @Test
@@ -68,13 +69,13 @@ class HybridScorerTest {
     @Test
     void combine_perRequestOverrideKeywordOnly() {
         double s = hybridScorer.combine(1.0, 0.0, 1.0, 0.0);
-        assertThat(s).isEqualTo(1.0);
+        assertThat(s).isOne();
     }
 
     @Test
     void combine_perRequestOverrideVectorOnly() {
         double s = hybridScorer.combine(0.0, 1.0, 0.0, 1.0);
-        assertThat(s).isEqualTo(1.0);
+        assertThat(s).isOne();
     }
 
     @Test
@@ -100,7 +101,7 @@ class HybridScorerTest {
     @Test
     void combine_efficientNoAllocation() {
         for (int i = 0; i < 10_000; i++) {
-            hybridScorer.combine(0.3, 0.7);
+            assertDoesNotThrow(() -> hybridScorer.combine(0.3, 0.7));
         }
     }
 }
