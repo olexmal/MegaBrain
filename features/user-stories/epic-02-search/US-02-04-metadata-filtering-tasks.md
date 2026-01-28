@@ -100,14 +100,21 @@
 - **Description:** Extend SearchResponse DTO to include facet information. Include available filter values and their counts for each facet field. Format facets as JSON object with field names as keys.
 - **Estimated Hours:** 2 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T3 (needs facet aggregation)
 - **Acceptance Criteria:**
-  - [ ] Facet information in SearchResponse
-  - [ ] Facets formatted as JSON
-  - [ ] Includes value and count for each facet
-  - [ ] Response structure is clear
+  - [x] Facet information in SearchResponse
+  - [x] Facets formatted as JSON
+  - [x] Includes value and count for each facet
+  - [x] Response structure is clear
 - **Technical Notes:** Create FacetInfo DTO with field name, values, and counts. Include in SearchResponse. Use Jackson for JSON serialization. Example: `{"language": [{"value": "java", "count": 150}]}`.
+- **Implementation Notes:**
+  - SearchResponse DTO already includes `Map<String, List<FacetValue>> facets` field with proper Jackson serialization.
+  - SearchResource computes facets and includes them in response using the 7-parameter SearchResponse constructor.
+  - FacetValue record provides value and count fields for JSON serialization.
+  - JSON structure matches requirement: `{"language": [{"value": "java", "count": 150}]}`
+  - Unit tests in SearchResponseTest verify facet serialization and SearchResourceTest verifies facet integration.
+  - Facets are computed for Lucene search only (not vector search) and combined with search results asynchronously.
 
 ### T6: Write tests for each filter type
 - **Description:** Create comprehensive tests for each filter type (language, repository, file_path, entity_type). Test single filters, combined filters, and edge cases. Verify filters work correctly with search queries.
