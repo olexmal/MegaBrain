@@ -12,13 +12,13 @@
 - **Description:** Create a BoostConfiguration class that holds boost values for different index fields. Fields: entity_name, doc_summary, content. Load configuration from application.properties with defaults. Make configuration immutable and validated.
 - **Estimated Hours:** 2 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** US-02-01 (needs Lucene index)
 - **Acceptance Criteria:**
-  - [ ] BoostConfiguration class created
-  - [ ] Holds boost values for all fields
-  - [ ] Default values: entity_name=3.0, doc_summary=2.0, content=1.0
-  - [ ] Configuration is validated
+  - [x] BoostConfiguration class created
+  - [x] Holds boost values for all fields
+  - [x] Default values: entity_name=3.0, doc_summary=2.0, content=1.0
+  - [x] Configuration is validated
 - **Technical Notes:** Use Quarkus configuration. Create @ConfigProperties class. Validate boost values are positive. Use Java record for immutability if possible.
 
 ### T2: Load boosts from application.properties
