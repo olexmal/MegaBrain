@@ -13,13 +13,13 @@
 
 ## Acceptance Criteria
 
-- [ ] **AC1:** Filter by `language` (Java, Python, etc.)
-- [ ] **AC2:** Filter by `repository` name
-- [ ] **AC3:** Filter by `file_path` (prefix match)
-- [ ] **AC4:** Filter by `entity_type` (class, method, function)
-- [ ] **AC5:** Filters combinable with AND logic
-- [ ] **AC6:** Filters applied efficiently before ranking
-- [ ] **AC7:** Available filter values returned as facets
+- [x] **AC1:** Filter by `language` (Java, Python, etc.)
+- [x] **AC2:** Filter by `repository` name
+- [x] **AC3:** Filter by `file_path` (prefix match)
+- [x] **AC4:** Filter by `entity_type` (class, method, function)
+- [x] **AC5:** Filters combinable with AND logic
+- [x] **AC6:** Filters applied efficiently before ranking
+- [x] **AC7:** Available filter values returned as facets
 
 ---
 
@@ -56,12 +56,12 @@
 
 ## Technical Tasks
 
-- [ ] **T1:** Add filter parameters to search API (backend)
-- [ ] **T2:** Implement Lucene filter queries (backend)
-- [ ] **T3:** Implement facet aggregation (backend)
-- [ ] **T4:** Optimize filter application before scoring (backend)
-- [ ] **T5:** Add facet counts to response (backend)
-- [ ] **T6:** Write tests for each filter type (test)
+- [x] **T1:** Add filter parameters to search API (backend)
+- [x] **T2:** Implement Lucene filter queries (backend)
+- [x] **T3:** Implement facet aggregation (backend)
+- [x] **T4:** Optimize filter application before scoring (backend)
+- [x] **T5:** Add facet counts to response (backend)
+- [x] **T6:** Write tests for each filter type (test)
 
 ---
 
