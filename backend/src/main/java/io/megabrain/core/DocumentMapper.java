@@ -12,7 +12,7 @@ import org.apache.lucene.facet.sortedset.SortedSetDocValuesFacetField;
 
 /**
  * Utility class for mapping TextChunk objects to Lucene Documents.
- *
+ * <p>
  * This class handles the conversion of TextChunk objects into Lucene Documents
  * with proper field mapping and metadata extraction. It encapsulates all
  * document creation logic for better testability and maintainability.
@@ -92,8 +92,8 @@ public final class DocumentMapper {
         return String.format("%s:%s:%d:%d",
                 chunk.sourceFile(),
                 chunk.entityName(),
-                (int) chunk.startLine(),
-                (int) chunk.endLine());
+                chunk.startLine(),
+                chunk.endLine());
     }
 
     /**

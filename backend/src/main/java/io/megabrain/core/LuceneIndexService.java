@@ -15,7 +15,6 @@ import jakarta.enterprise.inject.Alternative;
 import jakarta.inject.Inject;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Field;
 import org.apache.lucene.facet.FacetResult;
 import org.apache.lucene.facet.Facets;
 import org.apache.lucene.facet.FacetsCollector;
@@ -24,6 +23,7 @@ import org.apache.lucene.facet.LabelAndValue;
 import org.apache.lucene.facet.sortedset.DefaultSortedSetDocValuesReaderState;
 import org.apache.lucene.facet.sortedset.SortedSetDocValuesFacetCounts;
 import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexNotFoundException;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
@@ -33,7 +33,6 @@ import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.Query;
-import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.NIOFSDirectory;
@@ -46,12 +45,14 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * Lucene-based implementation of IndexService for high-performance code search.
- *
+ * <p>
  * This service manages a Lucene index for storing and searching TextChunks.
  * It provides thread-safe operations for indexing, searching, and managing
  * code chunks with proper lifecycle management.
@@ -78,6 +79,9 @@ public class LuceneIndexService implements IndexService {
     private IndexWriter indexWriter;
     private FacetsConfig facetsConfig;
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
+    
+    // Cache for filter queries to avoid rebuilding them for repeated filter combinations (US-02-04, T4)
+    private final Map<SearchFilters, Query> filterQueryCache = new ConcurrentHashMap<>();
 
     @Inject
     QueryParserService queryParser;
@@ -318,7 +322,7 @@ public class LuceneIndexService implements IndexService {
      */
     public Uni<Void> updateChunksForFileBatch(String filePath, List<TextChunk> newChunks, int batchSize) {
         return removeChunksForFile(filePath)
-                .flatMap(removedCount -> {
+                .flatMap(_ -> {
                     LOG.debugf("Updating %d chunks for file: %s", newChunks.size(), filePath);
                     return addChunksBatch(newChunks, batchSize);
                 });
@@ -462,7 +466,7 @@ public class LuceneIndexService implements IndexService {
                         LOG.debugf("Found %d results for parsed query: %s -> %s",
                                  results.size(), queryString, parsedQuery);
                         return results;
-                    } catch (org.apache.lucene.index.IndexNotFoundException e) {
+                    } catch (IndexNotFoundException e) {
                         // Index doesn't exist yet or is empty
                         LOG.debugf("Index not found for query: %s, returning empty results", queryString);
                         return java.util.Collections.emptyList();
@@ -524,7 +528,7 @@ public class LuceneIndexService implements IndexService {
                         reader.maxDoc(),
                         reader.numDeletedDocs()
                 );
-            } catch (org.apache.lucene.index.IndexNotFoundException e) {
+            } catch (IndexNotFoundException e) {
                 // Index doesn't exist yet, return empty stats
                 return new IndexStats(0, 0, 0);
             } catch (IOException e) {
@@ -554,11 +558,14 @@ public class LuceneIndexService implements IndexService {
     }
 
     /**
-     * Searches the index with optional metadata filters and returns results with raw Lucene scores (US-02-04, T2).
+     * Searches the index with optional metadata filters and returns results with raw Lucene scores (US-02-04, T2, T4).
      * <p>
      * When filters are present, builds a filter query (TermQuery for language, repository, entity_type;
      * PrefixQuery for file_path) and applies it as a {@link BooleanClause.Occur#FILTER} clause so that
      * filtering runs before scoring and does not affect relevance scores.
+     * <p>
+     * Filter queries are cached for reuse to optimize performance (US-02-04, T4). Filter application
+     * uses efficient bitset operations internally and is profiled to ensure <50ms overhead.
      *
      * @param queryString the search query with full Lucene syntax support
      * @param maxResults maximum number of results to return
@@ -568,13 +575,20 @@ public class LuceneIndexService implements IndexService {
     public Uni<List<LuceneScoredResult>> searchWithScores(String queryString, int maxResults, SearchFilters filters) {
         return queryParser.parseQuery(queryString)
                 .flatMap(parsedQuery -> Uni.createFrom().item(() -> {
+                    long startTime = System.nanoTime();
                     lock.readLock().lock();
                     try (IndexReader reader = DirectoryReader.open(directory)) {
                         IndexSearcher searcher = new IndexSearcher(reader);
                         Query baseQuery = normalizeFacetQuery(parsedQuery);
-                        Query searchQuery = buildFilteredQuery(baseQuery, filters);
-
+                        
+                        // Build filtered query with caching and performance profiling (US-02-04, T4)
+                        long filterStartTime = System.nanoTime();
+                        Query searchQuery = buildFilteredQueryOptimized(baseQuery, filters);
+                        long filterBuildTime = (System.nanoTime() - filterStartTime) / 1_000_000;
+                        
+                        long searchStartTime = System.nanoTime();
                         TopDocs topDocs = searcher.search(searchQuery, maxResults);
+                        long searchTime = (System.nanoTime() - searchStartTime) / 1_000_000;
 
                         List<LuceneScoredResult> results = new java.util.ArrayList<>();
                         for (var scoreDoc : topDocs.scoreDocs) {
@@ -582,10 +596,24 @@ public class LuceneIndexService implements IndexService {
                             results.add(new LuceneScoredResult(doc, scoreDoc.score));
                         }
 
-                        LOG.debugf("Found %d scored results for parsed query: %s -> %s",
-                                 results.size(), queryString, searchQuery);
+                        long totalTime = (System.nanoTime() - startTime) / 1_000_000;
+                        
+                        // Log performance metrics (US-02-04, T4)
+                        if (filters != null && filters.hasFilters()) {
+                            LOG.debugf("Search with filters completed in %d ms (filter build: %d ms, search: %d ms) - query: %s, results: %d",
+                                    totalTime, filterBuildTime, searchTime, queryString, results.size());
+                            
+                            // Warn if filter overhead exceeds threshold
+                            if (filterBuildTime > 50) {
+                                LOG.warnf("Filter build time (%d ms) exceeds 50ms threshold for query: %s", filterBuildTime, queryString);
+                            }
+                        } else {
+                            LOG.debugf("Found %d scored results for parsed query: %s -> %s (total time: %d ms)",
+                                    results.size(), queryString, searchQuery, totalTime);
+                        }
+                        
                         return results;
-                    } catch (org.apache.lucene.index.IndexNotFoundException e) {
+                    } catch (IndexNotFoundException e) {
                         // Index doesn't exist yet or is empty
                         LOG.debugf("Index not found for query: %s, returning empty results", queryString);
                         return java.util.Collections.emptyList();
@@ -599,7 +627,9 @@ public class LuceneIndexService implements IndexService {
     }
 
     /**
-     * Computes facet counts for metadata fields (US-02-04, T3).
+     * Computes facet counts for metadata fields (US-02-04, T3, T4).
+     * <p>
+     * Uses optimized filter application with caching for performance (US-02-04, T4).
      *
      * @param queryString the search query string
      * @param filters optional metadata filters (language, repository, file_path, entity_type)
@@ -615,45 +645,48 @@ public class LuceneIndexService implements IndexService {
 
         return queryParser.parseQuery(queryString)
                 .flatMap(parsedQuery -> Uni.createFrom().item(() -> {
+                    long startTime = System.nanoTime();
                     lock.readLock().lock();
                     try {
                         // Open a fresh reader to ensure we see the latest committed changes
-                        IndexReader reader = DirectoryReader.open(directory);
-                        try {
+                        try (IndexReader reader = DirectoryReader.open(directory)) {
                             IndexSearcher searcher = new IndexSearcher(reader);
-                            Query searchQuery = buildFilteredQuery(parsedQuery, filters);
+                            
+                            // Use optimized filter building with caching (US-02-04, T4)
+                            long filterStartTime = System.nanoTime();
+                            Query searchQuery = buildFilteredQueryOptimized(parsedQuery, filters);
+                            long filterBuildTime = (System.nanoTime() - filterStartTime) / 1_000_000;
 
                             // Create a FacetsCollector to collect matching documents
+                            long searchStartTime = System.nanoTime();
                             FacetsCollector facetsCollector = new FacetsCollector();
                             searcher.search(searchQuery, facetsCollector);
+                            long searchTime = (System.nanoTime() - searchStartTime) / 1_000_000;
 
                             // Create facet state and compute counts
-                            DefaultSortedSetDocValuesReaderState state =
-                                    new DefaultSortedSetDocValuesReaderState(reader, facetsConfig);
+                            long facetStartTime = System.nanoTime();
+                            DefaultSortedSetDocValuesReaderState state = new DefaultSortedSetDocValuesReaderState(reader, facetsConfig);
                             Facets facets = new SortedSetDocValuesFacetCounts(state, facetsCollector);
+
+                            Map<String, List<FacetValue>> result = Map.of(LuceneSchema.FIELD_LANGUAGE, extractFacetValues(facets, LuceneSchema.FIELD_LANGUAGE, maxFacetValues), LuceneSchema.FIELD_REPOSITORY, extractFacetValues(facets, LuceneSchema.FIELD_REPOSITORY, maxFacetValues), LuceneSchema.FIELD_ENTITY_TYPE, extractFacetValues(facets, LuceneSchema.FIELD_ENTITY_TYPE, maxFacetValues));
+                            long facetTime = (System.nanoTime() - facetStartTime) / 1_000_000;
+
+                            long totalTime = (System.nanoTime() - startTime) / 1_000_000;
                             
-                            Map<String, List<FacetValue>> result = Map.of(
-                                    LuceneSchema.FIELD_LANGUAGE, extractFacetValues(facets, LuceneSchema.FIELD_LANGUAGE, maxFacetValues),
-                                    LuceneSchema.FIELD_REPOSITORY, extractFacetValues(facets, LuceneSchema.FIELD_REPOSITORY, maxFacetValues),
-                                    LuceneSchema.FIELD_ENTITY_TYPE, extractFacetValues(facets, LuceneSchema.FIELD_ENTITY_TYPE, maxFacetValues)
-                            );
-                            
-                            LOG.debugf("Computed facets for query '%s': language=%d, repository=%d, entity_type=%d",
-                                    queryString,
-                                    result.get(LuceneSchema.FIELD_LANGUAGE).size(),
-                                    result.get(LuceneSchema.FIELD_REPOSITORY).size(),
-                                    result.get(LuceneSchema.FIELD_ENTITY_TYPE).size());
-                            
+                            LOG.debugf("Computed facets for query '%s': language=%d, repository=%d, entity_type=%d (total: %d ms, filter: %d ms, search: %d ms, facet: %d ms)",
+                                    queryString, result.get(LuceneSchema.FIELD_LANGUAGE).size(), 
+                                    result.get(LuceneSchema.FIELD_REPOSITORY).size(), 
+                                    result.get(LuceneSchema.FIELD_ENTITY_TYPE).size(),
+                                    totalTime, filterBuildTime, searchTime, facetTime);
+
                             return result;
-                        } finally {
-                            reader.close();
                         }
-                    } catch (org.apache.lucene.index.IndexNotFoundException e) {
+                    } catch (IndexNotFoundException e) {
                         LOG.debugf("Index not found for facets on query: %s, returning empty facets", queryString);
                         return Map.of(
-                                LuceneSchema.FIELD_LANGUAGE, List.<FacetValue>of(),
-                                LuceneSchema.FIELD_REPOSITORY, List.<FacetValue>of(),
-                                LuceneSchema.FIELD_ENTITY_TYPE, List.<FacetValue>of()
+                                LuceneSchema.FIELD_LANGUAGE, List.of(),
+                                LuceneSchema.FIELD_REPOSITORY, List.of(),
+                                LuceneSchema.FIELD_ENTITY_TYPE, List.of()
                         );
                     } catch (IOException e) {
                         LOG.error("Error computing facets", e);
@@ -672,16 +705,44 @@ public class LuceneIndexService implements IndexService {
         return config;
     }
 
+    /**
+     * Builds a filtered query with optimized filter application (US-02-04, T4).
+     * <p>
+     * Uses cached filter queries when available to avoid rebuilding identical filters.
+     * Filters are applied using BooleanClause.Occur.FILTER which uses efficient bitset
+     * operations internally and applies filters before scoring.
+     *
+     * @param parsedQuery the base search query
+     * @param filters optional metadata filters
+     * @return the filtered query, or the original query if no filters
+     */
     private Query buildFilteredQuery(Query parsedQuery, SearchFilters filters) {
-        Query searchQuery = parsedQuery;
-        var filterOpt = LuceneFilterQueryBuilder.build(filters);
-        if (filterOpt.isPresent()) {
-            BooleanQuery.Builder builder = new BooleanQuery.Builder();
-            builder.add(parsedQuery, BooleanClause.Occur.MUST);
-            builder.add(filterOpt.get(), BooleanClause.Occur.FILTER);
-            searchQuery = builder.build();
+        return buildFilteredQueryOptimized(parsedQuery, filters);
+    }
+
+    /**
+     * Optimized version that caches filter queries for reuse (US-02-04, T4).
+     */
+    private Query buildFilteredQueryOptimized(Query parsedQuery, SearchFilters filters) {
+        if (filters == null || !filters.hasFilters()) {
+            return parsedQuery;
         }
-        return searchQuery;
+
+        // Get or build filter query with caching
+        Query filterQuery = filterQueryCache.computeIfAbsent(filters, f -> {
+            Optional<Query> filterOpt = LuceneFilterQueryBuilder.build(f);
+            return filterOpt.orElse(null);
+        });
+
+        if (filterQuery == null) {
+            return parsedQuery;
+        }
+
+        // Combine base query with filter using FILTER clause for efficient bitset-based filtering
+        BooleanQuery.Builder builder = new BooleanQuery.Builder();
+        builder.add(parsedQuery, BooleanClause.Occur.MUST);
+        builder.add(filterQuery, BooleanClause.Occur.FILTER);
+        return builder.build();
     }
 
     private Query normalizeFacetQuery(Query parsedQuery) {
@@ -721,7 +782,7 @@ public class LuceneIndexService implements IndexService {
 
         // Handle single result case - assign score of 1.0
         if (scoredResults.size() == 1) {
-            LuceneScoredResult result = scoredResults.get(0);
+            LuceneScoredResult result = scoredResults.getFirst();
             return List.of(new LuceneScoredResult(result.document(), 1.0f));
         }
 

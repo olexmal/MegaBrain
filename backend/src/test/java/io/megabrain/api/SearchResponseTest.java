@@ -54,7 +54,7 @@ class SearchResponseTest {
         // Then
         assertThat(response.getResults()).isEqualTo(results);
         assertThat(response.getTotal()).isEqualTo(150);
-        assertThat(response.getPage()).isEqualTo(0);
+        assertThat(response.getPage()).isZero();
         assertThat(response.getSize()).isEqualTo(TEST_SIZE);
         assertThat(response.getQuery()).isEqualTo(TEST_QUERY);
         assertThat(response.getTookMs()).isEqualTo(TEST_TOOK_MS);
@@ -68,15 +68,10 @@ class SearchResponseTest {
             List.of(), 0, 0, 10, "empty query", 12
         );
 
-        // Test with constants
-        SearchResponse constResponse = new SearchResponse(
-            List.of(), 150, 0, TEST_SIZE, TEST_QUERY, TEST_TOOK_MS
-        );
-
         // Then
         assertThat(response.getResults()).isEmpty();
-        assertThat(response.getTotal()).isEqualTo(0);
-        assertThat(response.getTotalPages()).isEqualTo(0);
+        assertThat(response.getTotal()).isZero();
+        assertThat(response.getTotalPages()).isZero();
     }
 
     @Test
@@ -136,7 +131,7 @@ class SearchResponseTest {
         );
 
         // Then
-        assertThat(response.getTotalPages()).isEqualTo(0);
+        assertThat(response.getTotalPages()).isZero();
         assertThat(response.hasNextPage()).isFalse();
         assertThat(response.hasPreviousPage()).isFalse();
     }
@@ -145,29 +140,22 @@ class SearchResponseTest {
     void shouldSerializeToJson() throws Exception {
         // Given
         LineRange lineRange = new LineRange(1, 3);
-        SearchResult result = new SearchResult(
-            "code snippet", "entity", "type",
-            "file.java", "java", "repo",
-            0.9f, lineRange, "summary"
-        );
-        Map<String, List<FacetValue>> facets = Map.of(
-                "language", List.of(new FacetValue("java", 2))
-        );
-        SearchResponse response = new SearchResponse(
-            List.of(result), 42, 1, 10, "test query", 123, facets
-        );
+        SearchResult result = new SearchResult("code snippet", "entity", "type", "file.java", "java", "repo", 0.9f, lineRange, "summary");
+        Map<String, List<FacetValue>> facets = Map.of("language", List.of(new FacetValue("java", 2)));
+        SearchResponse response = new SearchResponse(List.of(result), 42, 1, 10, "test query", 123, facets);
 
         // When
         String json = objectMapper.writeValueAsString(response);
 
         // Then
-        assertThat(json).contains("\"results\":[{");
-        assertThat(json).contains("\"total\":42");
-        assertThat(json).contains("\"page\":1");
-        assertThat(json).contains("\"size\":10");
-        assertThat(json).contains("\"query\":\"test query\"");
-        assertThat(json).contains("\"took_ms\":123");
-        assertThat(json).contains("\"facets\"");
+        assertThat(json)
+                .contains("\"results\":[{")
+                .contains("\"total\":42")
+                .contains("\"page\":1")
+                .contains("\"size\":10")
+                .contains("\"query\":\"test query\"")
+                .contains("\"took_ms\":123")
+                .contains("\"facets\"");
     }
 
     @Test
@@ -202,10 +190,10 @@ class SearchResponseTest {
 
         // Then
         assertThat(response.getResults()).hasSize(1);
-        assertThat(response.getResults().get(0).getContent()).isEqualTo("sample code");
-        assertThat(response.getResults().get(0).getEntityName()).isEqualTo("Sample");
-        assertThat(response.getTotal()).isEqualTo(1);
-        assertThat(response.getPage()).isEqualTo(0);
+        assertThat(response.getResults().getFirst().getContent()).isEqualTo("sample code");
+        assertThat(response.getResults().getFirst().getEntityName()).isEqualTo("Sample");
+        assertThat(response.getTotal()).isOne();
+        assertThat(response.getPage()).isZero();
         assertThat(response.getSize()).isEqualTo(20);
         assertThat(response.getQuery()).isEqualTo("sample search");
         assertThat(response.getTookMs()).isEqualTo(67);
