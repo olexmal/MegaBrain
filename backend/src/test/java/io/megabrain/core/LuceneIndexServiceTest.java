@@ -109,11 +109,7 @@ class LuceneIndexServiceTest {
 
     @Test
     void testRemoveChunksForNonExistentFile() {
-        // When
-        indexService.removeChunksForFile("/non/existent/file.java").await().indefinitely();
-
-        // Then
-        // Should complete without error even for non-existent files
+        assertDoesNotThrow(() -> indexService.removeChunksForFile("/non/existent/file.java").await().indefinitely());
     }
 
     @Test
@@ -793,8 +789,8 @@ class LuceneIndexServiceTest {
 
         // Then
         assertThat(normalized).hasSize(1);
-        assertThat(normalized.get(0).score()).isEqualTo(1.0f);
-        assertThat(normalized.get(0).document()).isSameAs(doc);
+        assertThat(normalized.getFirst().score()).isOne();
+        assertThat(normalized.getFirst().document()).isSameAs(doc);
     }
 
     @Test
@@ -823,13 +819,13 @@ class LuceneIndexServiceTest {
 
         // Check normalized scores: (score - min) / (max - min)
         // doc1: (0.5 - 0.5) / (1.0 - 0.5) = 0.0 / 0.5 = 0.0
-        assertThat(normalized.get(0).score()).isEqualTo(0.0f);
+        assertThat(normalized.get(0).score()).isZero();
 
         // doc2: (0.8 - 0.5) / (1.0 - 0.5) = 0.3 / 0.5 = 0.6
         assertThat(normalized.get(1).score()).isEqualTo(0.6f);
 
         // doc3: (1.0 - 0.5) / (1.0 - 0.5) = 0.5 / 0.5 = 1.0
-        assertThat(normalized.get(2).score()).isEqualTo(1.0f);
+        assertThat(normalized.get(2).score()).isOne();
     }
 
     @Test
@@ -850,9 +846,9 @@ class LuceneIndexServiceTest {
 
         // Then - all should get score 1.0 since they're equally relevant
         assertThat(normalized).hasSize(3);
-        assertThat(normalized.get(0).score()).isEqualTo(1.0f);
-        assertThat(normalized.get(1).score()).isEqualTo(1.0f);
-        assertThat(normalized.get(2).score()).isEqualTo(1.0f);
+        assertThat(normalized.get(0).score()).isOne();
+        assertThat(normalized.get(1).score()).isOne();
+        assertThat(normalized.get(2).score()).isOne();
     }
 
     @Test
@@ -871,8 +867,8 @@ class LuceneIndexServiceTest {
 
         // Then - normalization should handle zero scores correctly
         assertThat(normalized).hasSize(2);
-        assertThat(normalized.get(0).score()).isEqualTo(0.0f);  // (0.0 - 0.0) / (0.2 - 0.0) = 0.0
-        assertThat(normalized.get(1).score()).isEqualTo(1.0f);  // (0.2 - 0.0) / (0.2 - 0.0) = 1.0
+        assertThat(normalized.get(0).score()).isZero();  // (0.0 - 0.0) / (0.2 - 0.0) = 0.0
+        assertThat(normalized.get(1).score()).isOne();  // (0.2 - 0.0) / (0.2 - 0.0) = 1.0
     }
 
     @Test
@@ -891,8 +887,8 @@ class LuceneIndexServiceTest {
 
         // Then - should normalize correctly even with negative scores
         assertThat(normalized).hasSize(2);
-        assertThat(normalized.get(0).score()).isEqualTo(0.0f);  // (-0.1 - (-0.1)) / (0.9 - (-0.1)) = 0.0
-        assertThat(normalized.get(1).score()).isEqualTo(1.0f);  // (0.9 - (-0.1)) / (0.9 - (-0.1)) = 1.0
+        assertThat(normalized.get(0).score()).isZero();  // (-0.1 - (-0.1)) / (0.9 - (-0.1)) = 0.0
+        assertThat(normalized.get(1).score()).isOne();  // (0.9 - (-0.1)) / (0.9 - (-0.1)) = 1.0
     }
 
     @Test
@@ -919,13 +915,13 @@ class LuceneIndexServiceTest {
         // Then - order should be preserved, scores normalized
         assertThat(normalized).hasSize(3);
         assertThat(normalized.get(0).document().get("id")).isEqualTo("1");
-        assertThat(normalized.get(0).score()).isEqualTo(0.0f);  // (0.3 - 0.3) / (0.9 - 0.3) = 0.0
+        assertThat(normalized.get(0).score()).isZero();  // (0.3 - 0.3) / (0.9 - 0.3) = 0.0
 
         assertThat(normalized.get(1).document().get("id")).isEqualTo("2");
         assertThat(normalized.get(1).score()).isCloseTo(0.5f, Offset.offset(0.001f));  // (0.6 - 0.3) / (0.9 - 0.3) = 0.5
 
         assertThat(normalized.get(2).document().get("id")).isEqualTo("3");
-        assertThat(normalized.get(2).score()).isEqualTo(1.0f);  // (0.9 - 0.3) / (0.9 - 0.3) = 1.0
+        assertThat(normalized.get(2).score()).isOne();  // (0.9 - 0.3) / (0.9 - 0.3) = 1.0
     }
 
     @Test
@@ -945,8 +941,8 @@ class LuceneIndexServiceTest {
         // Then
         assertThat(scoredResults).isNotEmpty();
         // Score should be positive (Lucene gives scores > 0 for matches)
-        assertThat(scoredResults.get(0).score()).isGreaterThanOrEqualTo(0.0f);
-        assertThat(scoredResults.get(0).document().get(LuceneSchema.FIELD_ENTITY_NAME)).isEqualTo(TEST_CLASS_NAME);
+        assertThat(scoredResults.getFirst().score()).isGreaterThanOrEqualTo(0.0f);
+        assertThat(scoredResults.getFirst().document().get(LuceneSchema.FIELD_ENTITY_NAME)).isEqualTo(TEST_CLASS_NAME);
     }
 
     @Test
@@ -974,7 +970,7 @@ class LuceneIndexServiceTest {
                 indexService.searchWithScores("entity_name:JavaClass", 10, filters).await().indefinitely();
 
         assertThat(results).hasSize(1);
-        assertThat(results.get(0).document().get(LuceneSchema.FIELD_LANGUAGE)).isEqualTo("java");
+        assertThat(results.getFirst().document().get(LuceneSchema.FIELD_LANGUAGE)).isEqualTo("java");
     }
 
     @Test
@@ -990,7 +986,7 @@ class LuceneIndexServiceTest {
                 indexService.searchWithScores("entity_name:TestClass", 10, filters).await().indefinitely();
 
         assertThat(results).hasSize(1);
-        assertThat(results.get(0).document().get(LuceneSchema.FIELD_ENTITY_TYPE)).isEqualTo("class");
+        assertThat(results.getFirst().document().get(LuceneSchema.FIELD_ENTITY_TYPE)).isEqualTo("class");
     }
 
     @Test
@@ -1007,7 +1003,7 @@ class LuceneIndexServiceTest {
                 indexService.searchWithScores("entity_name:Foo", 10, filters).await().indefinitely();
 
         assertThat(results).hasSize(1);
-        assertThat(results.get(0).document().get(LuceneSchema.FIELD_FILE_PATH)).isEqualTo(path);
+        assertThat(results.getFirst().document().get(LuceneSchema.FIELD_FILE_PATH)).isEqualTo(path);
     }
 
     @Test
@@ -1024,7 +1020,7 @@ class LuceneIndexServiceTest {
                 indexService.searchWithScores("entity_name:RepoClass", 10, filters).await().indefinitely();
 
         assertThat(results).hasSize(1);
-        assertThat(results.get(0).document().get(LuceneSchema.FIELD_REPOSITORY)).isEqualTo("myproject");
+        assertThat(results.getFirst().document().get(LuceneSchema.FIELD_REPOSITORY)).isEqualTo("myproject");
     }
 
     @Test
@@ -1042,8 +1038,8 @@ class LuceneIndexServiceTest {
                 indexService.searchWithScores("entity_name:JavaClass", 10, filters).await().indefinitely();
 
         assertThat(results).hasSize(1);
-        assertThat(results.get(0).document().get(LuceneSchema.FIELD_LANGUAGE)).isEqualTo("java");
-        assertThat(results.get(0).document().get(LuceneSchema.FIELD_ENTITY_TYPE)).isEqualTo("class");
+        assertThat(results.getFirst().document().get(LuceneSchema.FIELD_LANGUAGE)).isEqualTo("java");
+        assertThat(results.getFirst().document().get(LuceneSchema.FIELD_ENTITY_TYPE)).isEqualTo("class");
     }
 
     @Test
@@ -1074,8 +1070,8 @@ class LuceneIndexServiceTest {
 
         assertThat(withNull).hasSize(1);
         assertThat(noFilters).hasSize(1);
-        assertThat(withNull.get(0).document().get(LuceneSchema.FIELD_ENTITY_NAME))
-                .isEqualTo(noFilters.get(0).document().get(LuceneSchema.FIELD_ENTITY_NAME));
+        assertThat(withNull.getFirst().document().get(LuceneSchema.FIELD_ENTITY_NAME))
+                .isEqualTo(noFilters.getFirst().document().get(LuceneSchema.FIELD_ENTITY_NAME));
     }
 
     @Test
@@ -1135,7 +1131,7 @@ class LuceneIndexServiceTest {
                 .filter(f -> "python".equals(f.value()))
                 .findFirst()
                 .orElseThrow()
-                .count()).isEqualTo(1); // One python document
+                .count()).isOne(); // One python document
     }
 
     @Test
@@ -1163,7 +1159,7 @@ class LuceneIndexServiceTest {
         assertThat(languageFacets)
                 .extracting(FacetValue::value)
                 .containsExactly("java"); // Only java, python filtered out
-        assertThat(languageFacets.get(0).count()).isEqualTo(2); // Two java documents
+        assertThat(languageFacets.getFirst().count()).isEqualTo(2); // Two java documents
     }
 
     @Test
@@ -1204,7 +1200,7 @@ class LuceneIndexServiceTest {
 
         List<FacetValue> languageFacets = facets.get(LuceneSchema.FIELD_LANGUAGE);
         // Should return at most 2 values
-        assertThat(languageFacets.size()).isLessThanOrEqualTo(2);
+        assertThat(languageFacets).hasSizeLessThanOrEqualTo(2);
     }
 
     @Test
@@ -1247,6 +1243,181 @@ class LuceneIndexServiceTest {
                 .await().indefinitely();
 
         assertThat(facets).isEmpty();
+    }
+
+    // ===== FILTER PERFORMANCE TESTS (US-02-04, T4) =====
+
+    @Test
+    void testFilterPerformance_overheadWithinThreshold() {
+        // Given: Create a larger index to test filter performance
+        List<TextChunk> chunks = new java.util.ArrayList<>();
+        for (int i = 0; i < 100; i++) {
+            String filePath = "/src/main/java/TestClass" + i + ".java";
+            chunks.add(createTestChunk("TestClass" + i, ENTITY_TYPE_CLASS, LANGUAGE_JAVA, filePath, "public class TestClass" + i));
+        }
+        indexService.addChunks(chunks).await().indefinitely();
+
+        SearchFilters filters = new SearchFilters(List.of("java"), List.of(), List.of(), List.of());
+
+        // When: Perform search without filters (baseline)
+        long startNoFilter = System.nanoTime();
+        List<LuceneIndexService.LuceneScoredResult> resultsNoFilter = 
+                indexService.searchWithScores("TestClass", 10).await().indefinitely();
+        long timeNoFilter = (System.nanoTime() - startNoFilter) / 1_000_000;
+
+        // Perform search with filters
+        long startWithFilter = System.nanoTime();
+        List<LuceneIndexService.LuceneScoredResult> resultsWithFilter = 
+                indexService.searchWithScores("TestClass", 10, filters).await().indefinitely();
+        long timeWithFilter = (System.nanoTime() - startWithFilter) / 1_000_000;
+
+        // Then: Filter overhead should be <50ms (US-02-04, T4)
+        long filterOverhead = timeWithFilter - timeNoFilter;
+        assertThat(filterOverhead)
+                .as("Filter overhead should be less than 50ms, but was %d ms", filterOverhead)
+                .isLessThan(50L);
+
+        // Results should be consistent (filters don't change results in this case since all docs match filter)
+        assertThat(resultsWithFilter).isNotEmpty();
+    }
+
+    @Test
+    void testFilterPerformance_cachedFilterReuse() {
+        // Given: Create index with multiple documents
+        List<TextChunk> chunks = new java.util.ArrayList<>();
+        for (int i = 0; i < 50; i++) {
+            String filePath = "/src/main/java/Class" + i + ".java";
+            chunks.add(createTestChunk("Class" + i, ENTITY_TYPE_CLASS, LANGUAGE_JAVA, filePath, "public class Class" + i));
+        }
+        indexService.addChunks(chunks).await().indefinitely();
+
+        SearchFilters filters = new SearchFilters(List.of("java"), List.of(), List.of(), List.of());
+
+        // When: Perform multiple searches with the same filter (should benefit from caching)
+        long firstSearchStart = System.nanoTime();
+        indexService.searchWithScores("Class", 10, filters).await().indefinitely();
+        long firstSearchTime = (System.nanoTime() - firstSearchStart) / 1_000_000;
+
+        // Second search should be faster due to filter query caching
+        long secondSearchStart = System.nanoTime();
+        indexService.searchWithScores("Class", 10, filters).await().indefinitely();
+        long secondSearchTime = (System.nanoTime() - secondSearchStart) / 1_000_000;
+
+        // Then: Second search should be at least as fast (caching helps, but not guaranteed due to JVM warmup)
+        // We just verify both searches complete successfully and overhead is acceptable
+        assertThat(firstSearchTime).isLessThan(100L); // First search should be reasonable
+        assertThat(secondSearchTime).isLessThan(100L); // Second search should be reasonable
+    }
+
+    @Test
+    void testFilterPerformance_combinedFilters() {
+        // Given: Create index with varied metadata
+        List<TextChunk> chunks = new java.util.ArrayList<>();
+        for (int i = 0; i < 50; i++) {
+            String repo = i % 2 == 0 ? "repo1" : "repo2";
+            String filePath = "/" + repo + "/src/main/java/Class" + i + ".java";
+            chunks.add(createTestChunk("Class" + i, ENTITY_TYPE_CLASS, LANGUAGE_JAVA, filePath, "public class Class" + i));
+        }
+        indexService.addChunks(chunks).await().indefinitely();
+
+        SearchFilters filters = new SearchFilters(
+                List.of("java"),
+                List.of("repo1"),
+                List.of(),
+                List.of()
+        );
+
+        // Warm up: perform searches to warm up JVM and cache the filter query
+        indexService.searchWithScores("Class", 10).await().indefinitely();
+        indexService.searchWithScores("Class", 10, filters).await().indefinitely(); // Cache the filter
+
+        // When: Measure overhead with cached filter
+        // Measure search without filter (baseline) - run multiple times for more stable measurement
+        long timeNoFilter = 0;
+        for (int i = 0; i < 3; i++) {
+            long startNoFilter = System.nanoTime();
+            indexService.searchWithScores("Class", 10).await().indefinitely();
+            timeNoFilter += (System.nanoTime() - startNoFilter) / 1_000_000;
+        }
+        timeNoFilter = timeNoFilter / 3; // Average
+
+        // Measure search with cached combined filters - run multiple times for more stable measurement
+        long timeWithFilter = 0;
+        for (int i = 0; i < 3; i++) {
+            long startWithFilter = System.nanoTime();
+            indexService.searchWithScores("Class", 10, filters).await().indefinitely();
+            timeWithFilter += (System.nanoTime() - startWithFilter) / 1_000_000;
+        }
+        timeWithFilter = timeWithFilter / 3; // Average
+
+        // Then: Combined filters overhead should be <50ms (US-02-04, T4)
+        long filterOverhead = timeWithFilter - timeNoFilter;
+        assertThat(filterOverhead)
+                .as("Combined filter overhead should be less than 50ms, but was %d ms (no filter avg: %d ms, with filter avg: %d ms)", 
+                        filterOverhead, timeNoFilter, timeWithFilter)
+                .isLessThan(50L);
+        
+        List<LuceneIndexService.LuceneScoredResult> results = 
+                indexService.searchWithScores("Class", 10, filters).await().indefinitely();
+        assertThat(results).isNotEmpty();
+    }
+
+    @Test
+    void testFilterPerformance_prefixFilter() {
+        // Given: Create index with varied file paths
+        List<TextChunk> chunks = new java.util.ArrayList<>();
+        for (int i = 0; i < 50; i++) {
+            String filePath = "/src/main/java/package" + (i % 5) + "/Class" + i + ".java";
+            chunks.add(createTestChunk("Class" + i, ENTITY_TYPE_CLASS, LANGUAGE_JAVA, filePath, "public class Class" + i));
+        }
+        indexService.addChunks(chunks).await().indefinitely();
+
+        SearchFilters filters = new SearchFilters(
+                List.of(),
+                List.of(),
+                List.of("/src/main/java/package0"),
+                List.of()
+        );
+
+        // Warm up: perform searches to warm up JVM and cache the filter query
+        indexService.searchWithScores("Class", 10).await().indefinitely();
+        indexService.searchWithScores("Class", 10, filters).await().indefinitely(); // Cache the filter
+
+        // When: Measure overhead with cached filter - run multiple times for more stable measurement
+        // Measure search without filter (baseline) - average over 3 runs
+        long timeNoFilter = 0;
+        for (int i = 0; i < 3; i++) {
+            long startNoFilter = System.nanoTime();
+            indexService.searchWithScores("Class", 10).await().indefinitely();
+            timeNoFilter += (System.nanoTime() - startNoFilter) / 1_000_000;
+        }
+        timeNoFilter = timeNoFilter / 3; // Average
+
+        // Measure search with cached filter - average over 3 runs
+        long timeWithFilter = 0;
+        for (int i = 0; i < 3; i++) {
+            long startWithFilter = System.nanoTime();
+            indexService.searchWithScores("Class", 10, filters).await().indefinitely();
+            timeWithFilter += (System.nanoTime() - startWithFilter) / 1_000_000;
+        }
+        timeWithFilter = timeWithFilter / 3; // Average
+
+        // Then: Filter overhead should be <50ms with cached filter (US-02-04, T4)
+        long filterOverhead = timeWithFilter - timeNoFilter;
+        assertThat(filterOverhead)
+                .as("Filter overhead with cached filter should be less than 50ms, but was %d ms (no filter avg: %d ms, with filter avg: %d ms)", 
+                        filterOverhead, timeNoFilter, timeWithFilter)
+                .isLessThan(50L);
+        
+        List<LuceneIndexService.LuceneScoredResult> results = 
+                indexService.searchWithScores("Class", 10, filters).await().indefinitely();
+        
+        assertThat(results).isNotEmpty();
+        // Verify all results match the prefix filter
+        for (LuceneIndexService.LuceneScoredResult result : results) {
+            String filePath = result.document().get(LuceneSchema.FIELD_FILE_PATH);
+            assertThat(filePath).startsWith("/src/main/java/package0");
+        }
     }
 
     /**
