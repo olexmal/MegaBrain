@@ -25,13 +25,13 @@
 - **Description:** Implement configuration loading from application.properties file. Support field-specific boost configuration: `megabrain.search.boost.entity-name=3.0`. Load and validate on application startup.
 - **Estimated Hours:** 2 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T1 (needs BoostConfiguration class)
 - **Acceptance Criteria:**
-  - [ ] Boosts loaded from application.properties
-  - [ ] Default values used if not specified
-  - [ ] Configuration validated on startup
-  - [ ] Clear error messages for invalid values
+  - [x] Boosts loaded from application.properties
+  - [x] Default values used if not specified
+  - [x] Configuration validated on startup
+  - [x] Clear error messages for invalid values
 - **Technical Notes:** Use Quarkus @ConfigProperty annotations. Support environment variable overrides. Validate boost values are positive numbers. Log loaded configuration.
 
 ### T3: Apply boosts at query time in Lucene

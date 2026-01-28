@@ -9,6 +9,7 @@ import io.quarkus.runtime.Startup;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.jboss.logging.Logger;
 
 /**
  * Validates {@link BoostConfiguration} at application startup.
@@ -23,6 +24,8 @@ import jakarta.inject.Inject;
 @ApplicationScoped
 public class BoostConfigurationValidator {
 
+    private static final Logger LOG = Logger.getLogger(BoostConfigurationValidator.class);
+
     @Inject
     BoostConfiguration boostConfiguration;
 
@@ -31,9 +34,16 @@ public class BoostConfigurationValidator {
         validatePositiveFinite("megabrain.search.boost.entity-name", boostConfiguration.entityName());
         validatePositiveFinite("megabrain.search.boost.doc-summary", boostConfiguration.docSummary());
         validatePositiveFinite("megabrain.search.boost.content", boostConfiguration.content());
+
+        LOG.infof(
+            "Search boost configuration loaded: entity-name=%.3f, doc-summary=%.3f, content=%.3f",
+            boostConfiguration.entityName(),
+            boostConfiguration.docSummary(),
+            boostConfiguration.content()
+        );
     }
 
-    private static void validatePositiveFinite(String propertyName, float value) {
+    static void validatePositiveFinite(String propertyName, float value) {
         if (Float.isNaN(value) || Float.isInfinite(value) || value <= 0.0f) {
             throw new IllegalStateException(
                 "Invalid boost configuration: '" + propertyName + "' must be a finite, positive number, but was: " + value
