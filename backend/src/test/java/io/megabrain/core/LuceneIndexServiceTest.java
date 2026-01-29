@@ -59,8 +59,17 @@ class LuceneIndexServiceTest {
         // Manually inject dependencies for testing
         QueryParserService queryParser = new QueryParserService();
         queryParser.analyzer = new CodeAwareAnalyzer(); // Inject the analyzer
+        // Set boost values before initialize (no CDI in plain JUnit, so @ConfigProperty would be 0)
+        queryParser.contentBoost = 1.0f;
+        queryParser.entityNameBoost = 3.0f;
+        queryParser.docSummaryBoost = 2.0f;
+        queryParser.entityNameKeywordBoost = 3.0f;
+        queryParser.repositoryBoost = 1.0f;
+        queryParser.languageBoost = 1.0f;
+        queryParser.entityTypeBoost = 1.0f;
         queryParser.initialize();
         indexService.queryParser = queryParser;
+        indexService.boostConfiguration = createTestBoostConfiguration();
 
         // Initialize manually instead of using CDI lifecycle
         indexService.initialize();
@@ -71,6 +80,17 @@ class LuceneIndexServiceTest {
         if (indexService != null) {
             indexService.shutdown();
         }
+    }
+
+    private static BoostConfiguration createTestBoostConfiguration() {
+        return new BoostConfiguration() {
+            @Override
+            public float entityName() { return 3.0f; }
+            @Override
+            public float docSummary() { return 2.0f; }
+            @Override
+            public float content() { return 1.0f; }
+        };
     }
 
     @Test
@@ -617,6 +637,34 @@ class LuceneIndexServiceTest {
         // Then - chunk with summary should rank higher due to doc_summary boosting
         assertThat(documents).hasSize(1); // Only the summary chunk should match
         assertThat(documents.getFirst().get(LuceneSchema.FIELD_ENTITY_NAME)).isEqualTo("SummaryClass");
+    }
+
+    /**
+     * Verifies that query-time boosts from configuration affect ranking (US-02-05, T3).
+     * Entity name matches should score higher than content-only matches when using searchWithScores.
+     */
+    @Test
+    void testSearchWithScoresBoostsAffectRanking() {
+        // Given - "boost" appears in entity_name for one chunk and only in content for another
+        List<TextChunk> chunks = List.of(
+                createTestChunk("BoostUtil", ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_1,
+                        "utility helper"),
+                createTestChunk("HelperClass", ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_2,
+                        "this class uses boost for scoring")
+        );
+        indexService.addChunks(chunks).await().indefinitely();
+
+        // When - search for "boost" and get scored results
+        List<LuceneIndexService.LuceneScoredResult> results =
+                indexService.searchWithScores("boost", 10).await().indefinitely();
+
+        // Then - entity_name match (BoostUtil) should rank first due to higher field boost
+        assertThat(results).hasSize(2);
+        String firstEntity = results.get(0).document().get(LuceneSchema.FIELD_ENTITY_NAME);
+        String secondEntity = results.get(1).document().get(LuceneSchema.FIELD_ENTITY_NAME);
+        assertThat(firstEntity).isEqualTo("BoostUtil");
+        assertThat(secondEntity).isEqualTo("HelperClass");
+        assertThat(results.get(0).score()).isGreaterThan(results.get(1).score());
     }
 
     @Test
