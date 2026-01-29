@@ -38,14 +38,15 @@
 - **Description:** Modify Lucene query construction to apply field boosts from configuration. Use BoostQuery to wrap field queries with appropriate boost values. Apply boosts dynamically based on configuration.
 - **Estimated Hours:** 3 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T1, T2 (needs configuration), US-02-01 (needs query construction)
 - **Acceptance Criteria:**
-  - [ ] Field boosts applied to queries
-  - [ ] Boosts from configuration used
-  - [ ] Query-time boosts (no reindexing needed)
-  - [ ] Boosts affect ranking correctly
+  - [x] Field boosts applied to queries
+  - [x] Boosts from configuration used
+  - [x] Query-time boosts (no reindexing needed)
+  - [x] Boosts affect ranking correctly
 - **Technical Notes:** Modify query construction in LuceneIndexService. Use BoostQuery to wrap field queries. Apply boosts: entity_name * 3.0, doc_summary * 2.0, content * 1.0. Test with various queries.
+- **Implementation Notes:** LuceneIndexService injects BoostConfiguration and applies applyFieldBoosts(Query) recursively to BooleanQuery, BoostQuery, TermQuery, PhraseQuery, and WildcardQuery. Boosts are applied in search(), searchWithScores(), and computeFacets(). Uses Lucene 10 BooleanClause.query()/occur() API.
 
 ### T4: Add field match explanation to results
 - **Description:** Add field match information to search results showing which fields matched the query. Include field names and match scores per field. This helps users understand why results ranked as they did.

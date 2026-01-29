@@ -30,10 +30,14 @@ import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.BoostQuery;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
+import org.apache.lucene.search.PhraseQuery;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.search.WildcardQuery;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.NIOFSDirectory;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -85,6 +89,9 @@ public class LuceneIndexService implements IndexService {
 
     @Inject
     QueryParserService queryParser;
+
+    @Inject
+    BoostConfiguration boostConfiguration;
 
     @PostConstruct
     void initialize() {
@@ -454,8 +461,9 @@ public class LuceneIndexService implements IndexService {
                     lock.readLock().lock();
                     try (IndexReader reader = DirectoryReader.open(directory)) {
                         IndexSearcher searcher = new IndexSearcher(reader);
+                        Query searchQuery = applyFieldBoosts(normalizeFacetQuery(parsedQuery));
 
-                        TopDocs topDocs = searcher.search(parsedQuery, maxResults);
+                        TopDocs topDocs = searcher.search(searchQuery, maxResults);
 
                         List<Document> results = new java.util.ArrayList<>();
                         for (var scoreDoc : topDocs.scoreDocs) {
@@ -464,7 +472,7 @@ public class LuceneIndexService implements IndexService {
                         }
 
                         LOG.debugf("Found %d results for parsed query: %s -> %s",
-                                 results.size(), queryString, parsedQuery);
+                                 results.size(), queryString, searchQuery);
                         return results;
                     } catch (IndexNotFoundException e) {
                         // Index doesn't exist yet or is empty
@@ -579,7 +587,7 @@ public class LuceneIndexService implements IndexService {
                     lock.readLock().lock();
                     try (IndexReader reader = DirectoryReader.open(directory)) {
                         IndexSearcher searcher = new IndexSearcher(reader);
-                        Query baseQuery = normalizeFacetQuery(parsedQuery);
+                        Query baseQuery = applyFieldBoosts(normalizeFacetQuery(parsedQuery));
                         
                         // Build filtered query with caching and performance profiling (US-02-04, T4)
                         long filterStartTime = System.nanoTime();
@@ -651,10 +659,11 @@ public class LuceneIndexService implements IndexService {
                         // Open a fresh reader to ensure we see the latest committed changes
                         try (IndexReader reader = DirectoryReader.open(directory)) {
                             IndexSearcher searcher = new IndexSearcher(reader);
+                            Query baseQuery = applyFieldBoosts(parsedQuery);
                             
                             // Use optimized filter building with caching (US-02-04, T4)
                             long filterStartTime = System.nanoTime();
-                            Query searchQuery = buildFilteredQueryOptimized(parsedQuery, filters);
+                            Query searchQuery = buildFilteredQueryOptimized(baseQuery, filters);
                             long filterBuildTime = (System.nanoTime() - filterStartTime) / 1_000_000;
 
                             // Create a FacetsCollector to collect matching documents
@@ -754,6 +763,57 @@ public class LuceneIndexService implements IndexService {
             return new MatchAllDocsQuery();
         }
         return parsedQuery;
+    }
+
+    /**
+     * Applies field boosts from configuration at query time (US-02-05, T3).
+     * Recursively wraps field-specific subqueries (TermQuery, PhraseQuery, WildcardQuery)
+     * with BoostQuery using BoostConfiguration so that entity_name, doc_summary, and content
+     * matches are weighted without reindexing.
+     *
+     * @param query the parsed query
+     * @return query with configuration boosts applied
+     */
+    private Query applyFieldBoosts(Query query) {
+        if (query == null) {
+            return null;
+        }
+        if (query instanceof BooleanQuery bq) {
+            BooleanQuery.Builder builder = new BooleanQuery.Builder();
+            for (BooleanClause clause : bq.clauses()) {
+                builder.add(applyFieldBoosts(clause.query()), clause.occur());
+            }
+            return builder.build();
+        }
+        if (query instanceof BoostQuery bq) {
+            Query inner = applyFieldBoosts(bq.getQuery());
+            return new BoostQuery(inner, bq.getBoost());
+        }
+        if (query instanceof TermQuery tq) {
+            float boost = boostConfiguration.getBoostForField(tq.getTerm().field());
+            if (boost != 1.0f) {
+                return new BoostQuery(query, boost);
+            }
+            return query;
+        }
+        if (query instanceof PhraseQuery pq) {
+            Term[] terms = pq.getTerms();
+            if (terms != null && terms.length > 0) {
+                float boost = boostConfiguration.getBoostForField(terms[0].field());
+                if (boost != 1.0f) {
+                    return new BoostQuery(query, boost);
+                }
+            }
+            return query;
+        }
+        if (query instanceof WildcardQuery wq) {
+            float boost = boostConfiguration.getBoostForField(wq.getTerm().field());
+            if (boost != 1.0f) {
+                return new BoostQuery(query, boost);
+            }
+            return query;
+        }
+        return query;
     }
 
     private List<FacetValue> extractFacetValues(Facets facets, String fieldName, int maxFacetValues) throws IOException {
