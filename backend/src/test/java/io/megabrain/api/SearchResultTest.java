@@ -8,6 +8,9 @@ package io.megabrain.api;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+import java.util.Map;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -34,7 +37,7 @@ class SearchResultTest {
         // When
         SearchResult result = new SearchResult(
             TEST_CONTENT, TEST_ENTITY_NAME, TEST_ENTITY_TYPE, TEST_SOURCE_FILE,
-            TEST_LANGUAGE, TEST_REPOSITORY, TEST_SCORE, lineRange, TEST_DOC_SUMMARY
+            TEST_LANGUAGE, TEST_REPOSITORY, TEST_SCORE, lineRange, TEST_DOC_SUMMARY, null
         );
 
         // Then
@@ -58,7 +61,7 @@ class SearchResultTest {
         SearchResult result = new SearchResult(
             "function test() {}", "test", "function",
             "src/test.js", "javascript", TEST_REPOSITORY,
-            0.8f, lineRange, null
+            0.8f, lineRange, null, null
         );
 
         // Then
@@ -72,7 +75,7 @@ class SearchResultTest {
         SearchResult result = new SearchResult(
             "public void method() {}", "method", "method",
             "src/Main.java", "java", "example-repo",
-            1.2f, lineRange, "Sample method"
+            1.2f, lineRange, "Sample method", null
         );
 
         // Use the factory method for a simpler case
@@ -131,13 +134,48 @@ class SearchResultTest {
     }
 
     @Test
+    void shouldCreateSearchResultWithFieldMatch() {
+        // Given (US-02-05, T4)
+        LineRange lineRange = new LineRange(1, 5);
+        FieldMatchInfo fieldMatch = new FieldMatchInfo(
+                List.of("entity_name", "content"),
+                Map.of("entity_name", 2.1f, "content", 0.5f)
+        );
+
+        // When
+        SearchResult result = new SearchResult(
+                TEST_CONTENT, TEST_ENTITY_NAME, TEST_ENTITY_TYPE, TEST_SOURCE_FILE,
+                TEST_LANGUAGE, TEST_REPOSITORY, TEST_SCORE, lineRange, TEST_DOC_SUMMARY, fieldMatch
+        );
+
+        // Then
+        assertThat(result.getFieldMatch()).isNotNull();
+        assertThat(result.getFieldMatch().getMatchedFields()).containsExactly("entity_name", "content");
+        assertThat(result.getFieldMatch().getScores()).containsEntry("entity_name", 2.1f);
+        assertThat(result.getFieldMatch().getScores()).containsEntry("content", 0.5f);
+    }
+
+    @Test
+    void shouldCreateSearchResultWithNullFieldMatch() {
+        // When
+        LineRange lineRange = new LineRange(1, 1);
+        SearchResult result = new SearchResult(
+                "content", "Entity", "class", "path.java", "java", "repo",
+                1.0f, lineRange, null, null
+        );
+
+        // Then
+        assertThat(result.getFieldMatch()).isNull();
+    }
+
+    @Test
     void toStringShouldIncludeKeyFields() {
         // Given
         LineRange lineRange = new LineRange(100, 105);
         SearchResult result = new SearchResult(
             "This is a very long content that should be truncated in toString",
             "LongEntityName", "class", "path/to/file.java",
-            "java", "repo", 2.5f, lineRange, "Long summary text"
+            "java", "repo", 2.5f, lineRange, "Long summary text", null
         );
 
         // When

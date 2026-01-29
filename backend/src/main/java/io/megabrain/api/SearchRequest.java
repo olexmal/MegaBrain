@@ -38,6 +38,9 @@ public class SearchRequest {
     @Min(value = 0, message = "Offset cannot be negative")
     private int offset = 0;
 
+    /** When true, include field match info (matched fields and per-field scores) in results (US-02-05, T4). Optional for performance. */
+    private boolean includeFieldMatch = false;
+
     /**
      * Default constructor.
      */
@@ -230,6 +233,24 @@ public class SearchRequest {
      */
     public void setOffset(int offset) {
         this.offset = offset;
+    }
+
+    /**
+     * Whether to include field match information in search results (which fields matched and per-field scores).
+     *
+     * @return true if field match should be included (adds explain cost per hit)
+     */
+    public boolean isIncludeFieldMatch() {
+        return includeFieldMatch;
+    }
+
+    /**
+     * Sets whether to include field match information in results.
+     *
+     * @param includeFieldMatch true to include field match (optional for performance)
+     */
+    public void setIncludeFieldMatch(boolean includeFieldMatch) {
+        this.includeFieldMatch = includeFieldMatch;
     }
 
     /**

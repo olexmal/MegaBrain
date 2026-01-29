@@ -310,3 +310,11 @@ This command can be applied to any task implementation by:
 4. Maintaining consistent quality standards
 
 The process ensures consistent, high-quality implementations across all MegaBrain development tasks.
+
+## On Completion
+
+When the task is fully implemented and verified, **do not write a resume or summary of the work**. Simply respond:
+
+```
+all done :)
+```

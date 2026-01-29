@@ -36,6 +36,7 @@ import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.PhraseQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.search.Explanation;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.search.WildcardQuery;
 import org.apache.lucene.store.Directory;
@@ -47,9 +48,12 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -548,10 +552,22 @@ public class LuceneIndexService implements IndexService {
         });
     }
 
+    /** Searchable fields used for field-match extraction (US-02-05, T4). */
+    private static final Set<String> SEARCHABLE_FIELDS = Set.of(
+            LuceneSchema.FIELD_ENTITY_NAME,
+            LuceneSchema.FIELD_DOC_SUMMARY,
+            LuceneSchema.FIELD_CONTENT
+    );
+
     /**
-     * Represents a Lucene search result with its raw score.
+     * Represents a Lucene search result with its raw score and optional field match info (US-02-05, T4).
      */
-    public record LuceneScoredResult(Document document, float score) {}
+    public record LuceneScoredResult(Document document, float score, FieldMatchInfo fieldMatch) {
+        /** Constructor without field match (backward compatible). */
+        public LuceneScoredResult(Document document, float score) {
+            this(document, score, null);
+        }
+    }
 
     /**
      * Searches the index and returns results with their raw Lucene scores.
@@ -562,7 +578,7 @@ public class LuceneIndexService implements IndexService {
      * @return list of scored search results
      */
     public Uni<List<LuceneScoredResult>> searchWithScores(String queryString, int maxResults) {
-        return searchWithScores(queryString, maxResults, null);
+        return searchWithScores(queryString, maxResults, null, false);
     }
 
     /**
@@ -581,6 +597,22 @@ public class LuceneIndexService implements IndexService {
      * @return list of scored search results
      */
     public Uni<List<LuceneScoredResult>> searchWithScores(String queryString, int maxResults, SearchFilters filters) {
+        return searchWithScores(queryString, maxResults, filters, false);
+    }
+
+    /**
+     * Searches the index with optional filters and optional field match explanation (US-02-05, T4).
+     * When {@code includeFieldMatch} is true, uses Lucene's Explanation API per hit to populate
+     * which fields matched and per-field score contributions. Optional for performance.
+     *
+     * @param queryString the search query string
+     * @param maxResults maximum number of results
+     * @param filters optional metadata filters; null to skip
+     * @param includeFieldMatch true to compute field match info per result (adds explain() cost per doc)
+     * @return list of scored search results, with fieldMatch populated when requested
+     */
+    public Uni<List<LuceneScoredResult>> searchWithScores(String queryString, int maxResults,
+                                                          SearchFilters filters, boolean includeFieldMatch) {
         return queryParser.parseQuery(queryString)
                 .flatMap(parsedQuery -> Uni.createFrom().item(() -> {
                     long startTime = System.nanoTime();
@@ -601,7 +633,10 @@ public class LuceneIndexService implements IndexService {
                         List<LuceneScoredResult> results = new java.util.ArrayList<>();
                         for (var scoreDoc : topDocs.scoreDocs) {
                             Document doc = searcher.storedFields().document(scoreDoc.doc);
-                            results.add(new LuceneScoredResult(doc, scoreDoc.score));
+                            FieldMatchInfo fieldMatch = includeFieldMatch
+                                    ? extractFieldMatch(searcher, searchQuery, scoreDoc.doc)
+                                    : null;
+                            results.add(new LuceneScoredResult(doc, scoreDoc.score, fieldMatch));
                         }
 
                         long totalTime = (System.nanoTime() - startTime) / 1_000_000;
@@ -829,6 +864,61 @@ public class LuceneIndexService implements IndexService {
     }
 
     /**
+     * Extracts which index fields contributed to the score for a document using Lucene's Explanation API (US-02-05, T4).
+     * Traverses the explanation tree and collects per-field score contributions for entity_name, doc_summary, content.
+     *
+     * @param searcher the index searcher (must be open for the duration of the call)
+     * @param query the executed query (same as used for search)
+     * @param docId the document id
+     * @return field match info with matched_fields and scores; empty if explanation fails or no field contributions
+     */
+    FieldMatchInfo extractFieldMatch(IndexSearcher searcher, Query query, int docId) {
+        try {
+            Explanation explanation = searcher.explain(query, docId);
+            if (explanation == null || !explanation.isMatch()) {
+                return new FieldMatchInfo(List.of(), Map.of());
+            }
+            Map<String, Float> scoresByField = new LinkedHashMap<>();
+            collectFieldScores(explanation, scoresByField);
+            List<String> matchedFields = new ArrayList<>(scoresByField.keySet());
+            return new FieldMatchInfo(matchedFields, Map.copyOf(scoresByField));
+        } catch (IOException e) {
+            LOG.debugf(e, "Could not explain doc %d for field match", docId);
+            return new FieldMatchInfo(List.of(), Map.of());
+        }
+    }
+
+    /**
+     * Recursively collects score contributions from explanation tree for searchable fields.
+     * Attributes any node whose description contains a known field name (e.g. "weight(entity_name:...)").
+     */
+    private void collectFieldScores(Explanation explanation, Map<String, Float> scoresByField) {
+        if (explanation == null) {
+            return;
+        }
+        String desc = explanation.getDescription();
+        if (desc != null) {
+            for (String field : SEARCHABLE_FIELDS) {
+                if (desc.contains(field)) {
+                    float value = explanation.getValue() != null
+                            ? explanation.getValue().floatValue()
+                            : 0f;
+                    if (value > 0f) {
+                        scoresByField.merge(field, value, Float::sum);
+                    }
+                    break; // at most one field per node
+                }
+            }
+        }
+        Explanation[] details = explanation.getDetails();
+        if (details != null) {
+            for (Explanation detail : details) {
+                collectFieldScores(detail, scoresByField);
+            }
+        }
+    }
+
+    /**
      * Normalizes Lucene scores to a 0.0-1.0 range using min-max normalization.
      * This ensures fair combination with vector similarity scores.
      *
@@ -843,7 +933,7 @@ public class LuceneIndexService implements IndexService {
         // Handle single result case - assign score of 1.0
         if (scoredResults.size() == 1) {
             LuceneScoredResult result = scoredResults.getFirst();
-            return List.of(new LuceneScoredResult(result.document(), 1.0f));
+            return List.of(new LuceneScoredResult(result.document(), 1.0f, result.fieldMatch()));
         }
 
         // Find min and max scores using simple iteration
@@ -860,7 +950,7 @@ public class LuceneIndexService implements IndexService {
         if (maxScore == minScore) {
             // All results get score 1.0 (they are equally relevant)
             return scoredResults.stream()
-                    .map(result -> new LuceneScoredResult(result.document(), 1.0f))
+                    .map(result -> new LuceneScoredResult(result.document(), 1.0f, result.fieldMatch()))
                     .collect(java.util.stream.Collectors.toList());
         }
 
@@ -868,7 +958,7 @@ public class LuceneIndexService implements IndexService {
         List<LuceneScoredResult> normalizedResults = new java.util.ArrayList<>();
         for (LuceneScoredResult result : scoredResults) {
             float normalizedScore = (result.score() - minScore) / (maxScore - minScore);
-            normalizedResults.add(new LuceneScoredResult(result.document(), normalizedScore));
+            normalizedResults.add(new LuceneScoredResult(result.document(), normalizedScore, result.fieldMatch()));
         }
         return normalizedResults;
     }

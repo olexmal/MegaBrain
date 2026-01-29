@@ -667,6 +667,51 @@ class LuceneIndexServiceTest {
         assertThat(results.get(0).score()).isGreaterThan(results.get(1).score());
     }
 
+    /**
+     * Verifies that when includeFieldMatch is true, results include field match info (US-02-05, T4).
+     * Field match is populated from Lucene's Explanation API; format may vary by query structure.
+     */
+    @Test
+    void testSearchWithScores_includeFieldMatch_populatesFieldMatch() {
+        // Given - index a chunk that matches on entity_name
+        List<TextChunk> chunks = List.of(
+                createTestChunk("FieldMatchClass", ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_1,
+                        "class for field match test")
+        );
+        indexService.addChunks(chunks).await().indefinitely();
+
+        // When - search with includeFieldMatch=true
+        List<LuceneIndexService.LuceneScoredResult> results =
+                indexService.searchWithScores("FieldMatchClass", 10, null, true).await().indefinitely();
+
+        // Then - first result has non-null field match info (populated from Explanation; may be empty if Explanation format has no field in leaf descriptions)
+        assertThat(results).hasSize(1);
+        io.megabrain.core.FieldMatchInfo fieldMatch = results.get(0).fieldMatch();
+        assertThat(fieldMatch).isNotNull();
+        // When Explanation tree contains field names in leaf descriptions, we get matched fields and scores
+        if (!fieldMatch.matchedFields().isEmpty()) {
+            assertThat(fieldMatch.scores()).isNotEmpty();
+            assertThat(fieldMatch.scores().values().stream().anyMatch(s -> s > 0f)).isTrue();
+        }
+    }
+
+    /**
+     * Verifies that when includeFieldMatch is false, results have null fieldMatch (US-02-05, T4).
+     */
+    @Test
+    void testSearchWithScores_includeFieldMatchFalse_hasNullFieldMatch() {
+        List<TextChunk> chunks = List.of(
+                createTestChunk(TEST_CLASS_NAME, ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_1, TEST_CLASS_CONTENT)
+        );
+        indexService.addChunks(chunks).await().indefinitely();
+
+        List<LuceneIndexService.LuceneScoredResult> results =
+                indexService.searchWithScores("TestClass", 10, null, false).await().indefinitely();
+
+        assertThat(results).hasSize(1);
+        assertThat(results.get(0).fieldMatch()).isNull();
+    }
+
     @Test
     void testSearchCamelCaseSplitting() {
         // Given

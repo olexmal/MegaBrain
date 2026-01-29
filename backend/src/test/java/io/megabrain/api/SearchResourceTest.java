@@ -28,6 +28,7 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -63,7 +64,7 @@ class SearchResourceTest {
         // Given
         String query = "authentication";
         List<ResultMerger.MergedResult> mockResults = createMockMergedResults(2);
-        when(hybridIndexService.search(eq(query), anyInt(), eq(SearchMode.HYBRID), nullable(SearchFilters.class)))
+        when(hybridIndexService.search(eq(query), anyInt(), eq(SearchMode.HYBRID), nullable(SearchFilters.class), anyBoolean()))
                 .thenReturn(Uni.createFrom().item(mockResults));
         when(luceneIndexService.computeFacets(eq(query), nullable(SearchFilters.class), anyInt()))
                 .thenReturn(Uni.createFrom().item(Map.of(
@@ -72,7 +73,7 @@ class SearchResourceTest {
 
         // When
         Uni<Response> responseUni = searchResource.search(
-                query, null, null, null, null, 10, 0, null);
+                query, null, null, null, null, 10, 0, null, null);
 
         // Then
         Response response = responseUni.await().indefinitely();
@@ -89,12 +90,12 @@ class SearchResourceTest {
         String query = "service";
         List<String> languages = List.of("java", "python");
         List<ResultMerger.MergedResult> mockResults = createMockMergedResults(1);
-        when(hybridIndexService.search(eq(query), anyInt(), any(SearchMode.class), any(SearchFilters.class)))
+        when(hybridIndexService.search(eq(query), anyInt(), any(SearchMode.class), any(SearchFilters.class), anyBoolean()))
                 .thenReturn(Uni.createFrom().item(mockResults));
 
         // When
         Uni<Response> responseUni = searchResource.search(
-                query, languages, null, null, null, 10, 0, null);
+                query, languages, null, null, null, 10, 0, null, null);
 
         // Then
         Response response = responseUni.await().indefinitely();
@@ -111,12 +112,12 @@ class SearchResourceTest {
         List<String> filePaths = List.of("src/main");
         List<String> entityTypes = List.of("class");
         List<ResultMerger.MergedResult> mockResults = createMockMergedResults(1);
-        when(hybridIndexService.search(anyString(), anyInt(), any(SearchMode.class), any(SearchFilters.class)))
+        when(hybridIndexService.search(anyString(), anyInt(), any(SearchMode.class), any(SearchFilters.class), anyBoolean()))
                 .thenReturn(Uni.createFrom().item(mockResults));
 
         // When
         Uni<Response> responseUni = searchResource.search(
-                query, languages, repositories, filePaths, entityTypes, 10, 0, null);
+                query, languages, repositories, filePaths, entityTypes, 10, 0, null, null);
 
         // Then
         Response response = responseUni.await().indefinitely();
@@ -129,12 +130,12 @@ class SearchResourceTest {
         String query = "query";
         List<String> languages = List.of("java", "python", "typescript");
         List<ResultMerger.MergedResult> mockResults = createMockMergedResults(0);
-        when(hybridIndexService.search(anyString(), anyInt(), any(SearchMode.class), any(SearchFilters.class)))
+        when(hybridIndexService.search(anyString(), anyInt(), any(SearchMode.class), any(SearchFilters.class), anyBoolean()))
                 .thenReturn(Uni.createFrom().item(mockResults));
 
         // When
         Uni<Response> responseUni = searchResource.search(
-                query, languages, null, null, null, 10, 0, null);
+                query, languages, null, null, null, 10, 0, null, null);
 
         // Then
         Response response = responseUni.await().indefinitely();
@@ -145,7 +146,7 @@ class SearchResourceTest {
     void search_withMissingQuery_shouldReturnBadRequest() {
         // When
         Uni<Response> responseUni = searchResource.search(
-                null, null, null, null, null, 10, 0, null);
+                null, null, null, null, null, 10, 0, null, null);
 
         // Then
         Response response = responseUni.await().indefinitely();
@@ -158,7 +159,7 @@ class SearchResourceTest {
     void search_withBlankQuery_shouldReturnBadRequest() {
         // When
         Uni<Response> responseUni = searchResource.search(
-                "   ", null, null, null, null, 10, 0, null);
+                "   ", null, null, null, null, 10, 0, null, null);
 
         // Then
         Response response = responseUni.await().indefinitely();
@@ -172,12 +173,12 @@ class SearchResourceTest {
 
         // When - limit too high (JAX-RS validation should catch @Max(100))
         Uni<Response> responseUni1 = searchResource.search(
-                query, null, null, null, null, 101, 0, null);
+                query, null, null, null, null, 101, 0, null, null);
         Response response1 = responseUni1.await().indefinitely();
 
         // When - limit too low (JAX-RS validation should catch @Min(1))
         Uni<Response> responseUni2 = searchResource.search(
-                query, null, null, null, null, 0, 0, null);
+                query, null, null, null, null, 0, 0, null, null);
         Response response2 = responseUni2.await().indefinitely();
 
         // Then - JAX-RS validation should handle @Min/@Max annotations
@@ -194,7 +195,7 @@ class SearchResourceTest {
 
         // When - negative offset (JAX-RS validation should catch @Min(0))
         Uni<Response> responseUni = searchResource.search(
-                query, null, null, null, null, 10, -1, null);
+                query, null, null, null, null, 10, -1, null, null);
 
         // Then - JAX-RS validation should handle @Min annotation
         Response response = responseUni.await().indefinitely();
@@ -206,12 +207,12 @@ class SearchResourceTest {
         // Given
         String query = "test";
         List<ResultMerger.MergedResult> mockResults = createMockMergedResults(1);
-        when(hybridIndexService.search(eq(query), anyInt(), eq(SearchMode.KEYWORD), nullable(SearchFilters.class)))
+        when(hybridIndexService.search(eq(query), anyInt(), eq(SearchMode.KEYWORD), nullable(SearchFilters.class), anyBoolean()))
                 .thenReturn(Uni.createFrom().item(mockResults));
 
         // When
         Uni<Response> responseUni = searchResource.search(
-                query, null, null, null, null, 10, 0, "keyword");
+                query, null, null, null, null, 10, 0, "keyword", null);
 
         // Then
         Response response = responseUni.await().indefinitely();
@@ -223,12 +224,12 @@ class SearchResourceTest {
         // Given
         String query = "test";
         List<ResultMerger.MergedResult> mockResults = createMockMergedResults(1);
-        when(hybridIndexService.search(eq(query), anyInt(), eq(SearchMode.HYBRID), nullable(SearchFilters.class)))
+        when(hybridIndexService.search(eq(query), anyInt(), eq(SearchMode.HYBRID), nullable(SearchFilters.class), anyBoolean()))
                 .thenReturn(Uni.createFrom().item(mockResults));
 
         // When
         Uni<Response> responseUni = searchResource.search(
-                query, null, null, null, null, 10, 0, "invalid");
+                query, null, null, null, null, 10, 0, "invalid", null);
 
         // Then
         Response response = responseUni.await().indefinitely();
@@ -240,12 +241,12 @@ class SearchResourceTest {
         // Given
         String query = "test";
         List<ResultMerger.MergedResult> mockResults = createMockMergedResults(10);
-        when(hybridIndexService.search(anyString(), anyInt(), any(SearchMode.class), nullable(SearchFilters.class)))
+        when(hybridIndexService.search(anyString(), anyInt(), any(SearchMode.class), nullable(SearchFilters.class), anyBoolean()))
                 .thenReturn(Uni.createFrom().item(mockResults));
 
         // When
         Uni<Response> responseUni = searchResource.search(
-                query, null, null, null, null, 5, 3, null);
+                query, null, null, null, null, 5, 3, null, null);
 
         // Then
         Response response = responseUni.await().indefinitely();
@@ -261,12 +262,12 @@ class SearchResourceTest {
     void search_withServiceFailure_shouldReturnInternalServerError() {
         // Given
         String query = "test";
-        when(hybridIndexService.search(anyString(), anyInt(), any(SearchMode.class), nullable(SearchFilters.class)))
+        when(hybridIndexService.search(anyString(), anyInt(), any(SearchMode.class), nullable(SearchFilters.class), anyBoolean()))
                 .thenReturn(Uni.createFrom().failure(new RuntimeException("Search failed")));
 
         // When
         Uni<Response> responseUni = searchResource.search(
-                query, null, null, null, null, 10, 0, null);
+                query, null, null, null, null, 10, 0, null, null);
 
         // Then
         Response response = responseUni.await().indefinitely();
@@ -281,12 +282,12 @@ class SearchResourceTest {
         String query = "test";
         List<String> emptyList = new ArrayList<>();
         List<ResultMerger.MergedResult> mockResults = createMockMergedResults(1);
-        when(hybridIndexService.search(anyString(), anyInt(), any(SearchMode.class), nullable(SearchFilters.class)))
+        when(hybridIndexService.search(anyString(), anyInt(), any(SearchMode.class), nullable(SearchFilters.class), anyBoolean()))
                 .thenReturn(Uni.createFrom().item(mockResults));
 
         // When
         Uni<Response> responseUni = searchResource.search(
-                query, emptyList, emptyList, emptyList, emptyList, 10, 0, null);
+                query, emptyList, emptyList, emptyList, emptyList, 10, 0, null, null);
 
         // Then
         Response response = responseUni.await().indefinitely();

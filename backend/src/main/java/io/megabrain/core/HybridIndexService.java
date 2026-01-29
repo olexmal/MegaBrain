@@ -206,6 +206,22 @@ public class HybridIndexService implements IndexService {
      * @return merged search results sorted by combined score
      */
     public Uni<List<ResultMerger.MergedResult>> search(String query, int limit, SearchMode mode, SearchFilters filters) {
+        return search(query, limit, mode, filters, false);
+    }
+
+    /**
+     * Performs search with optional field match explanation (US-02-05, T4).
+     * When {@code includeFieldMatch} is true, Lucene results include which fields matched and per-field scores.
+     *
+     * @param query the search query string
+     * @param limit maximum number of results
+     * @param mode search mode (HYBRID, KEYWORD, or VECTOR)
+     * @param filters optional metadata filters; null to skip
+     * @param includeFieldMatch true to include field match info in Lucene-origin results (adds explain cost)
+     * @return merged search results sorted by combined score
+     */
+    public Uni<List<ResultMerger.MergedResult>> search(String query, int limit, SearchMode mode,
+                                                       SearchFilters filters, boolean includeFieldMatch) {
         LOG.debugf("Performing %s search for query: %s%s", mode, query,
                 filters != null && filters.hasFilters() ? " (with filters)" : "");
 
@@ -221,10 +237,10 @@ public class HybridIndexService implements IndexService {
         boolean performLucene = (mode == SearchMode.HYBRID || mode == SearchMode.KEYWORD);
         boolean performVector = (mode == SearchMode.HYBRID || mode == SearchMode.VECTOR);
 
-        // Execute Lucene search if needed (with filters when present)
+        // Execute Lucene search if needed (with filters and optional field match)
         Uni<List<LuceneIndexService.LuceneScoredResult>> luceneUni;
         if (performLucene) {
-            luceneUni = luceneService.searchWithScores(query, limit, filters)
+            luceneUni = luceneService.searchWithScores(query, limit, filters, includeFieldMatch)
                     .map(LuceneIndexService::normalizeScores);
         } else {
             luceneUni = Uni.createFrom().item(List.<LuceneIndexService.LuceneScoredResult>of());

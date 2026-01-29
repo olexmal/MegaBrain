@@ -42,6 +42,9 @@ public class SearchResult {
     @JsonProperty("doc_summary")
     private final String docSummary;
 
+    @JsonProperty("field_match")
+    private final FieldMatchInfo fieldMatch;
+
     // Default constructor for Jackson deserialization
     public SearchResult() {
         this.content = "";
@@ -53,6 +56,7 @@ public class SearchResult {
         this.score = 0.0f;
         this.lineRange = new LineRange(1, 1);
         this.docSummary = null;
+        this.fieldMatch = null;
     }
 
     /**
@@ -67,10 +71,11 @@ public class SearchResult {
      * @param score the relevance score from search
      * @param lineRange the line range information
      * @param docSummary optional documentation summary
+     * @param fieldMatch optional field match info (which fields matched and per-field scores); null to omit
      */
     public SearchResult(String content, String entityName, String entityType, String sourceFile,
                        String language, String repository, float score, LineRange lineRange,
-                       String docSummary) {
+                       String docSummary, FieldMatchInfo fieldMatch) {
         this.content = content;
         this.entityName = entityName;
         this.entityType = entityType;
@@ -80,6 +85,7 @@ public class SearchResult {
         this.score = score;
         this.lineRange = lineRange;
         this.docSummary = docSummary;
+        this.fieldMatch = fieldMatch;
     }
 
     /**
@@ -100,7 +106,7 @@ public class SearchResult {
                                      String sourceFile, String language, String repository,
                                      float score, LineRange lineRange) {
         return new SearchResult(content, entityName, entityType, sourceFile,
-                               language, repository, score, lineRange, null);
+                               language, repository, score, lineRange, null, null);
     }
 
     public String getContent() {
@@ -137,6 +143,16 @@ public class SearchResult {
 
     public String getDocSummary() {
         return docSummary;
+    }
+
+    /**
+     * Optional field match information (US-02-05, T4).
+     * Present when requested via {@code include_field_match=true}; shows which fields matched and per-field scores.
+     *
+     * @return field match info, or null if not requested
+     */
+    public FieldMatchInfo getFieldMatch() {
+        return fieldMatch;
     }
 
     @Override
