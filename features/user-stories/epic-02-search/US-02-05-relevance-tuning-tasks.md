@@ -52,14 +52,15 @@
 - **Description:** Add field match information to search results showing which fields matched the query. Include field names and match scores per field. This helps users understand why results ranked as they did.
 - **Estimated Hours:** 3 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T3 (needs boosted queries)
 - **Acceptance Criteria:**
-  - [ ] Field match information in results
-  - [ ] Shows which fields matched
-  - [ ] Includes per-field scores
-  - [ ] Information is clear and useful
+  - [x] Field match information in results
+  - [x] Shows which fields matched
+  - [x] Includes per-field scores
+  - [x] Information is clear and useful
 - **Technical Notes:** Use Lucene's Explanation API to extract field matches. Include in SearchResult DTO as optional field. Format as JSON: `{"matched_fields": ["entity_name", "content"], "scores": {...}}`. Make it optional for performance.
+- **Implementation Notes:** Added `FieldMatchInfo` (api + core) with `matched_fields` and `scores`. SearchResult has optional `field_match`. Query param `include_field_match` (default false) enables Explanation-based extraction per hit. LuceneIndexService.extractFieldMatch() traverses Explanation tree and collects per-field scores for entity_name, doc_summary, content. Field match flows through LuceneScoredResult, MergedResult, and SearchResource conversion to api FieldMatchInfo.
 
 ### T5: Write tests for boost application
 - **Description:** Create unit tests to verify boost configuration loading and application. Test that boosts are applied correctly, default values work, and configuration validation. Test ranking changes with different boost values.

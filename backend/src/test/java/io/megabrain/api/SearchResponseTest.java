@@ -32,12 +32,12 @@ class SearchResponseTest {
         SearchResult result1 = new SearchResult(
             "public class Test {}", "Test", "class",
             "src/Test.java", "java", "test-repo",
-            1.0f, lineRange, "Test class"
+            1.0f, lineRange, "Test class", null
         );
         SearchResult result2 = new SearchResult(
             "function test() {}", "test", "function",
             "src/test.js", "javascript", "test-repo",
-            0.8f, new LineRange(5, 8), null
+            0.8f, new LineRange(5, 8), null, null
         );
         List<SearchResult> results = List.of(result1, result2);
 
@@ -140,7 +140,7 @@ class SearchResponseTest {
     void shouldSerializeToJson() throws Exception {
         // Given
         LineRange lineRange = new LineRange(1, 3);
-        SearchResult result = new SearchResult("code snippet", "entity", "type", "file.java", "java", "repo", 0.9f, lineRange, "summary");
+        SearchResult result = new SearchResult("code snippet", "entity", "type", "file.java", "java", "repo", 0.9f, lineRange, "summary", null);
         Map<String, List<FacetValue>> facets = Map.of("language", List.of(new FacetValue("java", 2)));
         SearchResponse response = new SearchResponse(List.of(result), 42, 1, 10, "test query", 123, facets);
 
@@ -203,8 +203,8 @@ class SearchResponseTest {
     @Test
     void toStringShouldIncludeSummaryInfo() {
         // Given
-        SearchResult result1 = new SearchResult("code1", "e1", "t1", "f1", "lang", "repo", 1.0f, new LineRange(1, 1), null);
-        SearchResult result2 = new SearchResult("code2", "e2", "t2", "f2", "lang", "repo", 2.0f, new LineRange(2, 2), null);
+        SearchResult result1 = new SearchResult("code1", "e1", "t1", "f1", "lang", "repo", 1.0f, new LineRange(1, 1), null, null);
+        SearchResult result2 = new SearchResult("code2", "e2", "t2", "f2", "lang", "repo", 2.0f, new LineRange(2, 2), null, null);
         SearchResponse response = new SearchResponse(
             List.of(result1, result2), 75, 1, 25, "complex query", 89, Map.of()
         );

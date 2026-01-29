@@ -74,6 +74,7 @@ public class SearchResource {
      *   <li>{@code limit} (optional, default: 10): Maximum number of results (1-100)</li>
      *   <li>{@code offset} (optional, default: 0): Pagination offset</li>
      *   <li>{@code mode} (optional, default: hybrid): Search mode (hybrid, keyword, vector)</li>
+     *   <li>{@code include_field_match} (optional, default: false): Include which fields matched and per-field scores</li>
      * </ul>
      * <p>
      * Example:
@@ -89,6 +90,7 @@ public class SearchResource {
      * @param limit maximum number of results (default: 10, max: 100)
      * @param offset pagination offset (default: 0)
      * @param mode search mode: hybrid, keyword, or vector (default: hybrid)
+     * @param includeFieldMatch include field match info in results (default: false, optional for performance)
      * @return search response with results and pagination metadata
      */
     @GET
@@ -100,7 +102,8 @@ public class SearchResource {
             @QueryParam("entity_type") List<String> entityTypes,
             @QueryParam("limit") @Min(1) @Max(100) Integer limit,
             @QueryParam("offset") @Min(0) Integer offset,
-            @QueryParam("mode") String mode) {
+            @QueryParam("mode") String mode,
+            @QueryParam("include_field_match") Boolean includeFieldMatch) {
 
         long startTime = System.currentTimeMillis();
 
@@ -132,6 +135,7 @@ public class SearchResource {
             // Set pagination parameters with defaults
             searchRequest.setLimit(limit != null ? limit : 10);
             searchRequest.setOffset(offset != null ? offset : 0);
+            searchRequest.setIncludeFieldMatch(Boolean.TRUE.equals(includeFieldMatch));
 
             // Validate the request
             try {
@@ -165,7 +169,8 @@ public class SearchResource {
 
             return Uni.combine().all().unis(
                             hybridIndexService.search(
-                                    searchRequest.getQuery(), searchRequest.getLimit(), searchMode, filters),
+                                    searchRequest.getQuery(), searchRequest.getLimit(), searchMode, filters,
+                                    searchRequest.isIncludeFieldMatch()),
                             facetsUni)
                     .asTuple()
                     .map(tuple -> {
@@ -271,8 +276,11 @@ public class SearchResource {
             lineRange = new LineRange(1, 1);
         }
 
+        FieldMatchInfo apiFieldMatch = mergedResult.fieldMatch() != null
+                ? new FieldMatchInfo(mergedResult.fieldMatch().matchedFields(), mergedResult.fieldMatch().scores())
+                : null;
         return new SearchResult(content, entityName, entityType, sourceFile,
-                language, repository, score, lineRange, null);
+                language, repository, score, lineRange, null, apiFieldMatch);
     }
 
     /**

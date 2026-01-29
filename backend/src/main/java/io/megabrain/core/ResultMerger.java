@@ -35,27 +35,35 @@ public class ResultMerger {
     HybridScorer hybridScorer;
 
     /**
-     * Merged result containing a chunk with its combined score and source information.
+     * Merged result containing a chunk with its combined score and source information (US-02-05, T4: optional fieldMatch).
      */
     public record MergedResult(
             String chunkId,
             Document luceneDocument,
             VectorStore.SearchResult vectorResult,
             double combinedScore,
-            boolean fromBothSources
+            boolean fromBothSources,
+            FieldMatchInfo fieldMatch
     ) {
         /**
          * Creates a merged result from Lucene only.
          */
         public static MergedResult fromLucene(String chunkId, Document document, double score) {
-            return new MergedResult(chunkId, document, null, score, false);
+            return fromLucene(chunkId, document, score, null);
+        }
+
+        /**
+         * Creates a merged result from Lucene only with optional field match info (US-02-05, T4).
+         */
+        public static MergedResult fromLucene(String chunkId, Document document, double score, FieldMatchInfo fieldMatch) {
+            return new MergedResult(chunkId, document, null, score, false, fieldMatch);
         }
 
         /**
          * Creates a merged result from vector only.
          */
         public static MergedResult fromVector(String chunkId, VectorStore.SearchResult result, double score) {
-            return new MergedResult(chunkId, null, result, score, false);
+            return new MergedResult(chunkId, null, result, score, false, null);
         }
 
         /**
@@ -63,7 +71,16 @@ public class ResultMerger {
          */
         public static MergedResult fromBoth(String chunkId, Document document,
                                              VectorStore.SearchResult vectorResult, double combinedScore) {
-            return new MergedResult(chunkId, document, vectorResult, combinedScore, true);
+            return fromBoth(chunkId, document, vectorResult, combinedScore, null);
+        }
+
+        /**
+         * Creates a merged result from both sources with combined score and optional field match (US-02-05, T4).
+         */
+        public static MergedResult fromBoth(String chunkId, Document document,
+                                             VectorStore.SearchResult vectorResult, double combinedScore,
+                                             FieldMatchInfo fieldMatch) {
+            return new MergedResult(chunkId, document, vectorResult, combinedScore, true, fieldMatch);
         }
     }
 
@@ -93,14 +110,15 @@ public class ResultMerger {
                 double luceneScore = luceneResult.score();
 
                 mergedMap.compute(chunkId, (id, existing) -> {
+                    FieldMatchInfo fieldMatch = luceneResult.fieldMatch();
                     if (existing == null) {
                         // New Lucene-only result
-                        return MergedResult.fromLucene(id, luceneResult.document(), luceneScore);
+                        return MergedResult.fromLucene(id, luceneResult.document(), luceneScore, fieldMatch);
                     } else {
                         // Already exists from vector search - combine scores
                         double combinedScore = hybridScorer.combine(luceneScore, existing.combinedScore());
                         return MergedResult.fromBoth(id, luceneResult.document(),
-                                existing.vectorResult(), combinedScore);
+                                existing.vectorResult(), combinedScore, fieldMatch);
                     }
                 });
             }
@@ -117,10 +135,10 @@ public class ResultMerger {
                         // New vector-only result
                         return MergedResult.fromVector(id, vectorResult, vectorScore);
                     } else {
-                        // Already exists from Lucene search - combine scores
+                        // Already exists from Lucene search - combine scores; preserve field match from Lucene
                         double combinedScore = hybridScorer.combine(existing.combinedScore(), vectorScore);
                         return MergedResult.fromBoth(id, existing.luceneDocument(),
-                                vectorResult, combinedScore);
+                                vectorResult, combinedScore, existing.fieldMatch());
                     }
                 });
             }
