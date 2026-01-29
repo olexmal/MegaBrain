@@ -1,0 +1,17 @@
+---
+description: Project-wide constraints for API contract, state, and styling
+---
+
+# Project Constraints
+
+## API contract
+- **Base path:** `/api/v1`. All REST and SSE endpoints live under this path.
+- **JSON:** Use snake_case for JSON property names in API DTOs. In Java DTOs use `@JsonProperty("snake_case")` (e.g. `entity_name`, `source_file`, `line_range`, `took_ms`).
+- **Validation:** Use Jakarta validation on request DTOs (`@NotBlank`, `@Min`, `@Max`). Validate and return clear error responses without exposing internals.
+
+## State and styling
+- **Backend:** Stateless services; configuration and secrets via Quarkus config (env/vault). No sensitive data in logs or error messages.
+- **Frontend:** Component state via Signals; shared/async state via injectable services and RxJS. Theme: support dark/light where applicable; prefer CSS variables for theming.
+
+## SSE
+- Format: each event is a line `data: <json>\n\n`. Use consistent event DTOs (e.g. `StreamEvent`) and Jackson serialization. Frontend should parse `data:` lines and handle reconnection/errors.

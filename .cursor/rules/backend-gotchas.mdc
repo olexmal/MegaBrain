@@ -1,0 +1,29 @@
+---
+description: Backend gotchas, Quarkus/CDI/Mutiny patterns, and API conventions
+globs:
+  - "backend/**/*.java"
+---
+
+# Backend Gotchas and Conventions
+
+## REST API
+- **Base path:** All REST endpoints are mounted under `/api/v1` (see `MegaBrainApplication`). Use paths relative to that (e.g. `@Path("/search")` → `/api/v1/search`).
+- **Return types:** Use `Uni<Response>` for single responses; `Multi<String>` for SSE. Do not block; use Mutiny types end-to-end in the resource.
+
+## Configuration
+- **Grouped config:** Use `@ConfigMapping(prefix = "megabrain.<area>")` interface with `@WithDefault(...)` (e.g. `BoostConfiguration`). Inject the interface.
+- **Single values:** Use `@ConfigProperty(name = "megabrain.<key>", defaultValue = "...")`. Prefer `ConfigMapping` when multiple related properties exist.
+
+## CDI
+- **Constructor injection:** Prefer `@Inject public MyResource(ServiceA a, ServiceB b)`.
+- **Multiple implementations:** Use a qualifier (e.g. `@IndexType(IndexType.Type.HYBRID)`) and inject the qualified type in resources.
+
+## Logging
+- Use **org.jboss.logging.Logger**: `private static final Logger LOG = Logger.getLogger(MyClass.class);`. Do not use org.slf4j in new code.
+
+## Mutiny
+- In tests, subscribe with `.await().indefinitely()` to get the value. Use `Uni.createFrom().item(x)` and `Multi.createFrom().emitter(...)` for building streams.
+- Use `.onFailure().recoverWithItem(...)` for fallbacks; never log sensitive data in error paths.
+
+## SSE
+- SSE endpoint returns `Multi<String>` with lines: `"data: " + jsonPayload + "\n\n"`. Use Jackson for JSON; do not expose tokens or credentials in payloads.
