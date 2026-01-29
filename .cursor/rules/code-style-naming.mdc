@@ -1,0 +1,38 @@
+---
+description: Code style, naming conventions, and file organization for Java and TypeScript
+globs:
+  - "**/*.java"
+  - "**/*.ts"
+  - "**/*.html"
+---
+
+# Code Style and Naming
+
+## Java (Backend)
+
+### Naming
+- **Classes:** PascalCase (e.g. `SearchResource`, `HybridIndexService`).
+- **Interfaces:** PascalCase, no "I" prefix (e.g. `IndexService`, `IngestionService`).
+- **Implementations:** Interface name + `Impl` (e.g. `IngestionServiceImpl`, `IncrementalIndexingServiceImpl`).
+- **Methods/variables:** camelCase. **Constants:** UPPER_SNAKE_CASE.
+- **Packages:** lowercase, `io.megabrain.<feature>` (e.g. `io.megabrain.api`, `io.megabrain.core`, `io.megabrain.ingestion`).
+
+### File organization
+- One public top-level class per file; package path mirrors `io.megabrain.*`.
+- API DTOs and REST resources live under `io.megabrain.api`; core services under `io.megabrain.core`; ingestion under `io.megabrain.ingestion`.
+- Use Java records for immutable data where appropriate; DTOs may be classes with getters/setters for Jackson/validation.
+
+## TypeScript / Angular (Frontend)
+
+### Naming
+- **Components:** PascalCase; class name may include "Component" (e.g. `IngestionDashboardComponent`) or not for root (e.g. `App`).
+- **Services:** PascalCase with "Service" suffix (e.g. `IngestionService`).
+- **Interfaces/types:** PascalCase (e.g. `SearchResult`, `ProgressEvent`).
+- **Files:** kebab-case (e.g. `ingestion-dashboard.component.ts`, `app.config.ts`).
+
+### File organization
+- One component per folder with `*.component.ts`, `*.component.html`, `*.component.scss` (or `styleUrl` in decorator).
+- Use `styleUrl` (singular) in Angular 20 component decorators. Standalone components only; list imports in `imports: []`.
+
+## General
+- Prefer immutability and clear names over brevity. Avoid abbreviations except widely known (e.g. `config`, `ctx`).

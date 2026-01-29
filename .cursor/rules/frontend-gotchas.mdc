@@ -1,0 +1,23 @@
+---
+description: Angular 20 and Jest specifics; frontend gotchas
+globs:
+  - "frontend/**/*.ts"
+  - "frontend/**/*.html"
+---
+
+# Frontend Gotchas and Conventions
+
+## Framework
+- **Angular 20:** Standalone components only. Use `imports: [RouterOutlet, CommonModule, ...]`; use `styleUrl` (singular) in `@Component`.
+- **State:** Prefer Angular Signals (`signal()`, `computed()`, `effect()`) for component state; RxJS for async streams and services.
+
+## Testing
+- **Runner:** Jest (not Jasmine/Karma). Use `TestBed`, `describe`, `it`, `expect` from Jest. Config: `jest.config.js`, `jest-preset-angular`, `setup-jest.ts`.
+- **Naming:** Spec files `*.spec.ts`; test match pattern `**/?(*.)+(spec).ts`. Coverage thresholds in `jest.config.js` (e.g. 70%); project target for new code is >80% per testing-standards.
+
+## API calls
+- Backend base URL: `/api/v1` (e.g. `/api/v1/search`, `/api/v1/ingestion/repositories/stream`). Use relative URLs or environment config for host.
+- SSE: Connect to endpoints that return `text/event-stream`; parse `data: {...}` lines as JSON.
+
+## Styling
+- Prefer component SCSS and `:host` for encapsulation. Global styles in `styles.scss`. Prettier: printWidth 100, singleQuote true.
