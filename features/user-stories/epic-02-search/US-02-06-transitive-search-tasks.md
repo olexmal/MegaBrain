@@ -12,13 +12,13 @@
 - **Description:** Add `transitive` boolean parameter to search API endpoint. When true, enable transitive relationship traversal for structural queries (implements, extends). Default to false for backward compatibility.
 - **Estimated Hours:** 2 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** US-02-03 (needs search API)
 - **Acceptance Criteria:**
-  - [ ] `transitive` parameter added to API
-  - [ ] Parameter defaults to false
-  - [ ] Parameter validated
-  - [ ] API documentation updated
+  - [x] `transitive` parameter added to API
+  - [x] Parameter defaults to false
+  - [x] Parameter validated
+  - [x] API documentation updated
 - **Technical Notes:** Update SearchRequest DTO. Add parameter validation. Update OpenAPI/Swagger documentation. Support both query parameter and request body parameter.
 
 ### T2: Integrate GraphQueryService into search
