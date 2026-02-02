@@ -25,14 +25,15 @@
 - **Description:** Integrate GraphQueryService into the search pipeline. When transitive=true, use graph queries to find related entities, then include those entities in search results. Combine graph results with regular search results.
 - **Estimated Hours:** 5 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T1 (needs transitive parameter), US-06-02, US-06-03 (needs graph queries)
 - **Acceptance Criteria:**
-  - [ ] GraphQueryService integrated into search
-  - [ ] Graph queries executed when transitive=true
-  - [ ] Graph results combined with search results
-  - [ ] Integration is efficient
+  - [x] GraphQueryService integrated into search
+  - [x] Graph queries executed when transitive=true
+  - [x] Graph results combined with search results
+  - [x] Integration is efficient
 - **Technical Notes:** Create SearchOrchestrator that coordinates Lucene search and graph queries. Execute graph queries in parallel with search if possible. Merge results appropriately.
+- **Implementation Notes:** Added GraphQueryService interface and GraphQueryServiceStub (returns empty until US-06-02/06-03). SearchOrchestrator runs hybrid search and graph findRelatedEntities in parallel when transitive=true; graph entity names are resolved via LuceneIndexService.lookupByEntityNames and merged with hybrid results (dedupe by chunk id, sort by score). SearchResource delegates all search to SearchOrchestrator.
 
 ### T3: Implement transitive closure for implements
 - **Description:** Implement transitive closure logic for "implements" relationships. Given an interface, find all classes that implement it directly or transitively (through abstract classes). Use graph traversal with depth limit.

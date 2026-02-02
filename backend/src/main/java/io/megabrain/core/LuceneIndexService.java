@@ -670,6 +670,66 @@ public class LuceneIndexService implements IndexService {
     }
 
     /**
+     * Looks up Lucene documents by exact entity names (US-02-06, T2).
+     * Used to resolve graph-related entities to full documents for merging with search results.
+     * Builds a query that matches any of the given entity names on {@link LuceneSchema#FIELD_ENTITY_NAME_KEYWORD}.
+     *
+     * @param entityNames list of entity names to look up (e.g. from graph traversal); empty returns empty list
+     * @param maxResults  maximum number of documents to return
+     * @param filters     optional metadata filters; null or empty to skip
+     * @return list of scored results (score is 1.0 for lookup hits); empty if no names or index not found
+     */
+    public Uni<List<LuceneScoredResult>> lookupByEntityNames(List<String> entityNames, int maxResults,
+                                                             SearchFilters filters) {
+        if (entityNames == null || entityNames.isEmpty() || maxResults <= 0) {
+            return Uni.createFrom().item(List.<LuceneScoredResult>of());
+        }
+
+        List<String> distinctNames = entityNames.stream()
+                .filter(n -> n != null && !n.isBlank())
+                .distinct()
+                .limit(maxResults * 2)
+                .toList();
+        if (distinctNames.isEmpty()) {
+            return Uni.createFrom().item(List.<LuceneScoredResult>of());
+        }
+
+        return Uni.createFrom().item(() -> {
+            long startTime = System.nanoTime();
+            lock.readLock().lock();
+            try (IndexReader reader = DirectoryReader.open(directory)) {
+                IndexSearcher searcher = new IndexSearcher(reader);
+                BooleanQuery.Builder nameQueryBuilder = new BooleanQuery.Builder();
+                for (String name : distinctNames) {
+                    nameQueryBuilder.add(
+                            new TermQuery(new Term(LuceneSchema.FIELD_ENTITY_NAME_KEYWORD, name.trim())),
+                            BooleanClause.Occur.SHOULD);
+                }
+                Query nameQuery = nameQueryBuilder.build();
+                Query searchQuery = buildFilteredQueryOptimized(nameQuery, filters);
+                TopDocs topDocs = searcher.search(searchQuery, maxResults);
+
+                List<LuceneScoredResult> results = new ArrayList<>();
+                for (var scoreDoc : topDocs.scoreDocs) {
+                    Document doc = searcher.storedFields().document(scoreDoc.doc);
+                    results.add(new LuceneScoredResult(doc, 1.0f, null));
+                }
+                long totalTime = (System.nanoTime() - startTime) / 1_000_000;
+                LOG.debugf("Lookup by entity names: %d names -> %d docs in %d ms", distinctNames.size(), results.size(), totalTime);
+                return results;
+            } catch (IndexNotFoundException e) {
+                LOG.debug("Index not found for entity name lookup, returning empty results");
+                return List.of();
+            } catch (IOException e) {
+                LOG.error("Error during entity name lookup", e);
+                throw new RuntimeException("Failed to lookup by entity names", e);
+            } finally {
+                lock.readLock().unlock();
+            }
+        });
+    }
+
+    /**
      * Computes facet counts for metadata fields (US-02-04, T3, T4).
      * <p>
      * Uses optimized filter application with caching for performance (US-02-04, T4).

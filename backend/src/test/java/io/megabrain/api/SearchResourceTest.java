@@ -5,13 +5,10 @@
 
 package io.megabrain.api;
 
-import io.megabrain.core.HybridIndexService;
 import io.megabrain.core.FacetValue;
-import io.megabrain.core.LuceneIndexService;
 import io.megabrain.core.ResultMerger;
-import io.megabrain.core.SearchFilters;
 import io.megabrain.core.SearchMode;
-import io.megabrain.core.VectorStore;
+import io.megabrain.core.SearchOrchestrator;
 import io.smallrye.mutiny.Uni;
 import jakarta.ws.rs.core.Response;
 import org.apache.lucene.document.Document;
@@ -28,11 +25,8 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
@@ -44,10 +38,7 @@ import static org.mockito.Mockito.when;
 class SearchResourceTest {
 
     @Mock
-    private HybridIndexService hybridIndexService;
-
-    @Mock
-    private LuceneIndexService luceneIndexService;
+    private SearchOrchestrator searchOrchestrator;
 
     @InjectMocks
     private SearchResource searchResource;
@@ -55,8 +46,9 @@ class SearchResourceTest {
     @BeforeEach
     void setUp() {
         searchResource.facetLimit = 10;
-        lenient().when(luceneIndexService.computeFacets(anyString(), nullable(SearchFilters.class), anyInt()))
-                .thenReturn(Uni.createFrom().item(Map.of()));
+        lenient().when(searchOrchestrator.orchestrate(any(SearchRequest.class), any(SearchMode.class), anyInt()))
+                .thenReturn(Uni.createFrom().item(new SearchOrchestrator.OrchestratorResult(
+                        List.of(), Map.of())));
     }
 
     @Test
@@ -64,12 +56,11 @@ class SearchResourceTest {
         // Given
         String query = "authentication";
         List<ResultMerger.MergedResult> mockResults = createMockMergedResults(2);
-        when(hybridIndexService.search(eq(query), anyInt(), eq(SearchMode.HYBRID), nullable(SearchFilters.class), anyBoolean()))
-                .thenReturn(Uni.createFrom().item(mockResults));
-        when(luceneIndexService.computeFacets(eq(query), nullable(SearchFilters.class), anyInt()))
-                .thenReturn(Uni.createFrom().item(Map.of(
-                        "language", List.of(new FacetValue("java", 3))
-                )));
+        Map<String, List<FacetValue>> facets = Map.of(
+                "language", List.of(new FacetValue("java", 3))
+        );
+        when(searchOrchestrator.orchestrate(any(SearchRequest.class), eq(SearchMode.HYBRID), anyInt()))
+                .thenReturn(Uni.createFrom().item(new SearchOrchestrator.OrchestratorResult(mockResults, facets)));
 
         // When
         Uni<Response> responseUni = searchResource.search(
@@ -90,8 +81,8 @@ class SearchResourceTest {
         String query = "service";
         List<String> languages = List.of("java", "python");
         List<ResultMerger.MergedResult> mockResults = createMockMergedResults(1);
-        when(hybridIndexService.search(eq(query), anyInt(), any(SearchMode.class), any(SearchFilters.class), anyBoolean()))
-                .thenReturn(Uni.createFrom().item(mockResults));
+        when(searchOrchestrator.orchestrate(any(SearchRequest.class), any(SearchMode.class), anyInt()))
+                .thenReturn(Uni.createFrom().item(new SearchOrchestrator.OrchestratorResult(mockResults, Map.of())));
 
         // When
         Uni<Response> responseUni = searchResource.search(
@@ -100,7 +91,6 @@ class SearchResourceTest {
         // Then
         Response response = responseUni.await().indefinitely();
         assertThat(response.getStatus()).isEqualTo(200);
-        // Note: Actual filter application will be tested in T2 integration tests
     }
 
     @Test
@@ -112,8 +102,8 @@ class SearchResourceTest {
         List<String> filePaths = List.of("src/main");
         List<String> entityTypes = List.of("class");
         List<ResultMerger.MergedResult> mockResults = createMockMergedResults(1);
-        when(hybridIndexService.search(anyString(), anyInt(), any(SearchMode.class), any(SearchFilters.class), anyBoolean()))
-                .thenReturn(Uni.createFrom().item(mockResults));
+        when(searchOrchestrator.orchestrate(any(SearchRequest.class), any(SearchMode.class), anyInt()))
+                .thenReturn(Uni.createFrom().item(new SearchOrchestrator.OrchestratorResult(mockResults, Map.of())));
 
         // When
         Uni<Response> responseUni = searchResource.search(
@@ -130,8 +120,8 @@ class SearchResourceTest {
         String query = "query";
         List<String> languages = List.of("java", "python", "typescript");
         List<ResultMerger.MergedResult> mockResults = createMockMergedResults(0);
-        when(hybridIndexService.search(anyString(), anyInt(), any(SearchMode.class), any(SearchFilters.class), anyBoolean()))
-                .thenReturn(Uni.createFrom().item(mockResults));
+        when(searchOrchestrator.orchestrate(any(SearchRequest.class), any(SearchMode.class), anyInt()))
+                .thenReturn(Uni.createFrom().item(new SearchOrchestrator.OrchestratorResult(mockResults, Map.of())));
 
         // When
         Uni<Response> responseUni = searchResource.search(
@@ -207,8 +197,8 @@ class SearchResourceTest {
         // Given
         String query = "test";
         List<ResultMerger.MergedResult> mockResults = createMockMergedResults(1);
-        when(hybridIndexService.search(eq(query), anyInt(), eq(SearchMode.KEYWORD), nullable(SearchFilters.class), anyBoolean()))
-                .thenReturn(Uni.createFrom().item(mockResults));
+        when(searchOrchestrator.orchestrate(any(SearchRequest.class), eq(SearchMode.KEYWORD), anyInt()))
+                .thenReturn(Uni.createFrom().item(new SearchOrchestrator.OrchestratorResult(mockResults, Map.of())));
 
         // When
         Uni<Response> responseUni = searchResource.search(
@@ -224,8 +214,8 @@ class SearchResourceTest {
         // Given
         String query = "test";
         List<ResultMerger.MergedResult> mockResults = createMockMergedResults(1);
-        when(hybridIndexService.search(eq(query), anyInt(), eq(SearchMode.HYBRID), nullable(SearchFilters.class), anyBoolean()))
-                .thenReturn(Uni.createFrom().item(mockResults));
+        when(searchOrchestrator.orchestrate(any(SearchRequest.class), eq(SearchMode.HYBRID), anyInt()))
+                .thenReturn(Uni.createFrom().item(new SearchOrchestrator.OrchestratorResult(mockResults, Map.of())));
 
         // When
         Uni<Response> responseUni = searchResource.search(
@@ -241,8 +231,8 @@ class SearchResourceTest {
         // Given
         String query = "test";
         List<ResultMerger.MergedResult> mockResults = createMockMergedResults(10);
-        when(hybridIndexService.search(anyString(), anyInt(), any(SearchMode.class), nullable(SearchFilters.class), anyBoolean()))
-                .thenReturn(Uni.createFrom().item(mockResults));
+        when(searchOrchestrator.orchestrate(any(SearchRequest.class), any(SearchMode.class), anyInt()))
+                .thenReturn(Uni.createFrom().item(new SearchOrchestrator.OrchestratorResult(mockResults, Map.of())));
 
         // When
         Uni<Response> responseUni = searchResource.search(
@@ -262,7 +252,7 @@ class SearchResourceTest {
     void search_withServiceFailure_shouldReturnInternalServerError() {
         // Given
         String query = "test";
-        when(hybridIndexService.search(anyString(), anyInt(), any(SearchMode.class), nullable(SearchFilters.class), anyBoolean()))
+        when(searchOrchestrator.orchestrate(any(SearchRequest.class), any(SearchMode.class), anyInt()))
                 .thenReturn(Uni.createFrom().failure(new RuntimeException("Search failed")));
 
         // When
@@ -282,8 +272,8 @@ class SearchResourceTest {
         String query = "test";
         List<String> emptyList = new ArrayList<>();
         List<ResultMerger.MergedResult> mockResults = createMockMergedResults(1);
-        when(hybridIndexService.search(anyString(), anyInt(), any(SearchMode.class), nullable(SearchFilters.class), anyBoolean()))
-                .thenReturn(Uni.createFrom().item(mockResults));
+        when(searchOrchestrator.orchestrate(any(SearchRequest.class), any(SearchMode.class), anyInt()))
+                .thenReturn(Uni.createFrom().item(new SearchOrchestrator.OrchestratorResult(mockResults, Map.of())));
 
         // When
         Uni<Response> responseUni = searchResource.search(
@@ -292,6 +282,26 @@ class SearchResourceTest {
         // Then
         Response response = responseUni.await().indefinitely();
         assertThat(response.getStatus()).isEqualTo(200);
+    }
+
+    @Test
+    void search_withTransitiveTrue_shouldCallOrchestratorAndReturnResults() {
+        // Given - transitive=true triggers graph integration in orchestrator
+        String query = "implements:IRepository";
+        List<ResultMerger.MergedResult> mockResults = createMockMergedResults(2);
+        when(searchOrchestrator.orchestrate(any(SearchRequest.class), any(SearchMode.class), anyInt()))
+                .thenReturn(Uni.createFrom().item(new SearchOrchestrator.OrchestratorResult(mockResults, Map.of())));
+
+        // When
+        Uni<Response> responseUni = searchResource.search(
+                query, null, null, null, null, 10, 0, null, null, true);
+
+        // Then
+        Response response = responseUni.await().indefinitely();
+        assertThat(response.getStatus()).isEqualTo(200);
+        SearchResponse searchResponse = (SearchResponse) response.getEntity();
+        assertThat(searchResponse.getResults()).hasSize(2);
+        assertThat(searchResponse.getQuery()).isEqualTo(query);
     }
 
     /**
