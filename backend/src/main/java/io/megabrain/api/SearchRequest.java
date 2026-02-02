@@ -41,6 +41,9 @@ public class SearchRequest {
     /** When true, include field match info (matched fields and per-field scores) in results (US-02-05, T4). Optional for performance. */
     private boolean includeFieldMatch = false;
 
+    /** When true, enable transitive relationship traversal for structural queries (implements, extends). Default false for backward compatibility (US-02-06, T1). */
+    private boolean transitive = false;
+
     /**
      * Default constructor.
      */
@@ -254,6 +257,24 @@ public class SearchRequest {
     }
 
     /**
+     * Whether to enable transitive relationship traversal for structural queries (implements, extends).
+     *
+     * @return true if transitive traversal is enabled
+     */
+    public boolean isTransitive() {
+        return transitive;
+    }
+
+    /**
+     * Sets whether to enable transitive relationship traversal.
+     *
+     * @param transitive true to enable transitive traversal (default: false for backward compatibility)
+     */
+    public void setTransitive(boolean transitive) {
+        this.transitive = transitive;
+    }
+
+    /**
      * Checks if any filters are specified.
      *
      * @return true if at least one filter is set
@@ -291,6 +312,8 @@ public class SearchRequest {
                 ", entityTypes=" + entityTypes +
                 ", limit=" + limit +
                 ", offset=" + offset +
+                ", includeFieldMatch=" + includeFieldMatch +
+                ", transitive=" + transitive +
                 '}';
     }
 }

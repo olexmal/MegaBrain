@@ -75,11 +75,13 @@ public class SearchResource {
      *   <li>{@code offset} (optional, default: 0): Pagination offset</li>
      *   <li>{@code mode} (optional, default: hybrid): Search mode (hybrid, keyword, vector)</li>
      *   <li>{@code include_field_match} (optional, default: false): Include which fields matched and per-field scores</li>
+     *   <li>{@code transitive} (optional, default: false): Enable transitive relationship traversal for structural queries (implements, extends)</li>
      * </ul>
      * <p>
      * Example:
      * <pre>
      * GET /api/v1/search?q=authentication&language=java&language=python&entity_type=class&limit=20
+     * GET /api/v1/search?q=implements:IRepository&transitive=true
      * </pre>
      *
      * @param query the search query string (required)
@@ -91,6 +93,7 @@ public class SearchResource {
      * @param offset pagination offset (default: 0)
      * @param mode search mode: hybrid, keyword, or vector (default: hybrid)
      * @param includeFieldMatch include field match info in results (default: false, optional for performance)
+     * @param transitive enable transitive relationship traversal (default: false for backward compatibility)
      * @return search response with results and pagination metadata
      */
     @GET
@@ -103,7 +106,8 @@ public class SearchResource {
             @QueryParam("limit") @Min(1) @Max(100) Integer limit,
             @QueryParam("offset") @Min(0) Integer offset,
             @QueryParam("mode") String mode,
-            @QueryParam("include_field_match") Boolean includeFieldMatch) {
+            @QueryParam("include_field_match") Boolean includeFieldMatch,
+            @QueryParam("transitive") Boolean transitive) {
 
         long startTime = System.currentTimeMillis();
 
@@ -136,6 +140,7 @@ public class SearchResource {
             searchRequest.setLimit(limit != null ? limit : 10);
             searchRequest.setOffset(offset != null ? offset : 0);
             searchRequest.setIncludeFieldMatch(Boolean.TRUE.equals(includeFieldMatch));
+            searchRequest.setTransitive(Boolean.TRUE.equals(transitive));
 
             // Validate the request
             try {

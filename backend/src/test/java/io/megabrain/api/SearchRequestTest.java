@@ -29,6 +29,7 @@ class SearchRequestTest {
         assertThat(request.getEntityTypes()).isEmpty();
         assertThat(request.getLimit()).isEqualTo(10);
         assertThat(request.getOffset()).isEqualTo(0);
+        assertThat(request.isTransitive()).isFalse();
     }
 
     @Test
@@ -66,5 +67,52 @@ class SearchRequestTest {
         assertThatThrownBy(request::validate)
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("blank");
+    }
+
+    @Test
+    void transitive_defaultsToFalse() {
+        // When
+        SearchRequest request = new SearchRequest("test");
+
+        // Then
+        assertThat(request.isTransitive()).isFalse();
+    }
+
+    @Test
+    void setTransitive_true_setsTransitive() {
+        // Given
+        SearchRequest request = new SearchRequest("test");
+
+        // When
+        request.setTransitive(true);
+
+        // Then
+        assertThat(request.isTransitive()).isTrue();
+    }
+
+    @Test
+    void setTransitive_false_keepsFalse() {
+        // Given
+        SearchRequest request = new SearchRequest("test");
+        request.setTransitive(true);
+
+        // When
+        request.setTransitive(false);
+
+        // Then
+        assertThat(request.isTransitive()).isFalse();
+    }
+
+    @Test
+    void toString_includesTransitive() {
+        // Given
+        SearchRequest request = new SearchRequest("q");
+        request.setTransitive(true);
+
+        // When
+        String s = request.toString();
+
+        // Then
+        assertThat(s).contains("transitive=true");
     }
 }

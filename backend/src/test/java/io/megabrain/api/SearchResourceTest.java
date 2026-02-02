@@ -73,7 +73,7 @@ class SearchResourceTest {
 
         // When
         Uni<Response> responseUni = searchResource.search(
-                query, null, null, null, null, 10, 0, null, null);
+                query, null, null, null, null, 10, 0, null, null, null);
 
         // Then
         Response response = responseUni.await().indefinitely();
@@ -95,7 +95,7 @@ class SearchResourceTest {
 
         // When
         Uni<Response> responseUni = searchResource.search(
-                query, languages, null, null, null, 10, 0, null, null);
+                query, languages, null, null, null, 10, 0, null, null, null);
 
         // Then
         Response response = responseUni.await().indefinitely();
@@ -117,7 +117,7 @@ class SearchResourceTest {
 
         // When
         Uni<Response> responseUni = searchResource.search(
-                query, languages, repositories, filePaths, entityTypes, 10, 0, null, null);
+                query, languages, repositories, filePaths, entityTypes, 10, 0, null, null, null);
 
         // Then
         Response response = responseUni.await().indefinitely();
@@ -135,7 +135,7 @@ class SearchResourceTest {
 
         // When
         Uni<Response> responseUni = searchResource.search(
-                query, languages, null, null, null, 10, 0, null, null);
+                query, languages, null, null, null, 10, 0, null, null, null);
 
         // Then
         Response response = responseUni.await().indefinitely();
@@ -146,7 +146,7 @@ class SearchResourceTest {
     void search_withMissingQuery_shouldReturnBadRequest() {
         // When
         Uni<Response> responseUni = searchResource.search(
-                null, null, null, null, null, 10, 0, null, null);
+                null, null, null, null, null, 10, 0, null, null, null);
 
         // Then
         Response response = responseUni.await().indefinitely();
@@ -159,7 +159,7 @@ class SearchResourceTest {
     void search_withBlankQuery_shouldReturnBadRequest() {
         // When
         Uni<Response> responseUni = searchResource.search(
-                "   ", null, null, null, null, 10, 0, null, null);
+                "   ", null, null, null, null, 10, 0, null, null, null);
 
         // Then
         Response response = responseUni.await().indefinitely();
@@ -173,12 +173,12 @@ class SearchResourceTest {
 
         // When - limit too high (JAX-RS validation should catch @Max(100))
         Uni<Response> responseUni1 = searchResource.search(
-                query, null, null, null, null, 101, 0, null, null);
+                query, null, null, null, null, 101, 0, null, null, null);
         Response response1 = responseUni1.await().indefinitely();
 
         // When - limit too low (JAX-RS validation should catch @Min(1))
         Uni<Response> responseUni2 = searchResource.search(
-                query, null, null, null, null, 0, 0, null, null);
+                query, null, null, null, null, 0, 0, null, null, null);
         Response response2 = responseUni2.await().indefinitely();
 
         // Then - JAX-RS validation should handle @Min/@Max annotations
@@ -195,7 +195,7 @@ class SearchResourceTest {
 
         // When - negative offset (JAX-RS validation should catch @Min(0))
         Uni<Response> responseUni = searchResource.search(
-                query, null, null, null, null, 10, -1, null, null);
+                query, null, null, null, null, 10, -1, null, null, null);
 
         // Then - JAX-RS validation should handle @Min annotation
         Response response = responseUni.await().indefinitely();
@@ -212,7 +212,7 @@ class SearchResourceTest {
 
         // When
         Uni<Response> responseUni = searchResource.search(
-                query, null, null, null, null, 10, 0, "keyword", null);
+                query, null, null, null, null, 10, 0, "keyword", null, null);
 
         // Then
         Response response = responseUni.await().indefinitely();
@@ -229,7 +229,7 @@ class SearchResourceTest {
 
         // When
         Uni<Response> responseUni = searchResource.search(
-                query, null, null, null, null, 10, 0, "invalid", null);
+                query, null, null, null, null, 10, 0, "invalid", null, null);
 
         // Then
         Response response = responseUni.await().indefinitely();
@@ -246,7 +246,7 @@ class SearchResourceTest {
 
         // When
         Uni<Response> responseUni = searchResource.search(
-                query, null, null, null, null, 5, 3, null, null);
+                query, null, null, null, null, 5, 3, null, null, null);
 
         // Then
         Response response = responseUni.await().indefinitely();
@@ -267,7 +267,7 @@ class SearchResourceTest {
 
         // When
         Uni<Response> responseUni = searchResource.search(
-                query, null, null, null, null, 10, 0, null, null);
+                query, null, null, null, null, 10, 0, null, null, null);
 
         // Then
         Response response = responseUni.await().indefinitely();
@@ -287,7 +287,7 @@ class SearchResourceTest {
 
         // When
         Uni<Response> responseUni = searchResource.search(
-                query, emptyList, emptyList, emptyList, emptyList, 10, 0, null, null);
+                query, emptyList, emptyList, emptyList, emptyList, 10, 0, null, null, null);
 
         // Then
         Response response = responseUni.await().indefinitely();
