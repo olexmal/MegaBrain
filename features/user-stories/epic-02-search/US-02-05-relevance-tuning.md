@@ -13,11 +13,11 @@
 
 ## Acceptance Criteria
 
-- [ ] **AC1:** Configurable boost factors per index field
-- [ ] **AC2:** Default boosts: entity_name (3.0), doc_summary (2.0), content (1.0)
-- [ ] **AC3:** Configuration via application.properties
-- [ ] **AC4:** Changes apply without reindexing (query-time boosts)
-- [ ] **AC5:** Boost configuration validated on startup
+- [x] **AC1:** Configurable boost factors per index field
+- [x] **AC2:** Default boosts: entity_name (3.0), doc_summary (2.0), content (1.0)
+- [x] **AC3:** Configuration via application.properties
+- [x] **AC4:** Changes apply without reindexing (query-time boosts)
+- [x] **AC5:** Boost configuration validated on startup
 
 ---
 
@@ -43,11 +43,11 @@
 
 ## Technical Tasks
 
-- [ ] **T1:** Create boost configuration class (backend)
-- [ ] **T2:** Load boosts from application.properties (backend)
-- [ ] **T3:** Apply boosts at query time in Lucene (backend)
-- [ ] **T4:** Add field match explanation to results (backend)
-- [ ] **T5:** Write tests for boost application (test)
+- [x] **T1:** Create boost configuration class (backend)
+- [x] **T2:** Load boosts from application.properties (backend)
+- [x] **T3:** Apply boosts at query time in Lucene (backend)
+- [x] **T4:** Add field match explanation to results (backend)
+- [x] **T5:** Write tests for boost application (test)
 
 ---
 
@@ -86,4 +86,11 @@
 - [x] Test scenarios defined
 - [x] Demo script approved
 - [x] No blockers
+
+---
+
+## Implementation Notes
+
+- **AC & tasks:** All acceptance criteria and technical tasks (T1–T5) are implemented; see `US-02-05-relevance-tuning-tasks.md` for details.
+- **Demo "Show Config":** Current boost configuration is read from `application.properties` (and env overrides). There is no REST endpoint that returns boost values; for the demo, "Display current boost configuration" can be done by showing the config file or env. If a dashboard needs to display boosts via API, add a GET endpoint (e.g. `/api/v1/search/config` or `/api/v1/config/search/boost`) that returns `BoostConfiguration` values.
 

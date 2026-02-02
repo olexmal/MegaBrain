@@ -57,18 +57,7 @@ class LuceneIndexServiceTest {
         indexService.indexDirectoryPath = testIndexDir.toString();
 
         // Manually inject dependencies for testing
-        QueryParserService queryParser = new QueryParserService();
-        queryParser.analyzer = new CodeAwareAnalyzer(); // Inject the analyzer
-        // Set boost values before initialize (no CDI in plain JUnit, so @ConfigProperty would be 0)
-        queryParser.contentBoost = 1.0f;
-        queryParser.entityNameBoost = 3.0f;
-        queryParser.docSummaryBoost = 2.0f;
-        queryParser.entityNameKeywordBoost = 3.0f;
-        queryParser.repositoryBoost = 1.0f;
-        queryParser.languageBoost = 1.0f;
-        queryParser.entityTypeBoost = 1.0f;
-        queryParser.initialize();
-        indexService.queryParser = queryParser;
+        indexService.queryParser = createDefaultQueryParser();
         indexService.boostConfiguration = createTestBoostConfiguration();
 
         // Initialize manually instead of using CDI lifecycle
@@ -91,6 +80,46 @@ class LuceneIndexServiceTest {
             @Override
             public float content() { return 1.0f; }
         };
+    }
+
+    private static BoostConfiguration createBoostConfiguration(float entityName, float docSummary, float content) {
+        return new BoostConfiguration() {
+            @Override
+            public float entityName() { return entityName; }
+            @Override
+            public float docSummary() { return docSummary; }
+            @Override
+            public float content() { return content; }
+        };
+    }
+
+    private static QueryParserService createDefaultQueryParser() {
+        QueryParserService queryParser = new QueryParserService();
+        queryParser.analyzer = new CodeAwareAnalyzer();
+        queryParser.contentBoost = 1.0f;
+        queryParser.entityNameBoost = 3.0f;
+        queryParser.docSummaryBoost = 2.0f;
+        queryParser.entityNameKeywordBoost = 3.0f;
+        queryParser.repositoryBoost = 1.0f;
+        queryParser.languageBoost = 1.0f;
+        queryParser.entityTypeBoost = 1.0f;
+        queryParser.initialize();
+        return queryParser;
+    }
+
+    /**
+     * Creates and initializes a LuceneIndexService with the given boost configuration.
+     * Caller must call shutdown() on the returned service when done.
+     */
+    private LuceneIndexService createIndexServiceWithBoostConfig(Path indexDir,
+                                                                 float entityName, float docSummary, float content) throws Exception {
+        Files.createDirectories(indexDir);
+        LuceneIndexService service = new TestLuceneIndexService();
+        service.indexDirectoryPath = indexDir.toString();
+        service.queryParser = createDefaultQueryParser();
+        service.boostConfiguration = createBoostConfiguration(entityName, docSummary, content);
+        service.initialize();
+        return service;
     }
 
     @Test
@@ -665,6 +694,86 @@ class LuceneIndexServiceTest {
         assertThat(firstEntity).isEqualTo("BoostUtil");
         assertThat(secondEntity).isEqualTo("HelperClass");
         assertThat(results.get(0).score()).isGreaterThan(results.get(1).score());
+    }
+
+    /**
+     * Verifies that ranking changes when boost configuration changes (US-02-05, T5).
+     * With content boosted higher than entity_name, content-only matches rank above entity_name matches.
+     */
+    @Test
+    void testRankingWithInvertedBoostConfiguration() throws Exception {
+        Path invertedIndexDir = tempDir.resolve("inverted-" + System.nanoTime());
+        LuceneIndexService invertedService = createIndexServiceWithBoostConfig(
+                invertedIndexDir, 1.0f, 2.0f, 5.0f);
+        try {
+            List<TextChunk> chunks = List.of(
+                    createTestChunk("BoostUtil", ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_1,
+                            "utility helper"),
+                    createTestChunk("HelperClass", ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_2,
+                            "this class uses boost for scoring")
+            );
+            invertedService.addChunks(chunks).await().indefinitely();
+
+            List<LuceneIndexService.LuceneScoredResult> results =
+                    invertedService.searchWithScores("boost", 10).await().indefinitely();
+
+            assertThat(results).hasSize(2);
+            String firstEntity = results.get(0).document().get(LuceneSchema.FIELD_ENTITY_NAME);
+            String secondEntity = results.get(1).document().get(LuceneSchema.FIELD_ENTITY_NAME);
+            assertThat(firstEntity).isEqualTo("HelperClass");
+            assertThat(secondEntity).isEqualTo("BoostUtil");
+            assertThat(results.get(0).score()).isGreaterThan(results.get(1).score());
+        } finally {
+            invertedService.shutdown();
+        }
+    }
+
+    /**
+     * Verifies that default boost configuration (entity_name=3, doc_summary=2, content=1) produces
+     * higher scores for entity_name matches than content-only matches (US-02-05, T5).
+     */
+    @Test
+    void testDefaultBoostValuesProduceEntityNameFirst() {
+        List<TextChunk> chunks = List.of(
+                createTestChunk("RelevanceClass", ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_1,
+                        "generic content"),
+                createTestChunk("OtherClass", ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_2,
+                        "relevance is important here")
+        );
+        indexService.addChunks(chunks).await().indefinitely();
+
+        List<LuceneIndexService.LuceneScoredResult> results =
+                indexService.searchWithScores("relevance", 10).await().indefinitely();
+
+        assertThat(results).hasSize(2);
+        assertThat(results.get(0).document().get(LuceneSchema.FIELD_ENTITY_NAME)).isEqualTo("RelevanceClass");
+        assertThat(results.get(1).document().get(LuceneSchema.FIELD_ENTITY_NAME)).isEqualTo("OtherClass");
+        assertThat(results.get(0).score()).isGreaterThan(results.get(1).score());
+    }
+
+    /**
+     * Verifies that search() (without scores) returns same ranking order as boost configuration
+     * when entity_name is boosted higher than content (US-02-05, T5).
+     */
+    @Test
+    void testBoostApplicationAffectsSearchOrder() {
+        List<TextChunk> chunks = List.of(
+                createTestChunk("OrderFirst", ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_1,
+                        "order mentioned in content"),
+                createTestChunk("SecondClass", ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_2,
+                        "order and sort")
+        );
+        indexService.addChunks(chunks).await().indefinitely();
+
+        List<Document> searchDocs = indexService.search("order", 10).await().indefinitely();
+        List<LuceneIndexService.LuceneScoredResult> scoredResults =
+                indexService.searchWithScores("order", 10).await().indefinitely();
+
+        assertThat(searchDocs).hasSize(2);
+        assertThat(scoredResults).hasSize(2);
+        assertThat(searchDocs.get(0).get(LuceneSchema.FIELD_ENTITY_NAME))
+                .isEqualTo(scoredResults.get(0).document().get(LuceneSchema.FIELD_ENTITY_NAME));
+        assertThat(searchDocs.get(0).get(LuceneSchema.FIELD_ENTITY_NAME)).isEqualTo("OrderFirst");
     }
 
     /**

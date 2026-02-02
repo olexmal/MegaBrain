@@ -66,14 +66,15 @@
 - **Description:** Create unit tests to verify boost configuration loading and application. Test that boosts are applied correctly, default values work, and configuration validation. Test ranking changes with different boost values.
 - **Estimated Hours:** 2 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T1-T4 (needs complete implementation)
 - **Acceptance Criteria:**
-  - [ ] Tests for configuration loading
-  - [ ] Tests for boost application
-  - [ ] Tests verify ranking changes
-  - [ ] Test coverage >80%
+  - [x] Tests for configuration loading
+  - [x] Tests for boost application
+  - [x] Tests verify ranking changes
+  - [x] Test coverage >80%
 - **Technical Notes:** Use JUnit 5. Test with known data and queries. Verify entity_name matches rank higher than content matches. Test with different boost configurations.
+- **Implementation Notes:** Configuration loading covered by BoostConfigurationTest (defaults, getBoostForField, null/blank) and BoostConfigurationOverrideTest (profile overrides); validation by BoostConfigurationValidatorTest. LuceneIndexServiceTest: testSearchEntityNameBoosting, testSearchDocSummaryBoosting, testSearchWithScoresBoostsAffectRanking (default boosts), testRankingWithInvertedBoostConfiguration (content=5, entity=1 → content match first), testDefaultBoostValuesProduceEntityNameFirst, testBoostApplicationAffectsSearchOrder. Helper createIndexServiceWithBoostConfig() for custom boost configs.
 
 ---
 
