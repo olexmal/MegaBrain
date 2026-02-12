@@ -51,6 +51,12 @@ public class SearchResource {
     @ConfigProperty(name = "megabrain.search.facets.limit", defaultValue = "10")
     int facetLimit;
 
+    @ConfigProperty(name = "megabrain.search.transitive.default-depth", defaultValue = "5")
+    int transitiveDefaultDepth;
+
+    @ConfigProperty(name = "megabrain.search.transitive.max-depth", defaultValue = "10")
+    int transitiveMaxDepth;
+
     @Inject
     public SearchResource(SearchOrchestrator searchOrchestrator) {
         this.searchOrchestrator = searchOrchestrator;
@@ -71,6 +77,7 @@ public class SearchResource {
      *   <li>{@code mode} (optional, default: hybrid): Search mode (hybrid, keyword, vector)</li>
      *   <li>{@code include_field_match} (optional, default: false): Include which fields matched and per-field scores</li>
      *   <li>{@code transitive} (optional, default: false): Enable transitive relationship traversal for structural queries (implements, extends)</li>
+     *   <li>{@code depth} (optional): Maximum traversal depth for transitive queries (1 to configured max, default from config). Only used when transitive=true.</li>
      * </ul>
      * <p>
      * Example:
@@ -89,6 +96,7 @@ public class SearchResource {
      * @param mode search mode: hybrid, keyword, or vector (default: hybrid)
      * @param includeFieldMatch include field match info in results (default: false, optional for performance)
      * @param transitive enable transitive relationship traversal (default: false for backward compatibility)
+     * @param depth maximum traversal depth for transitive queries (1 to configured max; optional, uses server default when omitted)
      * @return search response with results and pagination metadata
      */
     @GET
@@ -102,7 +110,8 @@ public class SearchResource {
             @QueryParam("offset") @Min(0) Integer offset,
             @QueryParam("mode") String mode,
             @QueryParam("include_field_match") Boolean includeFieldMatch,
-            @QueryParam("transitive") Boolean transitive) {
+            @QueryParam("transitive") Boolean transitive,
+            @QueryParam("depth") Integer depth) {
 
         long startTime = System.currentTimeMillis();
 
@@ -136,6 +145,7 @@ public class SearchResource {
             searchRequest.setOffset(offset != null ? offset : 0);
             searchRequest.setIncludeFieldMatch(Boolean.TRUE.equals(includeFieldMatch));
             searchRequest.setTransitive(Boolean.TRUE.equals(transitive));
+            searchRequest.setDepth(depth);
 
             // Validate the request
             try {
@@ -147,6 +157,20 @@ public class SearchResource {
                         .build());
             }
 
+            // Validate depth when supplied (must be 1 to max)
+            if (searchRequest.getDepth() != null && (searchRequest.getDepth() < 1 || searchRequest.getDepth() > transitiveMaxDepth)) {
+                String msg = String.format("Depth must be between 1 and %d (configured max)", transitiveMaxDepth);
+                LOG.warnf("Invalid search request: %s", msg);
+                return Uni.createFrom().item(Response.status(Response.Status.BAD_REQUEST)
+                        .entity(new ErrorResponse(msg))
+                        .build());
+            }
+
+            // Resolve effective transitive depth (used only when transitive=true)
+            int effectiveDepth = searchRequest.getDepth() != null
+                    ? Math.max(1, Math.min(searchRequest.getDepth(), transitiveMaxDepth))
+                    : transitiveDefaultDepth;
+
             // Parse search mode
             SearchMode searchMode = parseSearchMode(mode);
 
@@ -154,7 +178,7 @@ public class SearchResource {
                     searchRequest.getQuery(), searchRequest.hasFilters() ? "present" : "none",
                     searchRequest.getLimit(), searchRequest.getOffset(), searchMode);
 
-            return searchOrchestrator.orchestrate(searchRequest, searchMode, facetLimit)
+            return searchOrchestrator.orchestrate(searchRequest, searchMode, facetLimit, effectiveDepth)
                     .map(orcResult -> {
                         long tookMs = System.currentTimeMillis() - startTime;
                         List<ResultMerger.MergedResult> mergedResults = orcResult.mergedResults();

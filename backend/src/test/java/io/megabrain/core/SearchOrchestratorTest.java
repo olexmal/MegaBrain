@@ -66,7 +66,7 @@ class SearchOrchestratorTest {
                 .thenReturn(Uni.createFrom().item(facets));
 
         SearchOrchestrator.OrchestratorResult result = searchOrchestrator
-                .orchestrate(request, SearchMode.HYBRID, 5)
+                .orchestrate(request, SearchMode.HYBRID, 5, 5)
                 .await().indefinitely();
 
         assertThat(result.mergedResults()).isEqualTo(hybridResults);
@@ -91,7 +91,7 @@ class SearchOrchestratorTest {
                 .thenReturn(Uni.createFrom().item(List.<GraphRelatedEntity>of()));
 
         SearchOrchestrator.OrchestratorResult result = searchOrchestrator
-                .orchestrate(request, SearchMode.HYBRID, 5)
+                .orchestrate(request, SearchMode.HYBRID, 5, 5)
                 .await().indefinitely();
 
         assertThat(result.mergedResults()).hasSize(1);
@@ -135,7 +135,7 @@ class SearchOrchestratorTest {
                 .thenReturn(graphMerged);
 
         SearchOrchestrator.OrchestratorResult result = searchOrchestrator
-                .orchestrate(request, SearchMode.HYBRID, 5)
+                .orchestrate(request, SearchMode.HYBRID, 5, 5)
                 .await().indefinitely();
 
         assertThat(result.mergedResults()).hasSize(2);
@@ -144,6 +144,30 @@ class SearchOrchestratorTest {
         assertThat(result.mergedResults().get(1).chunkId()).isEqualTo("hybrid-id");
         verify(graphQueryService).findRelatedEntities(eq("implements:IRepo"), nullable(SearchFilters.class), eq(5));
         verify(luceneIndexService).lookupByEntityNames(eq(List.of("ConcreteRepo")), eq(10), nullable(SearchFilters.class));
+    }
+
+    @Test
+    void orchestrate_whenTransitiveTrue_passesRequestedDepthToGraph() {
+        SearchRequest request = new SearchRequest("extends:Base");
+        request.setLimit(10);
+        request.setTransitive(true);
+
+        List<ResultMerger.MergedResult> hybridResults = List.of(createMergedResult("id1"));
+        Map<String, List<FacetValue>> facets = Map.of();
+
+        when(hybridIndexService.search(any(), anyInt(), eq(SearchMode.HYBRID), nullable(SearchFilters.class), eq(false)))
+                .thenReturn(Uni.createFrom().item(hybridResults));
+        when(luceneIndexService.computeFacets(any(), nullable(SearchFilters.class), anyInt()))
+                .thenReturn(Uni.createFrom().item(facets));
+        when(graphQueryService.findRelatedEntities(eq("extends:Base"), nullable(SearchFilters.class), eq(3)))
+                .thenReturn(Uni.createFrom().item(List.<GraphRelatedEntity>of()));
+
+        SearchOrchestrator.OrchestratorResult result = searchOrchestrator
+                .orchestrate(request, SearchMode.HYBRID, 5, 3)
+                .await().indefinitely();
+
+        assertThat(result.mergedResults()).hasSize(1);
+        verify(graphQueryService).findRelatedEntities(eq("extends:Base"), nullable(SearchFilters.class), eq(3));
     }
 
     private static ResultMerger.MergedResult createMergedResult(String chunkId) {

@@ -67,14 +67,15 @@
 - **Description:** Add configuration for maximum traversal depth in transitive queries. Default depth: 5. Allow per-request override via API parameter. Validate depth limits to prevent performance issues.
 - **Estimated Hours:** 2 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T3, T4 (needs transitive closures)
 - **Acceptance Criteria:**
-  - [ ] Depth limit configurable
-  - [ ] Default depth: 5
-  - [ ] Per-request depth override supported
-  - [ ] Depth validation (max limit enforced)
+  - [x] Depth limit configurable
+  - [x] Default depth: 5
+  - [x] Per-request depth override supported
+  - [x] Depth validation (max limit enforced)
 - **Technical Notes:** Add `depth` parameter to search API. Validate depth is 1-10 (configurable max). Use depth in graph queries. Document depth impact on performance.
+- **Implementation Notes:** Added `depth` (Integer, optional) to SearchRequest. Config: `megabrain.search.transitive.default-depth=5`, `megabrain.search.transitive.max-depth=10`. SearchResource accepts `depth` query param, validates 1..max, resolves effective depth (request depth or default) and passes to SearchOrchestrator. Orchestrator uses transitiveDepth in graphQueryService.findRelatedEntities(). Validation returns 400 when depth &lt; 1 or &gt; max. Unit tests: SearchRequestTest (depth get/set, toString), SearchResourceTest (depth validation 400, transitive with depth), SearchOrchestratorTest (passes requested depth to graph).
 
 ### T6: Mark transitive results in response
 - **Description:** Add metadata to search results indicating which results were found via transitive traversal vs direct search. Include relationship path information for transitive results. This helps users understand result provenance.

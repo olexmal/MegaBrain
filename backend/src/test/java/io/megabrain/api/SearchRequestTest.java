@@ -121,4 +121,29 @@ class SearchRequestTest {
         // Then
         assertThat(actual).contains("transitive=true");
     }
+
+    @Test
+    @DisplayName("depth defaults to null")
+    void getDepth_defaultsToNull() {
+        SearchRequest request = new SearchRequest("q");
+        assertThat(request.getDepth()).isNull();
+    }
+
+    @Test
+    @DisplayName("setDepth and getDepth round-trip")
+    void setDepth_setsDepth() {
+        SearchRequest request = new SearchRequest("q");
+        request.setDepth(3);
+        assertThat(request.getDepth()).isEqualTo(3);
+        request.setDepth(null);
+        assertThat(request.getDepth()).isNull();
+    }
+
+    @Test
+    @DisplayName("toString includes depth when set")
+    void toString_includesDepthWhenSet() {
+        SearchRequest request = new SearchRequest("q");
+        request.setDepth(5);
+        assertThat(request.toString()).contains("depth=5");
+    }
 }

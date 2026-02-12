@@ -32,9 +32,6 @@ public class SearchOrchestrator {
 
     private static final Logger LOG = Logger.getLogger(SearchOrchestrator.class);
 
-    /** Default traversal depth for graph queries until T5 adds per-request/config depth. */
-    private static final int DEFAULT_GRAPH_DEPTH = 5;
-
     private final HybridIndexService hybridIndexService;
     private final LuceneIndexService luceneIndexService;
     private final GraphQueryService graphQueryService;
@@ -68,11 +65,13 @@ public class SearchOrchestrator {
      * @param request the search request (query, filters, limit, transitive flag)
      * @param mode    search mode (hybrid, keyword, vector)
      * @param facetLimit max facet values per field
+     * @param transitiveDepth maximum traversal depth for graph queries when transitive=true (US-02-06, T5)
      * @return combined merged results and facets
      */
     public Uni<OrchestratorResult> orchestrate(io.megabrain.api.SearchRequest request,
                                                SearchMode mode,
-                                               int facetLimit) {
+                                               int facetLimit,
+                                               int transitiveDepth) {
         String query = request.getQuery();
         int limit = request.getLimit();
         SearchFilters filters = request.hasFilters()
@@ -98,7 +97,7 @@ public class SearchOrchestrator {
 
         // Transitive: run hybrid + facets + graph in parallel
         Uni<List<GraphRelatedEntity>> graphUni = graphQueryService.findRelatedEntities(
-                query, filters, DEFAULT_GRAPH_DEPTH);
+                query, filters, transitiveDepth);
 
         return Uni.combine().all().unis(hybridUni, facetsUni, graphUni).asTuple()
                 .flatMap(tuple -> {

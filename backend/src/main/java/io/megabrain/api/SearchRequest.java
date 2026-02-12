@@ -45,6 +45,13 @@ public class SearchRequest {
     private boolean transitive = false;
 
     /**
+     * Optional per-request traversal depth for transitive queries (implements/extends).
+     * When null, server default is used. When set, must be between 1 and the configured maximum (e.g. 10).
+     * Only applied when {@code transitive=true}. (US-02-06, T5)
+     */
+    private Integer depth;
+
+    /**
      * Default constructor.
      */
     public SearchRequest() {
@@ -275,6 +282,25 @@ public class SearchRequest {
     }
 
     /**
+     * Gets the per-request traversal depth for transitive graph queries (1 to configured max).
+     * When null, server default depth is used.
+     *
+     * @return the depth, or null to use default
+     */
+    public Integer getDepth() {
+        return depth;
+    }
+
+    /**
+     * Sets the per-request traversal depth for transitive queries.
+     *
+     * @param depth maximum traversal depth (1 to configured max), or null for default
+     */
+    public void setDepth(Integer depth) {
+        this.depth = depth;
+    }
+
+    /**
      * Checks if any filters are specified.
      *
      * @return true if at least one filter is set
@@ -314,6 +340,7 @@ public class SearchRequest {
                 ", offset=" + offset +
                 ", includeFieldMatch=" + includeFieldMatch +
                 ", transitive=" + transitive +
+                ", depth=" + depth +
                 '}';
     }
 }
