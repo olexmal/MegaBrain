@@ -53,14 +53,15 @@
 - **Description:** Implement transitive closure logic for "extends" relationships. Given a class, find all subclasses directly or transitively. Use graph traversal with depth limit. Handle multiple inheritance paths.
 - **Estimated Hours:** 4 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T2 (needs graph integration), US-06-03 (needs graph queries)
 - **Acceptance Criteria:**
-  - [ ] Finds direct subclasses
-  - [ ] Finds transitive subclasses
-  - [ ] Respects depth limit
-  - [ ] Handles multiple inheritance paths
+  - [x] Finds direct subclasses
+  - [x] Finds transitive subclasses
+  - [x] Respects depth limit
+  - [x] Handles multiple inheritance paths
 - **Technical Notes:** Use Neo4j Cypher: `MATCH (c:Class {name: $name})<-[:EXTENDS*1..5]-(sub) RETURN sub`. Deduplicate results if multiple paths exist. Limit depth appropriately.
+- **Implementation Notes:** Added `ExtendsClosureQuery` interface and `Neo4jExtendsClosureQuery` (Cypher `MATCH (c:Class {name: $className})<-[:EXTENDS*1..depth]-(sub) RETURN DISTINCT sub`, depth 1–10, returns empty when `megabrain.neo4j.uri` unset). `GraphQueryServiceStub` delegates extends-predicate queries to `ExtendsClosureQuery`. Unit tests: ExtendsClosureQueryTest, Neo4jExtendsClosureQueryTest, GraphQueryServiceStubTest (extends delegation).
 
 ### T5: Add depth limit configuration
 - **Description:** Add configuration for maximum traversal depth in transitive queries. Default depth: 5. Allow per-request override via API parameter. Validate depth limits to prevent performance issues.

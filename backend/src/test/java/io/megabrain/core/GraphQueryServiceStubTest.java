@@ -20,7 +20,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * Unit tests for GraphQueryServiceStub (US-02-06, T2, T3).
+ * Unit tests for GraphQueryServiceStub (US-02-06, T2, T3, T4).
  */
 @ExtendWith(MockitoExtension.class)
 class GraphQueryServiceStubTest {
@@ -28,11 +28,14 @@ class GraphQueryServiceStubTest {
     @Mock
     private ImplementsClosureQuery implementsClosureQuery;
 
+    @Mock
+    private ExtendsClosureQuery extendsClosureQuery;
+
     private GraphQueryServiceStub stub;
 
     @BeforeEach
     void setUp() {
-        stub = new GraphQueryServiceStub(implementsClosureQuery);
+        stub = new GraphQueryServiceStub(implementsClosureQuery, extendsClosureQuery);
     }
 
     @Test
@@ -62,19 +65,44 @@ class GraphQueryServiceStubTest {
     }
 
     @Test
-    void findRelatedEntities_extendsQuery_returnsEmptyWithoutCallingClosure() {
+    void findRelatedEntities_extendsQuery_delegatesToExtendsClosureAndReturnsEmpty() {
+        when(extendsClosureQuery.findSubclassesOf(eq("Base"), eq(3)))
+                .thenReturn(Uni.createFrom().item(List.<GraphRelatedEntity>of()));
+
         Uni<List<GraphRelatedEntity>> result = stub.findRelatedEntities("extends:Base", null, 3);
         List<GraphRelatedEntity> list = result.await().indefinitely();
 
         assertThat(list).isEmpty();
-        // extends: not delegated to implements closure (T4 will add extends closure)
+        verify(extendsClosureQuery).findSubclassesOf(eq("Base"), eq(3));
     }
 
     @Test
-    void findRelatedEntities_withFilters_extendsReturnsEmpty() {
+    void findRelatedEntities_extendsQuery_delegatesToExtendsClosureAndReturnsEntities() {
+        List<GraphRelatedEntity> entities = List.of(
+                GraphRelatedEntity.ofName("SubClassA"),
+                GraphRelatedEntity.ofName("SubClassB"));
+        when(extendsClosureQuery.findSubclassesOf(eq("BaseClass"), eq(5)))
+                .thenReturn(Uni.createFrom().item(entities));
+
+        Uni<List<GraphRelatedEntity>> result = stub.findRelatedEntities("extends:BaseClass", null, 5);
+        List<GraphRelatedEntity> list = result.await().indefinitely();
+
+        assertThat(list).hasSize(2);
+        assertThat(list.get(0).entityName()).isEqualTo("SubClassA");
+        assertThat(list.get(1).entityName()).isEqualTo("SubClassB");
+        verify(extendsClosureQuery).findSubclassesOf(eq("BaseClass"), eq(5));
+    }
+
+    @Test
+    void findRelatedEntities_withFilters_extendsDelegatesToClosure() {
+        when(extendsClosureQuery.findSubclassesOf(eq("Base"), eq(3)))
+                .thenReturn(Uni.createFrom().item(List.<GraphRelatedEntity>of()));
+
         SearchFilters filters = new SearchFilters(List.of("java"), List.of(), List.of(), List.of());
         Uni<List<GraphRelatedEntity>> result = stub.findRelatedEntities("extends:Base", filters, 3);
         List<GraphRelatedEntity> list = result.await().indefinitely();
+
         assertThat(list).isEmpty();
+        verify(extendsClosureQuery).findSubclassesOf(eq("Base"), eq(3));
     }
 }
