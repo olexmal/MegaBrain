@@ -10,6 +10,7 @@ import io.smallrye.mutiny.helpers.test.UniAssertSubscriber;
 import org.apache.lucene.document.Document;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -123,14 +124,17 @@ class LuceneIndexServiceTest {
     }
 
     @Test
-    void testBasicFunctionality() {
-        // Simple test to verify test framework works
+    @DisplayName("index service and temp dir are initialized")
+    void indexService_afterSetUp_isNotNull() {
+        // Given/When: setUp already ran
+        // Then
         assertNotNull(indexService);
         assertNotNull(tempDir);
     }
 
     @Test
-    void testAddEmptyChunks() {
+    @DisplayName("add empty chunks does not fail")
+    void addChunks_emptyList_indexUnchanged() {
         // When
         indexService.addChunks(List.of()).await().indefinitely();
 
@@ -139,7 +143,8 @@ class LuceneIndexServiceTest {
     }
 
     @Test
-    void testRemoveChunksForFile() {
+    @DisplayName("removes all chunks for file")
+    void removeChunksForFile_existingFile_removesAllChunks() {
         // Given
         List<TextChunk> chunks = List.of(
                 createTestChunk(TEST_CLASS_NAME, ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_1, TEST_CLASS_CONTENT),
@@ -157,12 +162,15 @@ class LuceneIndexServiceTest {
     }
 
     @Test
-    void testRemoveChunksForNonExistentFile() {
+    @DisplayName("does not throw for non-existent file")
+    void removeChunksForFile_nonExistentFile_doesNotThrow() {
+        // When/Then
         assertDoesNotThrow(() -> indexService.removeChunksForFile("/non/existent/file.java").await().indefinitely());
     }
 
     @Test
-    void testUpdateChunksForFile() {
+    @DisplayName("replaces chunks for file")
+    void updateChunksForFile_replacesChunks() {
         // Given
         List<TextChunk> originalChunks = List.of(
                 createTestChunk(TEST_CLASS_NAME, ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_1, TEST_CLASS_CONTENT)
@@ -185,7 +193,8 @@ class LuceneIndexServiceTest {
     }
 
     @Test
-    void testSearchWithQueryParser() {
+    @DisplayName("search returns documents matching entity name")
+    void search_queryMatchesEntityName_returnsDocuments() {
         // Given
         List<TextChunk> chunks = List.of(
                 createTestChunk(TEST_CLASS_NAME, ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_1, TEST_CLASS_CONTENT),
@@ -194,42 +203,45 @@ class LuceneIndexServiceTest {
 
         indexService.addChunks(chunks).await().indefinitely();
 
-        // When - search for "TestClass" (entity name) which should match the first chunk
-        List<Document> documents = indexService.search("TestClass", 10).await().indefinitely();
-
-        // Then
-        assertThat(documents).isNotEmpty();
-        assertThat(documents.getFirst().get(LuceneSchema.FIELD_ENTITY_NAME)).isEqualTo(TEST_CLASS_NAME);
-    }
-
-    @Test
-    void testSearchFieldSpecific() {
-        // Given
-        List<TextChunk> chunks = List.of(
-                createTestChunk(TEST_CLASS_NAME, ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_1, TEST_CLASS_CONTENT),
-                createTestChunk(TEST_METHOD_NAME, ENTITY_TYPE_METHOD, LANGUAGE_JAVA, TEST_FILE_1, TEST_METHOD_CONTENT)
-        );
-
-        indexService.addChunks(chunks).await().indefinitely();
-
-        // When - search for "java" in language field
-        List<Document> documents = indexService.searchField(LuceneSchema.FIELD_LANGUAGE, "java", 10).await().indefinitely();
-
-        // Then
-        assertThat(documents).hasSize(2); // Both chunks have language=java
-    }
-
-    @Test
-    void testSearchEmptyIndex() {
         // When
-        List<Document> documents = indexService.search("anything", 10).await().indefinitely();
+        List<Document> actual = indexService.search("TestClass", 10).await().indefinitely();
 
         // Then
-        assertThat(documents).isEmpty();
+        assertThat(actual).isNotEmpty();
+        assertThat(actual.getFirst().get(LuceneSchema.FIELD_ENTITY_NAME)).isEqualTo(TEST_CLASS_NAME);
     }
 
     @Test
-    void testGetIndexStats() {
+    @DisplayName("search by field returns matching documents")
+    void searchField_languageField_returnsMatchingDocs() {
+        // Given
+        List<TextChunk> chunks = List.of(
+                createTestChunk(TEST_CLASS_NAME, ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_1, TEST_CLASS_CONTENT),
+                createTestChunk(TEST_METHOD_NAME, ENTITY_TYPE_METHOD, LANGUAGE_JAVA, TEST_FILE_1, TEST_METHOD_CONTENT)
+        );
+
+        indexService.addChunks(chunks).await().indefinitely();
+
+        // When
+        List<Document> actual = indexService.searchField(LuceneSchema.FIELD_LANGUAGE, "java", 10).await().indefinitely();
+
+        // Then
+        assertThat(actual).hasSize(2);
+    }
+
+    @Test
+    @DisplayName("search on empty index returns empty")
+    void search_emptyIndex_returnsEmpty() {
+        // When
+        List<Document> actual = indexService.search("anything", 10).await().indefinitely();
+
+        // Then
+        assertThat(actual).isEmpty();
+    }
+
+    @Test
+    @DisplayName("getIndexStats returns correct doc count after add")
+    void getIndexStats_afterAdd_returnsCorrectCount() {
         // Given
         List<TextChunk> chunks = List.of(
                 createTestChunk(TEST_CLASS_NAME, ENTITY_TYPE_CLASS, LANGUAGE_JAVA, TEST_FILE_1, TEST_CLASS_CONTENT),
@@ -239,13 +251,13 @@ class LuceneIndexServiceTest {
         indexService.addChunks(chunks).await().indefinitely();
 
         // When
-        LuceneIndexService.IndexStats stats = indexService.getIndexStats().await().indefinitely();
+        LuceneIndexService.IndexStats actual = indexService.getIndexStats().await().indefinitely();
 
         // Then
-        assertNotNull(stats);
-        assertEquals(2, stats.numDocs());
-        assertEquals(2, stats.maxDoc());
-        assertEquals(0, stats.numDeletedDocs());
+        assertNotNull(actual);
+        assertEquals(2, actual.numDocs());
+        assertEquals(2, actual.maxDoc());
+        assertEquals(0, actual.numDeletedDocs());
     }
 
     @Test

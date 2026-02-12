@@ -1,0 +1,142 @@
+---
+description: Java unit test development best practices: naming, structure, assertions, and readability
+globs:
+  - "**/*Test.java"
+  - "**/*Tests.java"
+  - "**/test/**/*.java"
+  - "**/src/test/**/*.java"
+---
+
+# Java Unit Test Best Practices
+
+This rule applies to Java unit tests. For coverage targets and framework requirements (JUnit 5, Mockito, QuarkusTest), see [testing-standards.mdc](testing-standards.mdc).
+
+## Test Naming
+
+### Class
+- Place the test class in the **same package** as the class under test (under `src/test`).
+- Name = class under test + `Test` (e.g. `GraphQueryServiceStubTest`, `Neo4jExtendsClosureQueryTest`).
+- One test class per production class.
+
+### Method
+Use one of these patterns so the scenario and expected outcome are clear from the name:
+
+- **Given/When/Then:** `givenX_whenY_thenZ`  
+  Example: `givenNullInput_whenParse_thenThrows`, `givenValidRadius_whenCalculateArea_thenReturnsArea`
+- **Action/Scenario/Outcome:** `methodUnderTest_scenario_expectedResult`  
+  Example: `search_withEmptyQuery_returnsEmptyResult`, `execute_withValidCypher_returnsResults`
+
+**Scenario and outcome segments:**
+
+- **Scenario:** Use a short condition or noun phrase (e.g. `noNeo4jConfig`, `blankQuery`, `validCypher`). Do **not** embed the words "when", "given", or "then" inside the scenario—the pattern already provides that structure.
+- **Outcome:** Be specific about what is returned or happens (e.g. `returnsEmptyResult`, `returnsEmptyList`, `throwsIllegalArgumentException`). Avoid vague terms like `returnsEmpty` (empty what?).
+
+**Good:** `findImplementationsOf_noNeo4jConfig_returnsEmptyList`  
+**Bad:** `findImplementationsOf_whenNoNeo4jConfig_returnsEmpty` (redundant "when", vague "empty")
+
+### Display names
+Use `@DisplayName("Human-readable description")` when the method name is long or technical. Keep it concise (e.g. "returns area for positive radius", "throws when input is null").
+
+### Avoid
+- Vague names like `testCalculateArea`, `testSearch`, or `test1`.
+- Names that do not state the scenario and expected outcome.
+- Embedding "when"/"given"/"then" inside the scenario or outcome segment (e.g. `findX_whenNoConfig_returnsEmpty`); use `findX_noConfig_returnsEmptyList` instead.
+- Vague outcomes like `returnsEmpty`; use `returnsEmptyList`, `returnsEmptyResult`, etc.
+
+## One Scenario per Test
+- Each test should verify a **single behavior**.
+- Split multiple scenarios into separate test methods.
+- When a test fails, the name and single focus make it easier to find and fix the cause.
+
+## Given / When / Then
+Organize the test body into three clear sections:
+
+- **Given:** Arrange inputs, mocks, and preconditions.
+- **When:** Execute the action under test (single call or small sequence).
+- **Then:** Assert outcomes (expected vs actual).
+
+Use blank lines or short comments to separate the sections when it helps readability.
+
+## Expected vs Actual
+- Use variable names `expected` and `actual` (or `expectedX` / `actualX` when there are multiple values).
+- Always assert expected vs actual; do not assert only that a value is non-null or non-empty when the real requirement is a specific value.
+
+## Assertions
+- Prefer **AssertJ** for readability and better failure messages: `assertThat(actual).isEqualTo(expected)`.
+- Use the appropriate AssertJ assertion for the type (e.g. `containsExactly` for lists, `isNull()` / `isNotNull()`, `isTrue()` / `isFalse()`).
+- Do not reimplement production logic in the test to compute the expected value; use constants or known values.
+
+## Simplicity
+- Use **hard-coded or fixed expected values** (constants, literals) where possible.
+- Do **not** duplicate production logic in the test to derive the expected result.
+- Keep test code simple so it documents behavior and stays maintainable.
+
+## Mocking
+- Mock **external services** (APIs, database, file system, etc.) with Mockito.
+- Test only the **unit under test**; isolate it from external dependencies.
+- Use `@InjectMock` (Quarkus) or `@Mock` + `@InjectMocks` as appropriate for the project.
+
+## Setup and DRY
+- Use **`@BeforeEach`** for common setup (creating instances, resetting mocks).
+- Extract **helper methods** for repeated test data or assertions.
+- Avoid copy-pasting the same setup or assertions across many tests.
+
+## Annotations
+- Use JUnit 5 lifecycle: `@BeforeEach`, `@AfterEach` for setup and teardown.
+- Use `@DisplayName` for human-readable test descriptions when useful.
+- Use **parameterized tests** (`@ParameterizedTest`, `@ValueSource`, `@CsvSource`, etc.) when testing the same behavior with multiple inputs.
+
+## Production Scenarios
+- Test **realistic inputs** and scenarios that reflect real usage.
+- Include **edge cases** (empty input, null, boundaries) and **failure paths** (exceptions, error responses).
+
+## Preferred Example
+
+```java
+@QuarkusTest
+class SearchServiceTest {
+
+    @InjectMock
+    LuceneIndexService indexService;
+
+    @Inject
+    SearchService searchService;
+
+    @Test
+    @DisplayName("returns empty result when query is blank")
+    void search_withBlankQuery_returnsEmptyResult() {
+        // Given
+        when(indexService.search(anyString())).thenReturn(List.of());
+
+        // When
+        Uni<SearchResult> resultUni = searchService.search("   ");
+        SearchResult actual = resultUni.await().indefinitely();
+
+        // Then
+        SearchResult expected = SearchResult.empty();
+        assertThat(actual.getHits()).isEmpty();
+        assertThat(actual).isEqualTo(expected);
+    }
+}
+```
+
+## Avoid Example
+
+```java
+@Test
+void testSearch() {
+    when(indexService.search("q")).thenReturn(List.of(hit1));
+    when(indexService.search("")).thenReturn(List.of());
+    var r1 = searchService.search("q").await().indefinitely();
+    var r2 = searchService.search("").await().indefinitely();
+    assertThat(r1).isNotNull();
+    assertThat(r2.getHits().size()).isEqualTo(0);
+    assertThat(r1.getHits().get(0).getScore()).isEqualTo(1.0 * 2); // reimplementing logic
+}
+```
+
+Problems: vague name (`testSearch`); multiple scenarios in one test; production logic in assertion (`1.0 * 2`); no clear Given/When/Then; mixed assertions for different behaviors.
+
+## Related Rules
+- [testing-standards.mdc](testing-standards.mdc) – Coverage, frameworks, test layout, integration tests.
+- [no-reflection-in-unit-tests.mdc](no-reflection-in-unit-tests.mdc) – Do not use reflection in unit tests; test via public API.

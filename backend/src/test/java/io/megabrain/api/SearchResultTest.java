@@ -6,6 +6,7 @@
 package io.megabrain.api;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -30,46 +31,49 @@ class SearchResultTest {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Test
-    void shouldCreateSearchResultWithAllFields() {
+    @DisplayName("creates result with all fields set")
+    void createSearchResult_withAllFields_setsAllFields() {
         // Given
         LineRange lineRange = new LineRange(10, 15);
 
         // When
-        SearchResult result = new SearchResult(
+        SearchResult actual = new SearchResult(
             TEST_CONTENT, TEST_ENTITY_NAME, TEST_ENTITY_TYPE, TEST_SOURCE_FILE,
             TEST_LANGUAGE, TEST_REPOSITORY, TEST_SCORE, lineRange, TEST_DOC_SUMMARY, null
         );
 
         // Then
-        assertThat(result.getContent()).isEqualTo(TEST_CONTENT);
-        assertThat(result.getEntityName()).isEqualTo(TEST_ENTITY_NAME);
-        assertThat(result.getEntityType()).isEqualTo(TEST_ENTITY_TYPE);
-        assertThat(result.getSourceFile()).isEqualTo(TEST_SOURCE_FILE);
-        assertThat(result.getLanguage()).isEqualTo(TEST_LANGUAGE);
-        assertThat(result.getRepository()).isEqualTo(TEST_REPOSITORY);
-        assertThat(result.getScore()).isEqualTo(TEST_SCORE);
-        assertThat(result.getLineRange()).isEqualTo(lineRange);
-        assertThat(result.getDocSummary()).isEqualTo(TEST_DOC_SUMMARY);
+        assertThat(actual.getContent()).isEqualTo(TEST_CONTENT);
+        assertThat(actual.getEntityName()).isEqualTo(TEST_ENTITY_NAME);
+        assertThat(actual.getEntityType()).isEqualTo(TEST_ENTITY_TYPE);
+        assertThat(actual.getSourceFile()).isEqualTo(TEST_SOURCE_FILE);
+        assertThat(actual.getLanguage()).isEqualTo(TEST_LANGUAGE);
+        assertThat(actual.getRepository()).isEqualTo(TEST_REPOSITORY);
+        assertThat(actual.getScore()).isEqualTo(TEST_SCORE);
+        assertThat(actual.getLineRange()).isEqualTo(lineRange);
+        assertThat(actual.getDocSummary()).isEqualTo(TEST_DOC_SUMMARY);
     }
 
     @Test
-    void shouldCreateSearchResultWithNullDocSummary() {
+    @DisplayName("creates result with null doc summary")
+    void createSearchResult_withNullDocSummary_setsDocSummaryNull() {
         // Given
         LineRange lineRange = new LineRange(5, 8);
 
         // When
-        SearchResult result = new SearchResult(
+        SearchResult actual = new SearchResult(
             "function test() {}", "test", "function",
             "src/test.js", "javascript", TEST_REPOSITORY,
             0.8f, lineRange, null, null
         );
 
         // Then
-        assertThat(result.getDocSummary()).isNull();
+        assertThat(actual.getDocSummary()).isNull();
     }
 
     @Test
-    void shouldSerializeToJson() throws Exception {
+    @DisplayName("serializes to JSON with expected keys")
+    void writeValueAsString_serializesToJson() throws Exception {
         // Given
         LineRange lineRange = new LineRange(20, 25);
         SearchResult result = new SearchResult(
@@ -86,22 +90,23 @@ class SearchResultTest {
         );
 
         // When
-        String json = objectMapper.writeValueAsString(result);
+        String actual = objectMapper.writeValueAsString(result);
 
         // Then
-        assertThat(json).contains("\"content\":\"public void method() {}\"");
-        assertThat(json).contains("\"entity_name\":\"method\"");
-        assertThat(json).contains("\"entity_type\":\"method\"");
-        assertThat(json).contains("\"source_file\":\"src/Main.java\"");
-        assertThat(json).contains("\"language\":\"java\"");
-        assertThat(json).contains("\"repository\":\"example-repo\"");
-        assertThat(json).contains("\"score\":1.2");
-        assertThat(json).contains("\"line_range\":{\"start\":20,\"end\":25}");
-        assertThat(json).contains("\"doc_summary\":\"Sample method\"");
+        assertThat(actual).contains("\"content\":\"public void method() {}\"");
+        assertThat(actual).contains("\"entity_name\":\"method\"");
+        assertThat(actual).contains("\"entity_type\":\"method\"");
+        assertThat(actual).contains("\"source_file\":\"src/Main.java\"");
+        assertThat(actual).contains("\"language\":\"java\"");
+        assertThat(actual).contains("\"repository\":\"example-repo\"");
+        assertThat(actual).contains("\"score\":1.2");
+        assertThat(actual).contains("\"line_range\":{\"start\":20,\"end\":25}");
+        assertThat(actual).contains("\"doc_summary\":\"Sample method\"");
     }
 
     @Test
-    void shouldDeserializeFromJson() throws Exception {
+    @DisplayName("deserializes from JSON")
+    void readValue_deserializesFromJson() throws Exception {
         // Given
         String json = """
             {
@@ -118,23 +123,24 @@ class SearchResultTest {
             """;
 
         // When
-        SearchResult result = objectMapper.readValue(json, SearchResult.class);
+        SearchResult actual = objectMapper.readValue(json, SearchResult.class);
 
         // Then
-        assertThat(result.getContent()).isEqualTo("class Test {}");
-        assertThat(result.getEntityName()).isEqualTo("Test");
-        assertThat(result.getEntityType()).isEqualTo("class");
-        assertThat(result.getSourceFile()).isEqualTo("src/Test.java");
-        assertThat(result.getLanguage()).isEqualTo("java");
-        assertThat(result.getRepository()).isEqualTo("test-repo");
-        assertThat(result.getScore()).isEqualTo(0.75f);
-        assertThat(result.getLineRange().getStartLine()).isEqualTo(1);
-        assertThat(result.getLineRange().getEndLine()).isEqualTo(5);
-        assertThat(result.getDocSummary()).isEqualTo("Test class");
+        assertThat(actual.getContent()).isEqualTo("class Test {}");
+        assertThat(actual.getEntityName()).isEqualTo("Test");
+        assertThat(actual.getEntityType()).isEqualTo("class");
+        assertThat(actual.getSourceFile()).isEqualTo("src/Test.java");
+        assertThat(actual.getLanguage()).isEqualTo("java");
+        assertThat(actual.getRepository()).isEqualTo("test-repo");
+        assertThat(actual.getScore()).isEqualTo(0.75f);
+        assertThat(actual.getLineRange().getStartLine()).isEqualTo(1);
+        assertThat(actual.getLineRange().getEndLine()).isEqualTo(5);
+        assertThat(actual.getDocSummary()).isEqualTo("Test class");
     }
 
     @Test
-    void shouldCreateSearchResultWithFieldMatch() {
+    @DisplayName("creates result with field match info")
+    void createSearchResult_withFieldMatch_setsFieldMatch() {
         // Given (US-02-05, T4)
         LineRange lineRange = new LineRange(1, 5);
         FieldMatchInfo fieldMatch = new FieldMatchInfo(
@@ -143,33 +149,37 @@ class SearchResultTest {
         );
 
         // When
-        SearchResult result = new SearchResult(
+        SearchResult actual = new SearchResult(
                 TEST_CONTENT, TEST_ENTITY_NAME, TEST_ENTITY_TYPE, TEST_SOURCE_FILE,
                 TEST_LANGUAGE, TEST_REPOSITORY, TEST_SCORE, lineRange, TEST_DOC_SUMMARY, fieldMatch
         );
 
         // Then
-        assertThat(result.getFieldMatch()).isNotNull();
-        assertThat(result.getFieldMatch().getMatchedFields()).containsExactly("entity_name", "content");
-        assertThat(result.getFieldMatch().getScores()).containsEntry("entity_name", 2.1f);
-        assertThat(result.getFieldMatch().getScores()).containsEntry("content", 0.5f);
+        assertThat(actual.getFieldMatch()).isNotNull();
+        assertThat(actual.getFieldMatch().getMatchedFields()).containsExactly("entity_name", "content");
+        assertThat(actual.getFieldMatch().getScores()).containsEntry("entity_name", 2.1f);
+        assertThat(actual.getFieldMatch().getScores()).containsEntry("content", 0.5f);
     }
 
     @Test
-    void shouldCreateSearchResultWithNullFieldMatch() {
-        // When
+    @DisplayName("creates result with null field match")
+    void createSearchResult_withNullFieldMatch_setsFieldMatchNull() {
+        // Given
         LineRange lineRange = new LineRange(1, 1);
-        SearchResult result = new SearchResult(
+
+        // When
+        SearchResult actual = new SearchResult(
                 "content", "Entity", "class", "path.java", "java", "repo",
                 1.0f, lineRange, null, null
         );
 
         // Then
-        assertThat(result.getFieldMatch()).isNull();
+        assertThat(actual.getFieldMatch()).isNull();
     }
 
     @Test
-    void toStringShouldIncludeKeyFields() {
+    @DisplayName("toString includes key fields")
+    void toString_includesKeyFields() {
         // Given
         LineRange lineRange = new LineRange(100, 105);
         SearchResult result = new SearchResult(
@@ -179,10 +189,10 @@ class SearchResultTest {
         );
 
         // When
-        String string = result.toString();
+        String actual = result.toString();
 
         // Then
-        assertThat(string)
+        assertThat(actual)
             .contains("SearchResult{")
             .contains("content='This is a very long content that should be...")
             .contains("entityName='LongEntityName'")

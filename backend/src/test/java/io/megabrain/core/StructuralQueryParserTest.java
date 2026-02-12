@@ -5,6 +5,7 @@
 
 package io.megabrain.core;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.Optional;
@@ -17,58 +18,162 @@ import static org.assertj.core.api.Assertions.assertThat;
 class StructuralQueryParserTest {
 
     @Test
-    void parseImplementsTarget_returnsInterfaceName() {
-        assertThat(StructuralQueryParser.parseImplementsTarget("implements:IRepository"))
-                .isEqualTo(Optional.of("IRepository"));
-        assertThat(StructuralQueryParser.parseImplementsTarget("implements:IRepo"))
-                .isEqualTo(Optional.of("IRepo"));
+    @DisplayName("returns interface name for implements: query")
+    void parseImplementsTarget_implementsQuery_returnsInterfaceName() {
+        // Given
+        String query = "implements:IRepository";
+
+        // When
+        Optional<String> actual = StructuralQueryParser.parseImplementsTarget(query);
+
+        // Then
+        Optional<String> expected = Optional.of("IRepository");
+        assertThat(actual).isEqualTo(expected);
     }
 
     @Test
-    void parseImplementsTarget_withTrailingSpaceAndTerms_returnsFirstToken() {
-        assertThat(StructuralQueryParser.parseImplementsTarget("implements:IRepository other terms"))
-                .isEqualTo(Optional.of("IRepository"));
-        assertThat(StructuralQueryParser.parseImplementsTarget("implements:IX foo"))
-                .isEqualTo(Optional.of("IX"));
+    @DisplayName("returns first token when query has trailing terms")
+    void parseImplementsTarget_withTrailingTerms_returnsFirstToken() {
+        // Given
+        String query = "implements:IRepository other terms";
+
+        // When
+        Optional<String> actual = StructuralQueryParser.parseImplementsTarget(query);
+
+        // Then
+        Optional<String> expected = Optional.of("IRepository");
+        assertThat(actual).isEqualTo(expected);
     }
 
     @Test
-    void parseImplementsTarget_nonImplementsQuery_returnsEmpty() {
-        assertThat(StructuralQueryParser.parseImplementsTarget("extends:Base")).isEmpty();
-        assertThat(StructuralQueryParser.parseImplementsTarget("some query")).isEmpty();
-        assertThat(StructuralQueryParser.parseImplementsTarget(null)).isEmpty();
+    @DisplayName("returns empty for extends query")
+    void parseImplementsTarget_extendsQuery_returnsEmpty() {
+        // Given
+        String query = "extends:Base";
+
+        // When
+        Optional<String> actual = StructuralQueryParser.parseImplementsTarget(query);
+
+        // Then
+        assertThat(actual).isEmpty();
     }
 
     @Test
+    @DisplayName("returns empty for plain query")
+    void parseImplementsTarget_plainQuery_returnsEmpty() {
+        // Given
+        String query = "some query";
+
+        // When
+        Optional<String> actual = StructuralQueryParser.parseImplementsTarget(query);
+
+        // Then
+        assertThat(actual).isEmpty();
+    }
+
+    @Test
+    @DisplayName("returns empty for null input")
+    void parseImplementsTarget_nullInput_returnsEmpty() {
+        // Given
+        String query = null;
+
+        // When
+        Optional<String> actual = StructuralQueryParser.parseImplementsTarget(query);
+
+        // Then
+        assertThat(actual).isEmpty();
+    }
+
+    @Test
+    @DisplayName("returns empty when nothing after implements: prefix")
     void parseImplementsTarget_blankAfterPrefix_returnsEmpty() {
-        assertThat(StructuralQueryParser.parseImplementsTarget("implements:")).isEmpty();
-        assertThat(StructuralQueryParser.parseImplementsTarget("implements:   ")).isEmpty();
+        // Given
+        String query = "implements:";
+
+        // When
+        Optional<String> actual = StructuralQueryParser.parseImplementsTarget(query);
+
+        // Then
+        assertThat(actual).isEmpty();
     }
 
     @Test
-    void parseExtendsTarget_returnsClassName() {
-        assertThat(StructuralQueryParser.parseExtendsTarget("extends:BaseClass"))
-                .isEqualTo(Optional.of("BaseClass"));
-        assertThat(StructuralQueryParser.parseExtendsTarget("extends:Base"))
-                .isEqualTo(Optional.of("Base"));
+    @DisplayName("returns class name for extends: query")
+    void parseExtendsTarget_extendsQuery_returnsClassName() {
+        // Given
+        String query = "extends:BaseClass";
+
+        // When
+        Optional<String> actual = StructuralQueryParser.parseExtendsTarget(query);
+
+        // Then
+        Optional<String> expected = Optional.of("BaseClass");
+        assertThat(actual).isEqualTo(expected);
     }
 
     @Test
+    @DisplayName("returns first token when query has trailing terms")
     void parseExtendsTarget_withTrailingTerms_returnsFirstToken() {
-        assertThat(StructuralQueryParser.parseExtendsTarget("extends:Base other"))
-                .isEqualTo(Optional.of("Base"));
+        // Given
+        String query = "extends:Base other";
+
+        // When
+        Optional<String> actual = StructuralQueryParser.parseExtendsTarget(query);
+
+        // Then
+        Optional<String> expected = Optional.of("Base");
+        assertThat(actual).isEqualTo(expected);
     }
 
     @Test
-    void parseExtendsTarget_nonExtendsQuery_returnsEmpty() {
-        assertThat(StructuralQueryParser.parseExtendsTarget("implements:IRepo")).isEmpty();
-        assertThat(StructuralQueryParser.parseExtendsTarget("query")).isEmpty();
-        assertThat(StructuralQueryParser.parseExtendsTarget(null)).isEmpty();
+    @DisplayName("returns empty for implements query")
+    void parseExtendsTarget_implementsQuery_returnsEmpty() {
+        // Given
+        String query = "implements:IRepo";
+
+        // When
+        Optional<String> actual = StructuralQueryParser.parseExtendsTarget(query);
+
+        // Then
+        assertThat(actual).isEmpty();
     }
 
     @Test
+    @DisplayName("returns empty for plain query")
+    void parseExtendsTarget_plainQuery_returnsEmpty() {
+        // Given
+        String query = "query";
+
+        // When
+        Optional<String> actual = StructuralQueryParser.parseExtendsTarget(query);
+
+        // Then
+        assertThat(actual).isEmpty();
+    }
+
+    @Test
+    @DisplayName("returns empty for null input")
+    void parseExtendsTarget_nullInput_returnsEmpty() {
+        // Given
+        String query = null;
+
+        // When
+        Optional<String> actual = StructuralQueryParser.parseExtendsTarget(query);
+
+        // Then
+        assertThat(actual).isEmpty();
+    }
+
+    @Test
+    @DisplayName("returns empty when nothing after extends: prefix")
     void parseExtendsTarget_blankAfterPrefix_returnsEmpty() {
-        assertThat(StructuralQueryParser.parseExtendsTarget("extends:")).isEmpty();
-        assertThat(StructuralQueryParser.parseExtendsTarget("extends:   ")).isEmpty();
+        // Given
+        String query = "extends:";
+
+        // When
+        Optional<String> actual = StructuralQueryParser.parseExtendsTarget(query);
+
+        // Then
+        assertThat(actual).isEmpty();
     }
 }

@@ -8,6 +8,7 @@ package io.megabrain.core;
 import io.quarkus.test.junit.QuarkusTest;
 import io.smallrye.mutiny.Uni;
 import jakarta.inject.Inject;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -26,18 +27,41 @@ class Neo4jImplementsClosureQueryTest {
     Neo4jImplementsClosureQuery neo4jImplementsClosureQuery;
 
     @Test
+    @DisplayName("returns empty when Neo4j is not configured")
     void findImplementationsOf_noConfig_returnsEmpty() {
+        // Given: no megabrain.neo4j.uri configured
+
+        // When
         Uni<List<GraphRelatedEntity>> result = neo4jImplementsClosureQuery.findImplementationsOf("IRepository", 5);
-        List<GraphRelatedEntity> list = result.await().indefinitely();
-        assertThat(list).isEmpty();
+        List<GraphRelatedEntity> actual = result.await().indefinitely();
+
+        // Then
+        assertThat(actual).isEmpty();
     }
 
     @Test
-    void findImplementationsOf_depthClamped_whenOutOfRange() {
-        // Depth 0 and 15 should be clamped to 1-10; with no Neo4j we still get empty
-        Uni<List<GraphRelatedEntity>> r0 = neo4jImplementsClosureQuery.findImplementationsOf("I", 0);
-        Uni<List<GraphRelatedEntity>> r15 = neo4jImplementsClosureQuery.findImplementationsOf("I", 15);
-        assertThat(r0.await().indefinitely()).isEmpty();
-        assertThat(r15.await().indefinitely()).isEmpty();
+    @DisplayName("returns empty for depth 0 when Neo4j not configured")
+    void findImplementationsOf_depthZero_whenNoConfig_returnsEmpty() {
+        // Given: no Neo4j config
+
+        // When
+        Uni<List<GraphRelatedEntity>> result = neo4jImplementsClosureQuery.findImplementationsOf("I", 0);
+        List<GraphRelatedEntity> actual = result.await().indefinitely();
+
+        // Then
+        assertThat(actual).isEmpty();
+    }
+
+    @Test
+    @DisplayName("returns empty for depth above max when Neo4j not configured")
+    void findImplementationsOf_depthAboveMax_whenNoConfig_returnsEmpty() {
+        // Given: no Neo4j config
+
+        // When
+        Uni<List<GraphRelatedEntity>> result = neo4jImplementsClosureQuery.findImplementationsOf("I", 15);
+        List<GraphRelatedEntity> actual = result.await().indefinitely();
+
+        // Then
+        assertThat(actual).isEmpty();
     }
 }

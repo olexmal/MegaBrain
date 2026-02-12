@@ -5,6 +5,7 @@
 
 package io.megabrain.api;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -17,23 +18,25 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class SearchRequestTest {
 
     @Test
-    void constructor_withQuery_shouldInitializeFilters() {
+    @DisplayName("initializes query and empty filters with defaults")
+    void constructor_withQuery_initializesFiltersAndDefaults() {
         // When
-        SearchRequest request = new SearchRequest("test query");
+        SearchRequest actual = new SearchRequest("test query");
 
         // Then
-        assertThat(request.getQuery()).isEqualTo("test query");
-        assertThat(request.getLanguages()).isEmpty();
-        assertThat(request.getRepositories()).isEmpty();
-        assertThat(request.getFilePaths()).isEmpty();
-        assertThat(request.getEntityTypes()).isEmpty();
-        assertThat(request.getLimit()).isEqualTo(10);
-        assertThat(request.getOffset()).isEqualTo(0);
-        assertThat(request.isTransitive()).isFalse();
+        assertThat(actual.getQuery()).isEqualTo("test query");
+        assertThat(actual.getLanguages()).isEmpty();
+        assertThat(actual.getRepositories()).isEmpty();
+        assertThat(actual.getFilePaths()).isEmpty();
+        assertThat(actual.getEntityTypes()).isEmpty();
+        assertThat(actual.getLimit()).isEqualTo(10);
+        assertThat(actual.getOffset()).isEqualTo(0);
+        assertThat(actual.isTransitive()).isFalse();
     }
 
     @Test
-    void addLanguage_shouldAddToLanguagesList() {
+    @DisplayName("adds languages and sets hasFilters true")
+    void addLanguage_addsToLanguagesAndHasFiltersTrue() {
         // Given
         SearchRequest request = new SearchRequest("test");
 
@@ -47,7 +50,8 @@ class SearchRequestTest {
     }
 
     @Test
-    void validate_withValidRequest_shouldNotThrow() {
+    @DisplayName("does not throw for valid request")
+    void validate_withValidRequest_doesNotThrow() {
         // Given
         SearchRequest request = new SearchRequest("test");
         request.setLimit(20);
@@ -58,7 +62,8 @@ class SearchRequestTest {
     }
 
     @Test
-    void validate_withBlankQuery_shouldThrow() {
+    @DisplayName("throws when query is blank")
+    void validate_withBlankQuery_throwsIllegalArgument() {
         // Given
         SearchRequest request = new SearchRequest("test");
         request.setQuery("   ");
@@ -104,15 +109,16 @@ class SearchRequestTest {
     }
 
     @Test
+    @DisplayName("toString includes transitive flag")
     void toString_includesTransitive() {
         // Given
         SearchRequest request = new SearchRequest("q");
         request.setTransitive(true);
 
         // When
-        String s = request.toString();
+        String actual = request.toString();
 
         // Then
-        assertThat(s).contains("transitive=true");
+        assertThat(actual).contains("transitive=true");
     }
 }

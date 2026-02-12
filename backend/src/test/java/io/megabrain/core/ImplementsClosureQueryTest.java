@@ -8,6 +8,7 @@ package io.megabrain.core;
 import io.quarkus.test.junit.QuarkusTest;
 import io.smallrye.mutiny.Uni;
 import jakarta.inject.Inject;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -27,16 +28,28 @@ class ImplementsClosureQueryTest {
     ImplementsClosureQuery implementsClosureQuery;
 
     @Test
+    @DisplayName("returns empty when Neo4j is not configured")
     void findImplementationsOf_whenNoNeo4jConfig_returnsEmpty() {
+        // Given: no megabrain.neo4j.uri configured
+
+        // When
         Uni<List<GraphRelatedEntity>> result = implementsClosureQuery.findImplementationsOf("IRepository", 5);
-        List<GraphRelatedEntity> list = result.await().indefinitely();
-        assertThat(list).isEmpty();
+        List<GraphRelatedEntity> actual = result.await().indefinitely();
+
+        // Then
+        assertThat(actual).isEmpty();
     }
 
     @Test
-    void findImplementationsOf_respectsDepthParameter() {
+    @DisplayName("returns empty for given depth when Neo4j not configured")
+    void findImplementationsOf_withDepth_whenNoNeo4jConfig_returnsEmpty() {
+        // Given: no Neo4j config
+
+        // When
         Uni<List<GraphRelatedEntity>> result = implementsClosureQuery.findImplementationsOf("IX", 3);
-        List<GraphRelatedEntity> list = result.await().indefinitely();
-        assertThat(list).isEmpty();
+        List<GraphRelatedEntity> actual = result.await().indefinitely();
+
+        // Then
+        assertThat(actual).isEmpty();
     }
 }

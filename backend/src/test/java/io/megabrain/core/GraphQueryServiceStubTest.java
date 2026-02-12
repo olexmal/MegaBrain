@@ -7,6 +7,7 @@ package io.megabrain.core;
 
 import io.smallrye.mutiny.Uni;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -39,70 +40,90 @@ class GraphQueryServiceStubTest {
     }
 
     @Test
+    @DisplayName("delegates to implements closure and returns empty list")
     void findRelatedEntities_implementsQuery_delegatesToClosureAndReturnsEmpty() {
+        // Given
         when(implementsClosureQuery.findImplementationsOf(eq("IRepository"), eq(5)))
                 .thenReturn(Uni.createFrom().item(List.<GraphRelatedEntity>of()));
 
+        // When
         Uni<List<GraphRelatedEntity>> result = stub.findRelatedEntities("implements:IRepository", null, 5);
-        List<GraphRelatedEntity> list = result.await().indefinitely();
+        List<GraphRelatedEntity> actual = result.await().indefinitely();
 
-        assertThat(list).isEmpty();
+        // Then
+        assertThat(actual).isEmpty();
         verify(implementsClosureQuery).findImplementationsOf(eq("IRepository"), eq(5));
     }
 
     @Test
+    @DisplayName("delegates to implements closure and returns entities")
     void findRelatedEntities_implementsQuery_delegatesToClosureAndReturnsEntities() {
-        List<GraphRelatedEntity> entities = List.of(GraphRelatedEntity.ofName("ConcreteRepo"));
+        // Given
+        List<GraphRelatedEntity> expected = List.of(GraphRelatedEntity.ofName("ConcreteRepo"));
         when(implementsClosureQuery.findImplementationsOf(eq("IRepo"), eq(5)))
-                .thenReturn(Uni.createFrom().item(entities));
+                .thenReturn(Uni.createFrom().item(expected));
 
+        // When
         Uni<List<GraphRelatedEntity>> result = stub.findRelatedEntities("implements:IRepo", null, 5);
-        List<GraphRelatedEntity> list = result.await().indefinitely();
+        List<GraphRelatedEntity> actual = result.await().indefinitely();
 
-        assertThat(list).hasSize(1);
-        assertThat(list.get(0).entityName()).isEqualTo("ConcreteRepo");
+        // Then
+        assertThat(actual).hasSize(1);
+        assertThat(actual.get(0).entityName()).isEqualTo("ConcreteRepo");
         verify(implementsClosureQuery).findImplementationsOf(eq("IRepo"), eq(5));
     }
 
     @Test
+    @DisplayName("delegates to extends closure and returns empty list")
     void findRelatedEntities_extendsQuery_delegatesToExtendsClosureAndReturnsEmpty() {
+        // Given
         when(extendsClosureQuery.findSubclassesOf(eq("Base"), eq(3)))
                 .thenReturn(Uni.createFrom().item(List.<GraphRelatedEntity>of()));
 
+        // When
         Uni<List<GraphRelatedEntity>> result = stub.findRelatedEntities("extends:Base", null, 3);
-        List<GraphRelatedEntity> list = result.await().indefinitely();
+        List<GraphRelatedEntity> actual = result.await().indefinitely();
 
-        assertThat(list).isEmpty();
+        // Then
+        assertThat(actual).isEmpty();
         verify(extendsClosureQuery).findSubclassesOf(eq("Base"), eq(3));
     }
 
     @Test
+    @DisplayName("delegates to extends closure and returns entities")
     void findRelatedEntities_extendsQuery_delegatesToExtendsClosureAndReturnsEntities() {
-        List<GraphRelatedEntity> entities = List.of(
+        // Given
+        List<GraphRelatedEntity> expected = List.of(
                 GraphRelatedEntity.ofName("SubClassA"),
                 GraphRelatedEntity.ofName("SubClassB"));
         when(extendsClosureQuery.findSubclassesOf(eq("BaseClass"), eq(5)))
-                .thenReturn(Uni.createFrom().item(entities));
+                .thenReturn(Uni.createFrom().item(expected));
 
+        // When
         Uni<List<GraphRelatedEntity>> result = stub.findRelatedEntities("extends:BaseClass", null, 5);
-        List<GraphRelatedEntity> list = result.await().indefinitely();
+        List<GraphRelatedEntity> actual = result.await().indefinitely();
 
-        assertThat(list).hasSize(2);
-        assertThat(list.get(0).entityName()).isEqualTo("SubClassA");
-        assertThat(list.get(1).entityName()).isEqualTo("SubClassB");
+        // Then
+        assertThat(actual).hasSize(2);
+        assertThat(actual.get(0).entityName()).isEqualTo("SubClassA");
+        assertThat(actual.get(1).entityName()).isEqualTo("SubClassB");
         verify(extendsClosureQuery).findSubclassesOf(eq("BaseClass"), eq(5));
     }
 
     @Test
+    @DisplayName("extends query with filters delegates to closure")
     void findRelatedEntities_withFilters_extendsDelegatesToClosure() {
+        // Given
         when(extendsClosureQuery.findSubclassesOf(eq("Base"), eq(3)))
                 .thenReturn(Uni.createFrom().item(List.<GraphRelatedEntity>of()));
-
         SearchFilters filters = new SearchFilters(List.of("java"), List.of(), List.of(), List.of());
-        Uni<List<GraphRelatedEntity>> result = stub.findRelatedEntities("extends:Base", filters, 3);
-        List<GraphRelatedEntity> list = result.await().indefinitely();
 
-        assertThat(list).isEmpty();
+        // When
+        Uni<List<GraphRelatedEntity>> result = stub.findRelatedEntities("extends:Base", filters, 3);
+        List<GraphRelatedEntity> actual = result.await().indefinitely();
+
+        // Then
+        assertThat(actual).isEmpty();
         verify(extendsClosureQuery).findSubclassesOf(eq("Base"), eq(3));
     }
 }

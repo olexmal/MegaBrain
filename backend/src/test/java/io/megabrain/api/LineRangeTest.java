@@ -6,6 +6,7 @@
 package io.megabrain.api;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -22,65 +23,84 @@ class LineRangeTest {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Test
-    void shouldCreateValidLineRange() {
+    @DisplayName("creates range with start, end and correct line count")
+    void constructor_validRange_setsStartEndAndLineCount() {
         // Given
         int startLine = 10;
         int endLine = 15;
 
         // When
-        LineRange range = new LineRange(startLine, endLine);
+        LineRange actual = new LineRange(startLine, endLine);
 
         // Then
-        assertThat(range.getStartLine()).isEqualTo(startLine);
-        assertThat(range.getEndLine()).isEqualTo(endLine);
-        assertThat(range.getLineCount()).isEqualTo(6); // 15 - 10 + 1
+        assertThat(actual.getStartLine()).isEqualTo(startLine);
+        assertThat(actual.getEndLine()).isEqualTo(endLine);
+        assertThat(actual.getLineCount()).isEqualTo(6);
     }
 
     @Test
-    void shouldCreateSingleLineRange() {
+    @DisplayName("creates single-line range")
+    void constructor_sameStartAndEnd_setsLineCountOne() {
         // Given
         int line = 42;
 
         // When
-        LineRange range = new LineRange(line, line);
+        LineRange actual = new LineRange(line, line);
 
         // Then
-        assertThat(range.getStartLine()).isEqualTo(line);
-        assertThat(range.getEndLine()).isEqualTo(line);
-        assertThat(range.getLineCount()).isEqualTo(1);
+        assertThat(actual.getStartLine()).isEqualTo(line);
+        assertThat(actual.getEndLine()).isEqualTo(line);
+        assertThat(actual.getLineCount()).isEqualTo(1);
     }
 
     @Test
-    void shouldRejectInvalidStartLine() {
+    @DisplayName("throws when start line is zero")
+    void constructor_startLineZero_throwsIllegalArgument() {
+        // When/Then
         assertThatThrownBy(() -> new LineRange(0, 5))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessage(POSITIVE_LINE_NUMBERS_MESSAGE);
+    }
 
+    @Test
+    @DisplayName("throws when start line is negative")
+    void constructor_startLineNegative_throwsIllegalArgument() {
+        // When/Then
         assertThatThrownBy(() -> new LineRange(-1, 5))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessage(POSITIVE_LINE_NUMBERS_MESSAGE);
     }
 
     @Test
-    void shouldRejectInvalidEndLine() {
+    @DisplayName("throws when end line is zero")
+    void constructor_endLineZero_throwsIllegalArgument() {
+        // When/Then
         assertThatThrownBy(() -> new LineRange(5, 0))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessage(POSITIVE_LINE_NUMBERS_MESSAGE);
+    }
 
+    @Test
+    @DisplayName("throws when end line is negative")
+    void constructor_endLineNegative_throwsIllegalArgument() {
+        // When/Then
         assertThatThrownBy(() -> new LineRange(5, -1))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessage(POSITIVE_LINE_NUMBERS_MESSAGE);
     }
 
     @Test
-    void shouldRejectStartGreaterThanEnd() {
+    @DisplayName("throws when start greater than end")
+    void constructor_startGreaterThanEnd_throwsIllegalArgument() {
+        // When/Then
         assertThatThrownBy(() -> new LineRange(10, 5))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessage(START_GREATER_THAN_END_MESSAGE);
     }
 
     @Test
-    void shouldImplementEqualsAndHashCode() {
+    @DisplayName("equals and hashCode consistent for same range")
+    void equals_sameStartEnd_returnsTrueAndSameHashCode() {
         // Given
         LineRange range1 = new LineRange(10, 20);
         LineRange range2 = new LineRange(10, 20);
@@ -94,40 +114,44 @@ class LineRangeTest {
     }
 
     @Test
-    void shouldSerializeToJson() throws Exception {
+    @DisplayName("serializes to JSON with start and end")
+    void writeValueAsString_serializesToJson() throws Exception {
         // Given
         LineRange range = new LineRange(100, 150);
 
         // When
-        String json = objectMapper.writeValueAsString(range);
+        String actual = objectMapper.writeValueAsString(range);
 
         // Then
-        assertThat(json).isEqualTo("{\"start\":100,\"end\":150}");
+        String expected = "{\"start\":100,\"end\":150}";
+        assertThat(actual).isEqualTo(expected);
     }
 
     @Test
-    void shouldDeserializeFromJson() throws Exception {
+    @DisplayName("deserializes from JSON")
+    void readValue_deserializesFromJson() throws Exception {
         // Given
         String json = "{\"start\":25,\"end\":30}";
 
         // When
-        LineRange range = objectMapper.readValue(json, LineRange.class);
+        LineRange actual = objectMapper.readValue(json, LineRange.class);
 
         // Then
-        assertThat(range.getStartLine()).isEqualTo(25);
-        assertThat(range.getEndLine()).isEqualTo(30);
-        assertThat(range.getLineCount()).isEqualTo(6);
+        assertThat(actual.getStartLine()).isEqualTo(25);
+        assertThat(actual.getEndLine()).isEqualTo(30);
+        assertThat(actual.getLineCount()).isEqualTo(6);
     }
 
     @Test
-    void toStringShouldReturnRangeFormat() {
+    @DisplayName("toString returns start-end format")
+    void toString_returnsRangeFormat() {
         // Given
         LineRange range = new LineRange(5, 12);
 
         // When
-        String string = range.toString();
+        String actual = range.toString();
 
         // Then
-        assertThat(string).isEqualTo("5-12");
+        assertThat(actual).isEqualTo("5-12");
     }
 }
