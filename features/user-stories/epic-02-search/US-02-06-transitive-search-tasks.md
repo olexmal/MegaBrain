@@ -39,14 +39,15 @@
 - **Description:** Implement transitive closure logic for "implements" relationships. Given an interface, find all classes that implement it directly or transitively (through abstract classes). Use graph traversal with depth limit.
 - **Estimated Hours:** 4 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T2 (needs graph integration), US-06-03 (needs graph queries)
 - **Acceptance Criteria:**
-  - [ ] Finds direct implementations
-  - [ ] Finds transitive implementations (via abstract classes)
-  - [ ] Respects depth limit
-  - [ ] Results are accurate and complete
+  - [x] Finds direct implementations
+  - [x] Finds transitive implementations (via abstract classes)
+  - [x] Respects depth limit
+  - [x] Results are accurate and complete
 - **Technical Notes:** Use Neo4j Cypher: `MATCH (i:Interface {name: $name})<-[:IMPLEMENTS|EXTENDS*1..5]-(c) RETURN c`. Handle cycles in inheritance graph. Limit depth to prevent performance issues.
+- **Implementation Notes:** Added `ImplementsClosureQuery` interface and `Neo4jImplementsClosureQuery` (Cypher `MATCH (i:Interface {name: $interfaceName})<-[:IMPLEMENTS|EXTENDS*1..depth]-(c) RETURN DISTINCT c`, depth 1–10, returns empty when `megabrain.neo4j.uri` unset). `StructuralQueryParser` parses `implements:InterfaceName` and `extends:ClassName`. `GraphQueryServiceStub` delegates implements-predicate queries to `ImplementsClosureQuery`. Unit tests: StructuralQueryParserTest, GraphQueryServiceStubTest (delegation), ImplementsClosureQueryTest, Neo4jImplementsClosureQueryTest.
 
 ### T4: Implement transitive closure for extends
 - **Description:** Implement transitive closure logic for "extends" relationships. Given a class, find all subclasses directly or transitively. Use graph traversal with depth limit. Handle multiple inheritance paths.
