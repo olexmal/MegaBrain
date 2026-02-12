@@ -11,6 +11,13 @@ jobs:
   test-backend:
     name: Backend Tests
     runs-on: ubuntu-latest
+    services:
+      docker:
+        image: docker:dind
+        options: --privileged
+    env:
+      DOCKER_HOST: tcp://docker:2375
+      DOCKER_TLS_CERTDIR: ""
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -21,6 +28,9 @@ jobs:
           distribution: temurin
           java-version: 22
           cache: maven
+
+      - name: Verify Docker
+        run: docker info
 
       - name: Run backend tests
         run: |
@@ -108,6 +118,13 @@ jobs:
   sonar:
     name: SonarQube Analysis
     runs-on: ubuntu-latest
+    services:
+      docker:
+        image: docker:dind
+        options: --privileged
+    env:
+      DOCKER_HOST: tcp://docker:2375
+      DOCKER_TLS_CERTDIR: ""
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -120,6 +137,9 @@ jobs:
           distribution: temurin
           java-version: 22
           cache: maven
+
+      - name: Verify Docker
+        run: docker info
 
       - name: Cache SonarQube packages
         uses: actions/cache@v4

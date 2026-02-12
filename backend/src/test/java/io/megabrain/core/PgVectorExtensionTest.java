@@ -23,7 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * This test uses Testcontainers to run PostgreSQL with pgvector extension.
  */
 @QuarkusTest
-@Testcontainers
+@Testcontainers(disabledWithoutDocker = true)
 public class PgVectorExtensionTest {
 
     @Container
