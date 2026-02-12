@@ -36,6 +36,7 @@ public class ResultMerger {
 
     /**
      * Merged result containing a chunk with its combined score and source information (US-02-05, T4: optional fieldMatch).
+     * Optional {@code transitivePath} (US-02-06, T6) marks results from transitive graph traversal and the relationship path.
      */
     public record MergedResult(
             String chunkId,
@@ -43,7 +44,8 @@ public class ResultMerger {
             VectorStore.SearchResult vectorResult,
             double combinedScore,
             boolean fromBothSources,
-            FieldMatchInfo fieldMatch
+            FieldMatchInfo fieldMatch,
+            List<String> transitivePath
     ) {
         /**
          * Creates a merged result from Lucene only.
@@ -56,14 +58,22 @@ public class ResultMerger {
          * Creates a merged result from Lucene only with optional field match info (US-02-05, T4).
          */
         public static MergedResult fromLucene(String chunkId, Document document, double score, FieldMatchInfo fieldMatch) {
-            return new MergedResult(chunkId, document, null, score, false, fieldMatch);
+            return new MergedResult(chunkId, document, null, score, false, fieldMatch, null);
+        }
+
+        /**
+         * Creates a merged result from Lucene only with transitive path (US-02-06, T6).
+         */
+        public static MergedResult fromLuceneTransitive(String chunkId, Document document, double score,
+                                                        List<String> transitivePath) {
+            return new MergedResult(chunkId, document, null, score, false, null, transitivePath);
         }
 
         /**
          * Creates a merged result from vector only.
          */
         public static MergedResult fromVector(String chunkId, VectorStore.SearchResult result, double score) {
-            return new MergedResult(chunkId, null, result, score, false, null);
+            return new MergedResult(chunkId, null, result, score, false, null, null);
         }
 
         /**
@@ -80,7 +90,14 @@ public class ResultMerger {
         public static MergedResult fromBoth(String chunkId, Document document,
                                              VectorStore.SearchResult vectorResult, double combinedScore,
                                              FieldMatchInfo fieldMatch) {
-            return new MergedResult(chunkId, document, vectorResult, combinedScore, true, fieldMatch);
+            return new MergedResult(chunkId, document, vectorResult, combinedScore, true, fieldMatch, null);
+        }
+
+        /**
+         * Returns a new MergedResult with the same data but the given transitive path (US-02-06, T6).
+         */
+        public MergedResult withTransitivePath(List<String> path) {
+            return new MergedResult(chunkId, luceneDocument, vectorResult, combinedScore, fromBothSources, fieldMatch, path);
         }
     }
 

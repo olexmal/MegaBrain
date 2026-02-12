@@ -81,14 +81,15 @@
 - **Description:** Add metadata to search results indicating which results were found via transitive traversal vs direct search. Include relationship path information for transitive results. This helps users understand result provenance.
 - **Estimated Hours:** 3 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T2-T5 (needs transitive queries working)
 - **Acceptance Criteria:**
-  - [ ] Transitive results marked in response
-  - [ ] Relationship path included
-  - [ ] Clear distinction between direct and transitive
-  - [ ] Metadata is useful for debugging
+  - [x] Transitive results marked in response
+  - [x] Relationship path included
+  - [x] Clear distinction between direct and transitive
+  - [x] Metadata is useful for debugging
 - **Technical Notes:** Add `is_transitive` flag to SearchResult. Include `relationship_path` array showing traversal path. Format: `["Interface", "AbstractClass", "ConcreteClass"]`. Make optional for performance.
+- **Implementation Notes:** Added `is_transitive` and `relationship_path` to SearchResult DTO (JSON: is_transitive, relationship_path). Added optional `relationshipPath` to GraphRelatedEntity. Added optional `transitivePath` to ResultMerger.MergedResult with `withTransitivePath(List)` and `fromLuceneTransitive(...)`. SearchOrchestrator builds entityName→path from relatedEntities and enriches graph MergedResults with path; convertToSearchResult sets isTransitive and relationshipPath from transitivePath. Unit tests: SearchResultTest (transitive/non-transitive), SearchResourceTest (transitive response marking, non-transitive no path).
 
 ### T7: Write tests for transitive queries
 - **Description:** Create comprehensive tests for transitive search functionality. Test implements transitive closure, extends transitive closure, depth limits, and result marking. Use test graph with known relationships.

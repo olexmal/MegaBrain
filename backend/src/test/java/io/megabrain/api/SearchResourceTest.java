@@ -307,6 +307,49 @@ class SearchResourceTest {
     }
 
     @Test
+    void search_transitiveTrue_withTransitivePath_shouldMarkResultsInResponse() {
+        // Given - one result with transitive path (US-02-06, T6)
+        List<ResultMerger.MergedResult> mockResults = createMockMergedResults(1);
+        ResultMerger.MergedResult withPath = mockResults.get(0).withTransitivePath(
+                List.of("IRepository", "BaseRepo", "ConcreteRepo"));
+        mockResults = List.of(withPath);
+        when(searchOrchestrator.orchestrate(any(SearchRequest.class), any(SearchMode.class), anyInt(), anyInt()))
+                .thenReturn(Uni.createFrom().item(new SearchOrchestrator.OrchestratorResult(mockResults, Map.of())));
+
+        // When
+        Uni<Response> responseUni = searchResource.search(
+                "implements:IRepository", null, null, null, null, 10, 0, null, null, true, null);
+        Response response = responseUni.await().indefinitely();
+
+        // Then
+        assertThat(response.getStatus()).isEqualTo(200);
+        SearchResponse searchResponse = (SearchResponse) response.getEntity();
+        assertThat(searchResponse.getResults()).hasSize(1);
+        SearchResult result = searchResponse.getResults().get(0);
+        assertThat(result.isTransitive()).isTrue();
+        assertThat(result.getRelationshipPath()).containsExactly("IRepository", "BaseRepo", "ConcreteRepo");
+    }
+
+    @Test
+    void search_nonTransitive_shouldHaveIsTransitiveFalseAndNoPath() {
+        // Given - normal (non-transitive) results
+        List<ResultMerger.MergedResult> mockResults = createMockMergedResults(1);
+        when(searchOrchestrator.orchestrate(any(SearchRequest.class), eq(SearchMode.HYBRID), anyInt(), anyInt()))
+                .thenReturn(Uni.createFrom().item(new SearchOrchestrator.OrchestratorResult(mockResults, Map.of())));
+
+        // When
+        Uni<Response> responseUni = searchResource.search(
+                "test", null, null, null, null, 10, 0, null, null, false, null);
+        Response response = responseUni.await().indefinitely();
+
+        // Then
+        assertThat(response.getStatus()).isEqualTo(200);
+        SearchResult result = ((SearchResponse) response.getEntity()).getResults().get(0);
+        assertThat(result.isTransitive()).isFalse();
+        assertThat(result.getRelationshipPath()).isNull();
+    }
+
+    @Test
     void search_withDepthBelowOne_shouldReturnBadRequest() {
         Uni<Response> responseUni = searchResource.search(
                 "implements:I", null, null, null, null, 10, 0, null, null, true, 0);

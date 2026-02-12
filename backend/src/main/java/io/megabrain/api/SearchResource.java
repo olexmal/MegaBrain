@@ -286,8 +286,13 @@ public class SearchResource {
         FieldMatchInfo apiFieldMatch = mergedResult.fieldMatch() != null
                 ? new FieldMatchInfo(mergedResult.fieldMatch().matchedFields(), mergedResult.fieldMatch().scores())
                 : null;
+        // Transitive metadata (US-02-06, T6): mark results from graph traversal and include relationship path
+        boolean isTransitive = mergedResult.transitivePath() != null;
+        List<String> relationshipPath = mergedResult.transitivePath() != null && !mergedResult.transitivePath().isEmpty()
+                ? mergedResult.transitivePath()
+                : null;
         return new SearchResult(content, entityName, entityType, sourceFile,
-                language, repository, score, lineRange, null, apiFieldMatch);
+                language, repository, score, lineRange, null, apiFieldMatch, isTransitive, relationshipPath);
     }
 
     /**

@@ -85,7 +85,7 @@ public class Neo4jExtendsClosureQuery implements ExtendsClosureQuery {
             String name = subNode.containsKey("name") ? subNode.get("name").asString() : null;
             if (name != null && !name.isBlank()) {
                 String type = subNode.labels().iterator().hasNext() ? subNode.labels().iterator().next() : null;
-                entities.add(new GraphRelatedEntity(name, type, null));
+                entities.add(new GraphRelatedEntity(name, type, null, null));
             }
         });
         return entities;

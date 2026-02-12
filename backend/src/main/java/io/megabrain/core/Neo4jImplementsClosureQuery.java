@@ -85,7 +85,7 @@ public class Neo4jImplementsClosureQuery implements ImplementsClosureQuery {
             String name = node.containsKey("name") ? node.get("name").asString() : null;
             if (name != null && !name.isBlank()) {
                 String type = node.labels().iterator().hasNext() ? node.labels().iterator().next() : null;
-                entities.add(new GraphRelatedEntity(name, type, null));
+                entities.add(new GraphRelatedEntity(name, type, null, null));
             }
         });
         return entities;

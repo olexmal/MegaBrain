@@ -11,11 +11,14 @@ import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -119,13 +122,33 @@ public class SearchOrchestrator {
                         return Uni.createFrom().item(new OrchestratorResult(hybridResults, facets));
                     }
 
+                    // Map entity name -> relationship path (US-02-06, T6). First occurrence wins; null path -> empty list.
+                    Map<String, List<String>> entityNameToPath = new HashMap<>();
+                    for (GraphRelatedEntity e : relatedEntities) {
+                        if (e.entityName() != null && !e.entityName().isBlank() && !entityNameToPath.containsKey(e.entityName())) {
+                            entityNameToPath.put(e.entityName(),
+                                    e.relationshipPath() != null && !e.relationshipPath().isEmpty()
+                                            ? List.copyOf(e.relationshipPath())
+                                            : Collections.emptyList());
+                        }
+                    }
+
                     return luceneIndexService.lookupByEntityNames(entityNames, limit, filters)
                             .map(graphLuceneResults -> {
                                 List<ResultMerger.MergedResult> graphMerged = resultMerger.merge(
                                         graphLuceneResults, List.of());
-                                List<ResultMerger.MergedResult> combined = combineAndDedupe(hybridResults, graphMerged);
+                                // Mark graph-originated results with transitive path (US-02-06, T6)
+                                List<ResultMerger.MergedResult> graphMergedWithPath = graphMerged.stream()
+                                        .map(mr -> {
+                                            List<String> path = getEntityNameFrom(mr)
+                                                    .map(entityNameToPath::get)
+                                                    .orElse(null);
+                                            return path != null ? mr.withTransitivePath(path) : mr;
+                                        })
+                                        .toList();
+                                List<ResultMerger.MergedResult> combined = combineAndDedupe(hybridResults, graphMergedWithPath);
                                 LOG.debugf("Transitive search: hybrid=%d, graph entities=%d, graph docs=%d, combined=%d",
-                                        hybridResults.size(), entityNames.size(), graphMerged.size(), combined.size());
+                                        hybridResults.size(), entityNames.size(), graphMergedWithPath.size(), combined.size());
                                 return new OrchestratorResult(combined, facets);
                             });
                 });
@@ -153,5 +176,20 @@ public class SearchOrchestrator {
         }
         combined.sort(Comparator.comparing(ResultMerger.MergedResult::combinedScore).reversed());
         return combined;
+    }
+
+    /**
+     * Extracts entity name from a merged result for transitive path lookup (US-02-06, T6).
+     */
+    private static Optional<String> getEntityNameFrom(ResultMerger.MergedResult mr) {
+        if (mr.luceneDocument() != null) {
+            String name = mr.luceneDocument().get(LuceneSchema.FIELD_ENTITY_NAME);
+            return name != null && !name.isBlank() ? Optional.of(name) : Optional.empty();
+        }
+        if (mr.vectorResult() != null && mr.vectorResult().metadata() != null) {
+            String name = mr.vectorResult().metadata().entityName();
+            return name != null && !name.isBlank() ? Optional.of(name) : Optional.empty();
+        }
+        return Optional.empty();
     }
 }

@@ -7,11 +7,16 @@ package io.megabrain.api;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.util.List;
+
 /**
  * Represents a single search result from the code search index.
  *
  * This DTO contains the content and metadata of a code chunk that matched
  * a search query, along with relevance scoring and source information.
+ * When the result was found via transitive traversal (US-02-06, T6),
+ * {@code isTransitive} is true and optional {@code relationshipPath} shows
+ * the traversal path (e.g. ["Interface", "AbstractClass", "ConcreteClass"]).
  */
 public class SearchResult {
 
@@ -45,6 +50,14 @@ public class SearchResult {
     @JsonProperty("field_match")
     private final FieldMatchInfo fieldMatch;
 
+    /** True when the result was found via transitive relationship traversal (implements/extends). */
+    @JsonProperty("is_transitive")
+    private final boolean isTransitive;
+
+    /** Traversal path for transitive results, e.g. ["Interface", "AbstractClass", "ConcreteClass"]. Optional. */
+    @JsonProperty("relationship_path")
+    private final List<String> relationshipPath;
+
     // Default constructor for Jackson deserialization
     public SearchResult() {
         this.content = "";
@@ -57,6 +70,8 @@ public class SearchResult {
         this.lineRange = new LineRange(1, 1);
         this.docSummary = null;
         this.fieldMatch = null;
+        this.isTransitive = false;
+        this.relationshipPath = null;
     }
 
     /**
@@ -72,10 +87,13 @@ public class SearchResult {
      * @param lineRange the line range information
      * @param docSummary optional documentation summary
      * @param fieldMatch optional field match info (which fields matched and per-field scores); null to omit
+     * @param isTransitive true when result was found via transitive traversal (US-02-06, T6)
+     * @param relationshipPath optional traversal path for transitive results; null when not transitive or path unknown
      */
     public SearchResult(String content, String entityName, String entityType, String sourceFile,
                        String language, String repository, float score, LineRange lineRange,
-                       String docSummary, FieldMatchInfo fieldMatch) {
+                       String docSummary, FieldMatchInfo fieldMatch,
+                       boolean isTransitive, List<String> relationshipPath) {
         this.content = content;
         this.entityName = entityName;
         this.entityType = entityType;
@@ -86,6 +104,8 @@ public class SearchResult {
         this.lineRange = lineRange;
         this.docSummary = docSummary;
         this.fieldMatch = fieldMatch;
+        this.isTransitive = isTransitive;
+        this.relationshipPath = relationshipPath;
     }
 
     /**
@@ -106,7 +126,7 @@ public class SearchResult {
                                      String sourceFile, String language, String repository,
                                      float score, LineRange lineRange) {
         return new SearchResult(content, entityName, entityType, sourceFile,
-                               language, repository, score, lineRange, null, null);
+                               language, repository, score, lineRange, null, null, false, null);
     }
 
     public String getContent() {
@@ -155,6 +175,25 @@ public class SearchResult {
         return fieldMatch;
     }
 
+    /**
+     * Whether this result was found via transitive relationship traversal (implements/extends) (US-02-06, T6).
+     *
+     * @return true when the result came from graph transitive closure; false for direct/hybrid search results
+     */
+    public boolean isTransitive() {
+        return isTransitive;
+    }
+
+    /**
+     * Traversal path for transitive results, e.g. ["Interface", "AbstractClass", "ConcreteClass"].
+     * Present only when {@link #isTransitive()} is true and the path is known; null otherwise.
+     *
+     * @return relationship path, or null
+     */
+    public List<String> getRelationshipPath() {
+        return relationshipPath;
+    }
+
     @Override
     public String toString() {
         String truncatedContent = truncateContent(content, 42);
@@ -171,6 +210,8 @@ public class SearchResult {
                 ", score=" + score +
                 ", lineRange=" + lineRange +
                 ", docSummary='" + truncatedDocSummary + '\'' +
+                ", isTransitive=" + isTransitive +
+                ", relationshipPath=" + relationshipPath +
                 '}';
     }
 

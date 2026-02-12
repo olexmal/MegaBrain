@@ -39,7 +39,7 @@ class SearchResultTest {
         // When
         SearchResult actual = new SearchResult(
             TEST_CONTENT, TEST_ENTITY_NAME, TEST_ENTITY_TYPE, TEST_SOURCE_FILE,
-            TEST_LANGUAGE, TEST_REPOSITORY, TEST_SCORE, lineRange, TEST_DOC_SUMMARY, null
+            TEST_LANGUAGE, TEST_REPOSITORY, TEST_SCORE, lineRange, TEST_DOC_SUMMARY, null, false, null
         );
 
         // Then
@@ -64,7 +64,7 @@ class SearchResultTest {
         SearchResult actual = new SearchResult(
             "function test() {}", "test", "function",
             "src/test.js", "javascript", TEST_REPOSITORY,
-            0.8f, lineRange, null, null
+            0.8f, lineRange, null, null, false, null
         );
 
         // Then
@@ -79,7 +79,7 @@ class SearchResultTest {
         SearchResult result = new SearchResult(
             "public void method() {}", "method", "method",
             "src/Main.java", "java", "example-repo",
-            1.2f, lineRange, "Sample method", null
+            1.2f, lineRange, "Sample method", null, false, null
         );
 
         // Use the factory method for a simpler case
@@ -151,7 +151,7 @@ class SearchResultTest {
         // When
         SearchResult actual = new SearchResult(
                 TEST_CONTENT, TEST_ENTITY_NAME, TEST_ENTITY_TYPE, TEST_SOURCE_FILE,
-                TEST_LANGUAGE, TEST_REPOSITORY, TEST_SCORE, lineRange, TEST_DOC_SUMMARY, fieldMatch
+                TEST_LANGUAGE, TEST_REPOSITORY, TEST_SCORE, lineRange, TEST_DOC_SUMMARY, fieldMatch, false, null
         );
 
         // Then
@@ -170,11 +170,42 @@ class SearchResultTest {
         // When
         SearchResult actual = new SearchResult(
                 "content", "Entity", "class", "path.java", "java", "repo",
-                1.0f, lineRange, null, null
+                1.0f, lineRange, null, null, false, null
         );
 
         // Then
         assertThat(actual.getFieldMatch()).isNull();
+    }
+
+    @Test
+    @DisplayName("creates transitive result with relationship path (US-02-06, T6)")
+    void createSearchResult_transitiveWithPath_setsIsTransitiveAndPath() {
+        // Given
+        LineRange lineRange = new LineRange(1, 10);
+        List<String> path = List.of("IRepository", "BaseRepo", "ConcreteRepo");
+
+        // When
+        SearchResult actual = new SearchResult(
+                TEST_CONTENT, "ConcreteRepo", "class", TEST_SOURCE_FILE,
+                TEST_LANGUAGE, TEST_REPOSITORY, TEST_SCORE, lineRange, null, null, true, path
+        );
+
+        // Then
+        assertThat(actual.isTransitive()).isTrue();
+        assertThat(actual.getRelationshipPath()).containsExactly("IRepository", "BaseRepo", "ConcreteRepo");
+    }
+
+    @Test
+    @DisplayName("creates non-transitive result has no path")
+    void createSearchResult_nonTransitive_hasFalseAndNullPath() {
+        // When
+        SearchResult actual = SearchResult.create(
+                "content", "Entity", "class", "file.java", "java", "repo", 1.0f, new LineRange(1, 1)
+        );
+
+        // Then
+        assertThat(actual.isTransitive()).isFalse();
+        assertThat(actual.getRelationshipPath()).isNull();
     }
 
     @Test
@@ -185,7 +216,7 @@ class SearchResultTest {
         SearchResult result = new SearchResult(
             "This is a very long content that should be truncated in toString",
             "LongEntityName", "class", "path/to/file.java",
-            "java", "repo", 2.5f, lineRange, "Long summary text", null
+            "java", "repo", 2.5f, lineRange, "Long summary text", null, false, null
         );
 
         // When
