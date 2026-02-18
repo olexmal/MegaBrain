@@ -26,14 +26,15 @@
 - **Description:** Create `OllamaLLMClient` class that wraps LangChain4j's Ollama integration. Implement LLM client interface for consistent usage across different providers. Handle connection management and configuration loading.
 - **Estimated Hours:** 4 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T1 (needs dependency)
 - **Acceptance Criteria:**
-  - [ ] OllamaLLMClient class created
-  - [ ] Implements common LLM client interface
-  - [ ] Handles connection to Ollama endpoint
-  - [ ] Configuration loaded from properties
+  - [x] OllamaLLMClient class created
+  - [x] Implements common LLM client interface
+  - [x] Handles connection to Ollama endpoint
+  - [x] Configuration loaded from properties
 - **Technical Notes:** Use LangChain4j's OllamaStreamingChatLanguageModel. Create unified interface for LLM clients (Ollama, OpenAI, Anthropic). Use Quarkus CDI for dependency injection.
+- **Implementation Notes:** Added `LLMClient` interface (generate, isAvailable), `OllamaConfiguration` ConfigMapping (baseUrl, model, timeoutSeconds), and `OllamaLLMClient` wrapping LangChain4j `OllamaChatModel`. Config via `megabrain.llm.ollama.base-url`, `megabrain.llm.ollama.model`, `megabrain.llm.ollama.timeout-seconds`. Unit tests: OllamaLLMClientTest, LLMClientTest, OllamaConfigurationTest.
 
 ### T3: Implement model selection configuration
 - **Description:** Implement configuration support for Ollama model selection. Allow users to specify model name (codellama, mistral, llama2, etc.) via application.properties. Support per-request model override via API parameters.
