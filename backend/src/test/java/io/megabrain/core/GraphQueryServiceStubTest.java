@@ -126,4 +126,59 @@ class GraphQueryServiceStubTest {
         assertThat(actual).isEmpty();
         verify(extendsClosureQuery).findSubclassesOf(eq("Base"), eq(3));
     }
+
+    @Test
+    @DisplayName("non-structural query returns empty")
+    void findRelatedEntities_nonStructuralQuery_returnsEmpty() {
+        // Given: plain query, no implements: or extends:
+
+        // When
+        Uni<List<GraphRelatedEntity>> result = stub.findRelatedEntities("authentication service", null, 5);
+        List<GraphRelatedEntity> actual = result.await().indefinitely();
+
+        // Then
+        assertThat(actual).isEmpty();
+    }
+
+    @Test
+    @DisplayName("implements query returns entities with relationship path when closure provides path")
+    void findRelatedEntities_implementsQuery_returnsEntitiesWithRelationshipPath() {
+        // Given: transitive hierarchy interface → abstract → concrete (US-02-06, T6)
+        List<String> path = List.of("IRepository", "BaseRepo", "ConcreteRepo");
+        List<GraphRelatedEntity> expected = List.of(
+                GraphRelatedEntity.ofNameWithPath("ConcreteRepo", path));
+        when(implementsClosureQuery.findImplementationsOf(eq("IRepository"), eq(5)))
+                .thenReturn(Uni.createFrom().item(expected));
+
+        // When
+        Uni<List<GraphRelatedEntity>> result = stub.findRelatedEntities("implements:IRepository", null, 5);
+        List<GraphRelatedEntity> actual = result.await().indefinitely();
+
+        // Then
+        assertThat(actual).hasSize(1);
+        assertThat(actual.get(0).entityName()).isEqualTo("ConcreteRepo");
+        assertThat(actual.get(0).relationshipPath()).containsExactly("IRepository", "BaseRepo", "ConcreteRepo");
+    }
+
+    @Test
+    @DisplayName("extends query returns multiple entities (multiple inheritance paths)")
+    void findRelatedEntities_extendsQuery_returnsMultipleEntitiesMultiplePaths() {
+        // Given: base class with two subclasses (multiple paths from root)
+        List<GraphRelatedEntity> expected = List.of(
+                GraphRelatedEntity.ofNameWithPath("SubClassA", List.of("Base", "SubClassA")),
+                GraphRelatedEntity.ofNameWithPath("SubClassB", List.of("Base", "SubClassB")));
+        when(extendsClosureQuery.findSubclassesOf(eq("Base"), eq(5)))
+                .thenReturn(Uni.createFrom().item(expected));
+
+        // When
+        Uni<List<GraphRelatedEntity>> result = stub.findRelatedEntities("extends:Base", null, 5);
+        List<GraphRelatedEntity> actual = result.await().indefinitely();
+
+        // Then
+        assertThat(actual).hasSize(2);
+        assertThat(actual.get(0).entityName()).isEqualTo("SubClassA");
+        assertThat(actual.get(1).entityName()).isEqualTo("SubClassB");
+        assertThat(actual.get(0).relationshipPath()).containsExactly("Base", "SubClassA");
+        assertThat(actual.get(1).relationshipPath()).containsExactly("Base", "SubClassB");
+    }
 }

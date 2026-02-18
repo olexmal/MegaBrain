@@ -170,6 +170,65 @@ class SearchOrchestratorTest {
         verify(graphQueryService).findRelatedEntities(eq("extends:Base"), nullable(SearchFilters.class), eq(3));
     }
 
+    @Test
+    void orchestrate_whenTransitiveTrueAndGraphReturnsEntitiesWithPath_marksMergedResultsWithTransitivePath() {
+        // Given: implements query, graph returns entity with relationship path (interface → abstract → concrete)
+        SearchRequest request = new SearchRequest("implements:IRepository");
+        request.setLimit(10);
+        request.setTransitive(true);
+
+        List<ResultMerger.MergedResult> hybridResults = List.of(createMergedResult("hybrid-id"));
+        Map<String, List<FacetValue>> facets = Map.of();
+        List<String> path = List.of("IRepository", "BaseRepo", "ConcreteRepo");
+        List<GraphRelatedEntity> relatedEntities = List.of(
+                GraphRelatedEntity.ofNameWithPath("ConcreteRepo", path));
+
+        Document doc = new Document();
+        doc.add(new org.apache.lucene.document.StringField("content", "class ConcreteRepo", org.apache.lucene.document.Field.Store.YES));
+        doc.add(new org.apache.lucene.document.StringField("entity_name", "ConcreteRepo", org.apache.lucene.document.Field.Store.YES));
+        doc.add(new org.apache.lucene.document.StringField("entity_name_keyword", "ConcreteRepo", org.apache.lucene.document.Field.Store.YES));
+        doc.add(new org.apache.lucene.document.StringField("entity_type", "class", org.apache.lucene.document.Field.Store.YES));
+        doc.add(new org.apache.lucene.document.StringField("source_file", "ConcreteRepo.java", org.apache.lucene.document.Field.Store.YES));
+        doc.add(new org.apache.lucene.document.StringField("language", "java", org.apache.lucene.document.Field.Store.YES));
+        doc.add(new org.apache.lucene.document.StringField("repository", "repo", org.apache.lucene.document.Field.Store.YES));
+        doc.add(new org.apache.lucene.document.StringField("start_line", "1", org.apache.lucene.document.Field.Store.YES));
+        doc.add(new org.apache.lucene.document.StringField("end_line", "5", org.apache.lucene.document.Field.Store.YES));
+
+        List<LuceneIndexService.LuceneScoredResult> graphLuceneResults = List.of(
+                new LuceneIndexService.LuceneScoredResult(doc, 1.0f, null));
+        List<ResultMerger.MergedResult> graphMergedWithoutPath = List.of(
+                ResultMerger.MergedResult.fromLucene("graph-id", doc, 1.0));
+
+        when(hybridIndexService.search(any(), anyInt(), eq(SearchMode.HYBRID), nullable(SearchFilters.class), eq(false)))
+                .thenReturn(Uni.createFrom().item(hybridResults));
+        when(luceneIndexService.computeFacets(any(), nullable(SearchFilters.class), anyInt()))
+                .thenReturn(Uni.createFrom().item(facets));
+        when(graphQueryService.findRelatedEntities(eq("implements:IRepository"), nullable(SearchFilters.class), eq(5)))
+                .thenReturn(Uni.createFrom().item(relatedEntities));
+        when(luceneIndexService.lookupByEntityNames(eq(List.of("ConcreteRepo")), eq(10), nullable(SearchFilters.class)))
+                .thenReturn(Uni.createFrom().item(graphLuceneResults));
+        when(resultMerger.merge(eq(graphLuceneResults), eq(List.of())))
+                .thenReturn(graphMergedWithoutPath);
+
+        // When
+        SearchOrchestrator.OrchestratorResult result = searchOrchestrator
+                .orchestrate(request, SearchMode.HYBRID, 5, 5)
+                .await().indefinitely();
+
+        // Then: combined results include graph result with transitive path set (result marking US-02-06, T6)
+        assertThat(result.mergedResults()).hasSize(2);
+        ResultMerger.MergedResult graphResult = result.mergedResults().stream()
+                .filter(mr -> "graph-id".equals(mr.chunkId()))
+                .findFirst()
+                .orElseThrow();
+        assertThat(graphResult.transitivePath()).containsExactly("IRepository", "BaseRepo", "ConcreteRepo");
+        ResultMerger.MergedResult hybridResult = result.mergedResults().stream()
+                .filter(mr -> "hybrid-id".equals(mr.chunkId()))
+                .findFirst()
+                .orElseThrow();
+        assertThat(hybridResult.transitivePath()).isNull();
+    }
+
     private static ResultMerger.MergedResult createMergedResult(String chunkId) {
         Document doc = new Document();
         doc.add(new org.apache.lucene.document.StringField("content", "content", org.apache.lucene.document.Field.Store.YES));

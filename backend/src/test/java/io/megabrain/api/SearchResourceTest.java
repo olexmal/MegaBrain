@@ -28,6 +28,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -367,6 +368,34 @@ class SearchResourceTest {
         assertThat(response.getStatus()).isEqualTo(400);
         SearchResource.ErrorResponse errorResponse = (SearchResource.ErrorResponse) response.getEntity();
         assertThat(errorResponse.error()).contains("1 and 10");
+    }
+
+    @Test
+    void search_withTransitiveAndDepthOne_shouldSucceed() {
+        List<ResultMerger.MergedResult> mockResults = createMockMergedResults(1);
+        when(searchOrchestrator.orchestrate(any(SearchRequest.class), any(SearchMode.class), anyInt(), eq(1)))
+                .thenReturn(Uni.createFrom().item(new SearchOrchestrator.OrchestratorResult(mockResults, Map.of())));
+
+        Uni<Response> responseUni = searchResource.search(
+                "implements:I", null, null, null, null, 10, 0, null, null, true, 1);
+        Response response = responseUni.await().indefinitely();
+
+        assertThat(response.getStatus()).isEqualTo(200);
+        verify(searchOrchestrator).orchestrate(any(SearchRequest.class), any(SearchMode.class), anyInt(), eq(1));
+    }
+
+    @Test
+    void search_withTransitiveAndDepthTen_shouldSucceed() {
+        List<ResultMerger.MergedResult> mockResults = createMockMergedResults(1);
+        when(searchOrchestrator.orchestrate(any(SearchRequest.class), any(SearchMode.class), anyInt(), eq(10)))
+                .thenReturn(Uni.createFrom().item(new SearchOrchestrator.OrchestratorResult(mockResults, Map.of())));
+
+        Uni<Response> responseUni = searchResource.search(
+                "extends:Base", null, null, null, null, 10, 0, null, null, true, 10);
+        Response response = responseUni.await().indefinitely();
+
+        assertThat(response.getStatus()).isEqualTo(200);
+        verify(searchOrchestrator).orchestrate(any(SearchRequest.class), any(SearchMode.class), anyInt(), eq(10));
     }
 
     /**
