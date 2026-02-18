@@ -65,11 +65,11 @@ Use this checklist to track progress through the implementation process:
 - Verify test coverage meets requirements
 
 ### Documentation & Completion Phase
-- Update task status in user story files (mark as completed)
+- **MANDATORY (gate):** Run full backend build and tests: `mvn clean install`. Do not mark the task as done until this succeeds.
+- Only after the build succeeds: Update task status in user story files (mark as completed)
 - Mark all acceptance criteria as completed
 - Add implementation notes and technical details
 - Update API documentation if applicable
-- **MANDATORY:** Run the relevant test suite(s) before marking tasks as complete by compiling whole backend: `mvn clean install`
 - Verify all requirements and success criteria are met
 - Commit changes following Git workflow standards
 
@@ -213,6 +213,7 @@ class ServiceTest {
 **Input:** Verified implementation
 
 **Activities:**
+- Confirm Phase 5 completed successfully: `mvn clean install` must have succeeded. Do not proceed to update task status otherwise.
 - Update task status in user story files
 - Mark acceptance criteria as completed
 - Add implementation notes if needed
@@ -242,7 +243,7 @@ class ServiceTest {
 
 ## Success Criteria
 
-- [ ] **Code Compiles**: `mvn clean install` succeeds
+- [ ] **Code Compiles**: `mvn clean install` succeeds **before** the task is marked complete. Task may only be marked done after `mvn clean install` has been run and succeeded.
 - [ ] **Tests Pass**: `mvn test` passes all tests
 - [ ] **Coverage**: >80% test coverage achieved
 - [ ] **Requirements**: All acceptance criteria met
