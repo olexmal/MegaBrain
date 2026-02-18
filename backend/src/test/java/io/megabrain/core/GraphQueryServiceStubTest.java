@@ -181,4 +181,59 @@ class GraphQueryServiceStubTest {
         assertThat(actual.get(0).relationshipPath()).containsExactly("Base", "SubClassA");
         assertThat(actual.get(1).relationshipPath()).containsExactly("Base", "SubClassB");
     }
+
+    @Test
+    @DisplayName("usages query returns type plus implementations and subclasses (AC3)")
+    void findRelatedEntities_usagesQuery_returnsTypePlusImplementationsAndSubclasses() {
+        // Given: usages:IRepository with transitive = type + implementations + subclasses (polymorphic call sites)
+        when(implementsClosureQuery.findImplementationsOf(eq("IRepository"), eq(5)))
+                .thenReturn(Uni.createFrom().item(List.of(GraphRelatedEntity.ofName("ConcreteRepo"))));
+        when(extendsClosureQuery.findSubclassesOf(eq("IRepository"), eq(5)))
+                .thenReturn(Uni.createFrom().item(List.<GraphRelatedEntity>of()));
+
+        // When
+        Uni<List<GraphRelatedEntity>> result = stub.findRelatedEntities("usages:IRepository", null, 5);
+        List<GraphRelatedEntity> actual = result.await().indefinitely();
+
+        // Then: root type first, then implementations (subclasses empty)
+        assertThat(actual).hasSize(2);
+        assertThat(actual.get(0).entityName()).isEqualTo("IRepository");
+        assertThat(actual.get(1).entityName()).isEqualTo("ConcreteRepo");
+        verify(implementsClosureQuery).findImplementationsOf(eq("IRepository"), eq(5));
+        verify(extendsClosureQuery).findSubclassesOf(eq("IRepository"), eq(5));
+    }
+
+    @Test
+    @DisplayName("usages query with only subclasses returns type plus subclasses")
+    void findRelatedEntities_usagesQuery_returnsTypePlusSubclasses() {
+        when(implementsClosureQuery.findImplementationsOf(eq("BaseService"), eq(3)))
+                .thenReturn(Uni.createFrom().item(List.<GraphRelatedEntity>of()));
+        when(extendsClosureQuery.findSubclassesOf(eq("BaseService"), eq(3)))
+                .thenReturn(Uni.createFrom().item(List.of(
+                        GraphRelatedEntity.ofName("UserService"),
+                        GraphRelatedEntity.ofName("OrderService"))));
+
+        Uni<List<GraphRelatedEntity>> result = stub.findRelatedEntities("usages:BaseService", null, 3);
+        List<GraphRelatedEntity> actual = result.await().indefinitely();
+
+        assertThat(actual).hasSize(3);
+        assertThat(actual.get(0).entityName()).isEqualTo("BaseService");
+        assertThat(actual.get(1).entityName()).isEqualTo("UserService");
+        assertThat(actual.get(2).entityName()).isEqualTo("OrderService");
+    }
+
+    @Test
+    @DisplayName("usages query when both closures empty returns only root type")
+    void findRelatedEntities_usagesQuery_bothClosuresEmpty_returnsRootTypeOnly() {
+        when(implementsClosureQuery.findImplementationsOf(eq("SomeType"), eq(5)))
+                .thenReturn(Uni.createFrom().item(List.<GraphRelatedEntity>of()));
+        when(extendsClosureQuery.findSubclassesOf(eq("SomeType"), eq(5)))
+                .thenReturn(Uni.createFrom().item(List.<GraphRelatedEntity>of()));
+
+        Uni<List<GraphRelatedEntity>> result = stub.findRelatedEntities("usages:SomeType", null, 5);
+        List<GraphRelatedEntity> actual = result.await().indefinitely();
+
+        assertThat(actual).hasSize(1);
+        assertThat(actual.get(0).entityName()).isEqualTo("SomeType");
+    }
 }

@@ -13,12 +13,12 @@
 
 ## Acceptance Criteria
 
-- [ ] **AC1:** Search API supports `transitive=true` parameter
-- [ ] **AC2:** "Find implementations of X" includes classes extending abstract implementers
-- [ ] **AC3:** "Find usages of X" includes polymorphic call sites
-- [ ] **AC4:** Graph traversal integrated into search pipeline
-- [ ] **AC5:** Transitive results marked in response
-- [ ] **AC6:** Depth limit configurable (default: 5)
+- [x] **AC1:** Search API supports `transitive=true` parameter
+- [x] **AC2:** "Find implementations of X" includes classes extending abstract implementers
+- [x] **AC3:** "Find usages of X" includes polymorphic call sites
+- [x] **AC4:** Graph traversal integrated into search pipeline
+- [x] **AC5:** Transitive results marked in response
+- [x] **AC6:** Depth limit configurable (default: 5)
 
 ---
 
@@ -37,9 +37,13 @@
    ```bash
    curl "http://localhost:8080/api/v1/search?q=implements:IRepository&transitive=true"
    ```
-3. **Compare Results:** Show additional classes found
-4. **Show Hierarchy:** Display inheritance chain
-5. **Depth Limit:** Demonstrate depth parameter
+3. **Find usages (AC3):** Type + all implementations/subclasses (polymorphic call sites)
+   ```bash
+   curl "http://localhost:8080/api/v1/search?q=usages:IRepository&transitive=true"
+   ```
+4. **Compare Results:** Show additional classes found
+5. **Show Hierarchy:** Display inheritance chain
+6. **Depth Limit:** Demonstrate depth parameter
 
 ### Expected Outcome
 - Transitive search finds more results
@@ -50,13 +54,13 @@
 
 ## Technical Tasks
 
-- [ ] **T1:** Add `transitive` parameter to search API (backend)
-- [ ] **T2:** Integrate GraphQueryService into search (backend)
-- [ ] **T3:** Implement transitive closure for implements (backend)
-- [ ] **T4:** Implement transitive closure for extends (backend)
-- [ ] **T5:** Add depth limit configuration (backend)
-- [ ] **T6:** Mark transitive results in response (backend)
-- [ ] **T7:** Write tests for transitive queries (test)
+- [x] **T1:** Add `transitive` parameter to search API (backend)
+- [x] **T2:** Integrate GraphQueryService into search (backend)
+- [x] **T3:** Implement transitive closure for implements (backend)
+- [x] **T4:** Implement transitive closure for extends (backend)
+- [x] **T5:** Add depth limit configuration (backend)
+- [x] **T6:** Mark transitive results in response (backend)
+- [x] **T7:** Write tests for transitive queries (test)
 
 ---
 
@@ -66,6 +70,7 @@
 |:---------|:------|:-----|:-----|
 | Direct implements | Class implements Interface | Non-transitive | Found |
 | Transitive via abstract | Class extends Abstract implements Interface | Transitive | Found |
+| Find usages (AC3) | Interface + implementations/subclasses | q=usages:X&transitive=true | Type + all subtypes (polymorphic) |
 | Depth 1 | Chain length 1 | depth=1 | Direct only |
 | Depth 3 | Chain length 3 | depth=3 | All found |
 | Circular safe | Circular inheritance | Transitive | No infinite loop |

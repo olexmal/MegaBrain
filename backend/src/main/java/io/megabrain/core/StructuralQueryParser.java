@@ -8,13 +8,14 @@ package io.megabrain.core;
 import java.util.Optional;
 
 /**
- * Parses structural search query predicates (implements:, extends:) from the raw query string (US-02-06, T3/T4).
+ * Parses structural search query predicates (implements:, extends:, usages:) from the raw query string (US-02-06, T3/T4, AC3).
  * Used by the graph query layer to decide which transitive closure to run.
  */
 public final class StructuralQueryParser {
 
     private static final String IMPLEMENTS_PREFIX = "implements:";
     private static final String EXTENDS_PREFIX = "extends:";
+    private static final String USAGES_PREFIX = "usages:";
 
     private StructuralQueryParser() {}
 
@@ -51,6 +52,27 @@ public final class StructuralQueryParser {
             return Optional.empty();
         }
         String rest = query.substring(EXTENDS_PREFIX.length()).trim();
+        if (rest.isEmpty()) {
+            return Optional.empty();
+        }
+        int space = rest.indexOf(' ');
+        String name = space < 0 ? rest : rest.substring(0, space);
+        return Optional.of(name).filter(s -> !s.isEmpty());
+    }
+
+    /**
+     * Extracts the type name from a query that starts with {@code usages:TypeName} (US-02-06, AC3).
+     * "Find usages of X" with transitive=true expands to X and all implementations/subclasses
+     * so that polymorphic call sites (code using any subtype) are included.
+     *
+     * @param query full search query (e.g. "usages:IRepository" or "usages:BaseClass")
+     * @return the type name if the query is a usages-predicate, empty otherwise
+     */
+    public static Optional<String> parseUsagesTarget(String query) {
+        if (query == null || !query.startsWith(USAGES_PREFIX)) {
+            return Optional.empty();
+        }
+        String rest = query.substring(USAGES_PREFIX.length()).trim();
         if (rest.isEmpty()) {
             return Optional.empty();
         }

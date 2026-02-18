@@ -76,14 +76,17 @@ public class SearchResource {
      *   <li>{@code offset} (optional, default: 0): Pagination offset</li>
      *   <li>{@code mode} (optional, default: hybrid): Search mode (hybrid, keyword, vector)</li>
      *   <li>{@code include_field_match} (optional, default: false): Include which fields matched and per-field scores</li>
-     *   <li>{@code transitive} (optional, default: false): Enable transitive relationship traversal for structural queries (implements, extends)</li>
+     *   <li>{@code transitive} (optional, default: false): Enable transitive relationship traversal for structural queries (implements, extends, usages). When true, usages: includes polymorphic call sites (type + all implementations/subclasses).</li>
      *   <li>{@code depth} (optional): Maximum traversal depth for transitive queries (1 to configured max, default from config). Only used when transitive=true.</li>
      * </ul>
+     * <p>
+     * Structural query predicates for {@code q}: {@code implements:InterfaceName}, {@code extends:ClassName}, {@code usages:TypeName} (AC3).
      * <p>
      * Example:
      * <pre>
      * GET /api/v1/search?q=authentication&language=java&language=python&entity_type=class&limit=20
      * GET /api/v1/search?q=implements:IRepository&transitive=true
+     * GET /api/v1/search?q=usages:IRepository&transitive=true
      * </pre>
      *
      * @param query the search query string (required)

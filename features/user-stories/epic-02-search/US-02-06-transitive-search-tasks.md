@@ -108,6 +108,13 @@
 
 ---
 
+## AC3: Find usages including polymorphic call sites (no separate task)
+
+- **Implementation:** Added `usages:TypeName` structural predicate. When `transitive=true`, GraphQueryServiceStub returns the type plus all implementations (ImplementsClosureQuery) and all subclasses (ExtendsClosureQuery), so search results include the type and every subtype—covering polymorphic call sites. StructuralQueryParser.parseUsagesTarget(); GraphQueryServiceStub handles usages by combining both closures and the root type (deduped). API doc and demo script updated.
+- **Tests:** StructuralQueryParserTest (parseUsagesTarget); GraphQueryServiceStubTest (usages returns type+impls+subclasses, type+subclasses only, root only when both empty).
+
+---
+
 ## Summary
 - **Total Tasks:** 7
 - **Total Estimated Hours:** 24 hours

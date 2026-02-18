@@ -176,4 +176,46 @@ class StructuralQueryParserTest {
         // Then
         assertThat(actual).isEmpty();
     }
+
+    // --- parseUsagesTarget (US-02-06, AC3) ---
+
+    @Test
+    @DisplayName("returns type name for usages: query")
+    void parseUsagesTarget_usagesQuery_returnsTypeName() {
+        String query = "usages:IRepository";
+        Optional<String> actual = StructuralQueryParser.parseUsagesTarget(query);
+        assertThat(actual).isEqualTo(Optional.of("IRepository"));
+    }
+
+    @Test
+    @DisplayName("returns first token when query has trailing terms")
+    void parseUsagesTarget_withTrailingTerms_returnsFirstToken() {
+        String query = "usages:BaseClass other terms";
+        Optional<String> actual = StructuralQueryParser.parseUsagesTarget(query);
+        assertThat(actual).isEqualTo(Optional.of("BaseClass"));
+    }
+
+    @Test
+    @DisplayName("returns empty for implements query")
+    void parseUsagesTarget_implementsQuery_returnsEmpty() {
+        assertThat(StructuralQueryParser.parseUsagesTarget("implements:IRepo")).isEmpty();
+    }
+
+    @Test
+    @DisplayName("returns empty for plain query")
+    void parseUsagesTarget_plainQuery_returnsEmpty() {
+        assertThat(StructuralQueryParser.parseUsagesTarget("some query")).isEmpty();
+    }
+
+    @Test
+    @DisplayName("returns empty for null input")
+    void parseUsagesTarget_nullInput_returnsEmpty() {
+        assertThat(StructuralQueryParser.parseUsagesTarget(null)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("returns empty when nothing after usages: prefix")
+    void parseUsagesTarget_blankAfterPrefix_returnsEmpty() {
+        assertThat(StructuralQueryParser.parseUsagesTarget("usages:")).isEmpty();
+    }
 }
