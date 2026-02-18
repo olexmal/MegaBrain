@@ -66,12 +66,14 @@ Use this checklist to track progress through the implementation process:
 
 ### Documentation & Completion Phase
 - **MANDATORY (gate):** Run full backend build and tests: `mvn clean install`. Do not mark the task as done until this succeeds.
-- Only after the build succeeds: Update task status in user story files (mark as completed)
-- Mark all acceptance criteria as completed
-- Add implementation notes and technical details
-- Update API documentation if applicable
-- Verify all requirements and success criteria are met
-- Commit changes following Git workflow standards
+- Only after the build succeeds: Update the **tasks file** (task status and that task's acceptance criteria checkboxes).
+- Open the **related user story** file (same directory, filename with `-tasks.md` replaced by `.md`).
+- In the user story: mark the corresponding **Technical Task** (Tn) as completed in the Technical Tasks section.
+- In the user story: mark any **Acceptance Criteria** that are now fully satisfied by the set of completed tasks.
+- Add implementation notes and technical details.
+- Update API documentation if applicable.
+- Verify all requirements and success criteria are met.
+- Commit changes following Git workflow standards.
 
 ## Detailed Process Phases
 
@@ -209,16 +211,25 @@ class ServiceTest {
 
 **Output:** Compiling, tested code
 
+#### Correlating tasks file and user story
+
+Tasks are defined in a **tasks file** (e.g. `US-03-01-ollama-integration-tasks.md`). The **user story** (acceptance criteria, technical tasks checklist) lives in a paired file in the **same directory** with the same base name and no `-tasks` suffix: `US-03-01-ollama-integration.md`.
+
+- **Rule:** From a tasks file path, the related user story path is the same path with `-tasks.md` replaced by `.md`.
+- **Optional check:** The tasks file header "Story Reference" / "**Story:** US-XX-YY" matches the user story title `# US-XX-YY: ...`.
+
 ### 6. Documentation & Completion (15-30 min)
 **Input:** Verified implementation
 
 **Activities:**
 - Confirm Phase 5 completed successfully: `mvn clean install` must have succeeded. Do not proceed to update task status otherwise.
-- Update task status in user story files
-- Mark acceptance criteria as completed
-- Add implementation notes if needed
-- Update any API documentation
-- Verify all requirements met
+- **Tasks file:** Update the completed task's status (e.g. "Completed") and mark that task's acceptance criteria checkboxes in the tasks file.
+- **User story:** Open the related user story file (same directory, same path with `-tasks.md` replaced by `.md`).
+  - In the **Technical Tasks** section: mark the checkbox for the same task (e.g. complete T2 → mark "**T2:** ..." as `[x]`).
+  - In the **Acceptance Criteria** section: for each AC (AC1, AC2, …), decide whether the **set of completed tasks** now satisfies that AC (using task descriptions and the AC text). If yes, mark that AC as `[x]`. Mapping is story-specific (e.g. AC1 may need T1+T2; AC5 may need T5 only).
+- Add implementation notes if needed.
+- Update any API documentation.
+- Verify all requirements met.
 
 **Output:** Complete, documented implementation
 
