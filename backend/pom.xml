@@ -113,7 +113,7 @@
             <artifactId>quarkus-smallrye-health</artifactId>
         </dependency>
 
-        <!-- LangChain4j for LLM Integration -->
+        <!-- LangChain4j for LLM Integration (version via langchain4j-bom, 0.29+ recommended) -->
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j</artifactId>
