@@ -1,0 +1,57 @@
+---
+description: Definition and structure of Cursor Agent Skills (SKILL.md). Use when creating, editing, or invoking skills, or when the user asks what a skill is or where skills are stored.
+alwaysApply: false
+---
+
+# Cursor Agent Skills – Definition
+
+## What a Skill Is
+
+An **Agent Skill** is a portable, version-controlled package that teaches the Cursor agent how to perform a specific task or workflow. Skills extend the agent with domain-specific instructions, templates, and (optionally) scripts.
+
+**Characteristics:**
+- **Portable** – Work across projects; can be personal or shared via repo
+- **Version-controlled** – Stored as files (e.g. in `.cursor/skills/` or `~/.cursor/skills/`)
+- **Actionable** – Can include scripts, templates, and reference docs the agent uses when needed
+- **Progressive** – Supporting files (e.g. `template.md`, `reference.md`) are loaded on demand to keep context efficient
+
+## Where Skills Live
+
+| Scope        | Path                 | Use case                          |
+|-------------|----------------------|-----------------------------------|
+| **Project** | `.cursor/skills/<skill-name>/` | Team-shared, committed to repo     |
+| **Personal**| `~/.cursor/skills/<skill-name>/` | Available in all your projects     |
+
+**Important:** Do not create or edit skills in `~/.cursor/skills-cursor/`; that directory is reserved for Cursor’s built-in skills.
+
+## Required Structure
+
+Each skill is a **directory** whose entry point is **SKILL.md**:
+
+```
+skill-name/
+├── SKILL.md              # Required – main instructions and metadata
+├── template.md           # Optional – templates, examples
+├── reference.md          # Optional – detailed reference
+└── scripts/              # Optional – helper scripts
+```
+
+### SKILL.md Requirements
+
+1. **YAML frontmatter** with:
+   - **name** – Skill identifier: lowercase, letters/numbers/hyphens only, max 64 chars
+   - **description** – What the skill does and **when** to use it (used for discovery; write in third person, include trigger terms)
+
+2. **Markdown body** – When to apply the skill, step-by-step instructions, output format or template, and links to optional supporting files (e.g. `template.md`, `reference.md`).
+
+## How Skills Are Used
+
+- **Discovery** – Cursor discovers skills at startup from the paths above.
+- **Automatic use** – The agent applies a skill when the user’s request matches the skill’s description and instructions.
+- **Manual invocation** – User can type `/` in the agent chat to search and select a skill, then provide input (e.g. paste a feature description).
+
+## Creating or Editing Skills
+
+- Keep **SKILL.md** under ~500 lines; put long examples or reference material in separate files.
+- **Description** must be specific and include both what the skill does and when to use it.
+- Use consistent terminology and one-level-deep links to supporting files (e.g. `[template.md](template.md)`).
