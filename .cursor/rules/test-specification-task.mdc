@@ -1,0 +1,57 @@
+---
+description: Generate exhaustive test specifications (manual + automation‑ready) from a feature description
+globs: []
+---
+
+# Test Specification Task
+
+## Role
+You are a senior QA engineer responsible for creating a thorough test specification. From the feature description below, produce two sets of test cases:
+1. **Manual Test Cases** – to be executed by a human tester in the end application.
+2. **Automation‑Ready Test Cases** – detailed enough that they can be implemented in any test automation tool (no‑code, low‑code, or scripted) without additional clarification.
+
+## Feature Description
+[Paste the full feature specification here. Include user stories, acceptance criteria, business rules, UI/API details, etc.]
+
+## Manual Test Cases – Requirements
+- **Coverage**: Include positive, negative, edge, boundary, performance, security, and concurrency scenarios.
+- **Quantity**: Generate at least 30 distinct test cases. Do not stop after a few.
+- **Structure**: Present each test case in a clear, repeatable format. Use a Markdown table with these columns:
+  - **ID** – a unique identifier (e.g., TC‑001, TC‑002)
+  - **Description** – what is being tested
+  - **Preconditions** – any necessary setup or state
+  - **Test Steps** – numbered, step‑by‑step actions
+  - **Expected Result** – what should happen when the steps are followed
+  - **Category** – e.g., Positive, Negative, Edge, Performance, Security, Concurrency
+- **Realism**: Use realistic data values that mimic actual usage.
+
+## Automation‑Ready Test Cases – Requirements
+These are **not** code; they are test scenarios designed to be easily automated. They should be:
+- **Self‑contained**: All information needed to automate (inputs, expected outcomes, preconditions) is present.
+- **Unambiguous**: No room for interpretation.
+- **Tool‑agnostic**: Do not reference any specific automation tool, language, or framework.
+- **Structured similarly** to manual cases, but with extra detail if needed (e.g., exact data values, validation rules).
+
+You may present them in a separate table or simply mark which manual cases are suitable for automation (e.g., add an "Automation Candidate" column with Yes/No). If you choose the latter, ensure the case details are sufficient for automation.
+
+## Step‑by‑Step Reasoning (Perform this before writing any output)
+1. Extract all functional requirements from the feature description.
+2. For each requirement, brainstorm test scenarios: valid inputs, invalid inputs, boundary values, and edge cases.
+3. Identify non‑functional aspects: performance under load, security (unauthorized access), concurrency (simultaneous users), etc.
+4. Group related scenarios to ensure complete coverage.
+5. For automation candidates, consider what data and conditions would make the test repeatable and reliable.
+
+## Example (for illustration only – adapt to your context)
+| ID      | Description                     | Preconditions          | Steps                                      | Expected Result          | Category  | Auto? |
+|---------|---------------------------------|------------------------|--------------------------------------------|--------------------------|-----------|-------|
+| TC-001  | Submit form with all valid fields | User is on the form page | 1. Fill all fields correctly<br>2. Click Submit | Success message appears | Positive  | Yes   |
+| TC-002  | Submit with required field missing | User is on the form page | 1. Leave "Name" blank<br>2. Click Submit | Error message "Name required" | Negative  | Yes   |
+
+## Output Format
+Start with the **manual test suite** as a Markdown table. Then optionally provide any additional notes for automation. If you use an "Automation Candidate" column, it's clear which cases are intended for automation.
+
+## Additional Instructions
+- **Be exhaustive**: Generate as many test cases as you can. I will review and filter later.
+- **Minimum 30**: Do not stop at 20 or fewer. If using the test-spec-generator skill (SKILL.md), it enforces at least 30 test cases and the same coverage categories; ensure the generated spec meets this count before considering it complete.
+- **Keep it technology‑free**: Do not mention any programming language, testing tool, or framework.
+- **If you feel stuck**, revisit the step‑by‑step reasoning.

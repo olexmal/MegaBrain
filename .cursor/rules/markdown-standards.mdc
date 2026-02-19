@@ -1,0 +1,154 @@
+---
+description: Formatting and structure standards for Markdown files
+globs: "**/*.md"
+alwaysApply: false
+---
+
+# Markdown Standards
+
+Follow CommonMark / GitHub Flavored Markdown (GFM). One space after `#`; no skipped heading levels. Prefer asterisks for emphasis (better compatibility than underscores in mid-word).
+
+## Headings
+
+- Use ATX style only: `#` through `######`. One space after the hashes.
+- One H1 per file. Increase level by one (no jumps like `##` to `####`).
+- Put a blank line before and after headings.
+
+```markdown
+# Document Title
+
+## Section
+
+### Subsection
+```
+
+## Paragraphs and line breaks
+
+- Separate paragraphs with a single blank line. Do not indent paragraphs with spaces or tabs.
+- For a line break within a paragraph: end the line with two spaces, or use `<br>`.
+
+```markdown
+First paragraph.
+
+Second paragraph.  
+Same paragraph, new line.
+```
+
+## Emphasis
+
+- **Bold:** `**text**` or `__text__`. Prefer `**` for consistency.
+- **Italic:** `*text*` or `_text_`. Prefer `*` for mid-word emphasis (e.g. `un*fix*able`).
+- **Bold and italic:** `***text***`.
+- **Strikethrough (GFM):** `~~text~~`.
+
+```markdown
+**Bold**, *italic*, ***both***, ~~strikethrough~~
+```
+
+## Lists
+
+- **Unordered:** Use `-` (preferred), or `*` or `+`. Indent nested items with 2 spaces.
+- **Ordered:** Use `1.` for all items (auto-numbering). Indent nested with 2 spaces.
+- **Task lists (GFM):** `- [ ]` unchecked, `- [x]` checked. Use in acceptance criteria and checklists.
+
+```markdown
+- First item
+- Second item
+  - Nested item
+
+1. First step
+2. Second step
+
+- [ ] Todo
+- [x] Done
+```
+
+## Links
+
+- **Inline:** `[link text](url)`. Use relative paths for in-repo links.
+- **Reference-style (optional):** `[text][ref]` with `[ref]: url "optional title"` elsewhere. Useful when the same URL is reused.
+- **Auto-links:** Raw URLs may be linked automatically; for clarity prefer `[descriptive text](url)`.
+
+```markdown
+[README](../README.md)
+[API docs](https://example.com/api)
+[ref link][api]
+[api]: https://example.com "API Documentation"
+```
+
+## Images
+
+- Syntax: `![alt text](url)` or `![alt][ref]`. Always provide meaningful `alt` for accessibility.
+- Prefer relative paths for images in the repo.
+
+```markdown
+![Diagram of architecture](docs/images/arch.png)
+```
+
+## Code
+
+- **Inline:** Single backticks: `` `variable` ``. Escape backticks inside with `` \` ``.
+- **Fenced blocks:** Triple backticks, optional language tag for syntax highlighting. Use a tag when possible (e.g. `java`, `typescript`, `bash`, `json`).
+
+```markdown
+Use the `searchService.search()` method.
+```
+
+Fenced block: start a line with three backticks and optional language (e.g. `java`, `typescript`), add the code, then a line with three backticks only.
+
+## Blockquotes
+
+- Start a line with `>`. Use `>>` for nested quotes. Blockquotes can contain other block elements.
+
+```markdown
+> Main quote.
+> Same paragraph.
+
+>> Nested quote.
+```
+
+## Horizontal rules
+
+- Use `---` or `***` or `___` on a line by itself (min 3 characters). Blank line before and after.
+
+```markdown
+Section one.
+
+---
+
+Section two.
+```
+
+## Tables (GFM)
+
+- Pipes `|` for column boundaries. Header row, then separator row with at least three `-` per column.
+- Alignment: `:---` left, `:---:` center, `---:` right. Keep columns aligned for readability.
+- Use `<br>` for line breaks inside cells if needed.
+
+```markdown
+| Left    | Center  | Right   |
+| :------ | :-----: | ------: |
+| col1    | col2    | col3    |
+| **ID**  | **Desc**| **Val** |
+```
+
+## Escaping
+
+- Backslash escapes: `\*` `\_` `\#` `\[` `\]` `\(` `\)` `\` `\<` `\>` etc. Use when you need literal punctuation that would otherwise be interpreted as Markdown.
+
+```markdown
+Literal \*asterisks\* and \#hashes.
+```
+
+## Structure (project-specific)
+
+- **New docs:** Add project copyright at the top (see `copyright-headers.mdc`).
+- **User stories / tasks:** Follow structure and required fields in `documentation-standards.mdc`.
+- **Test specs:** Use the test-spec template: Reviewers, Introduction, References, Test Cases (ID, Description, Preconditions, Test Data, Steps, Expected Results, Category).
+
+## Conventions
+
+- End sentences with one period. No trailing spaces (except when intentionally creating a line break with two spaces).
+- Prefer short paragraphs and bullet lists for scannability.
+- In tables, use **Bold** for column headers or key labels (e.g. **ID**, **Steps**, **Expected Results**).
+- Avoid emoji in technical docs unless the project style allows; do not rely on `:shortcodes` (support varies).
