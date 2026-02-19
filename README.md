@@ -3,22 +3,30 @@
 Scalable, self-hosted, intelligent code knowledge platform that indexes multi-language source code from various repositories and provides precise semantic search and natural language Q&A through a modern, reactive architecture.
 
 ## Documentation
-- [Complete documentation](DOCUMENTATION.md)
-- [Deployment & user setup](USER_SETUP.md)
+
+- [Documentation Hub](docs/README.md) - Complete documentation index
+- [Getting Started](docs/getting-started.md) - Prerequisites and installation
+- [API Reference](docs/api-reference.md) - REST API endpoints and parameters
+- [Configuration Reference](docs/configuration-reference.md) - All configuration properties
+- [Implemented Features](docs/implemented-features.md) - Detailed feature documentation
+- [Architecture](docs/architecture.md) - Component architecture and data flow
+- [Development Guide](docs/development-guide.md) - Coding standards and contributing
+- [Deployment & Operations](docs/deployment.md) - Production build and troubleshooting
+- [User Setup Guide](USER_SETUP.md) - Deployment and user configuration
 
 ## Technology Stack
 
-- **Backend Framework:** Quarkus 3.15+ (RESTEasy Reactive)
+- **Backend Framework:** Quarkus 3.30.2 (RESTEasy Reactive)
 - **Language:** Java 22+
 - **Build Tool:** Maven 3.8+
-- **Code Parsing:** JavaParser 3.x, Tree-sitter (java-tree-sitter)
-- **Search:** Apache Lucene 9.x
-- **Graph Database:** Neo4j Java Driver 5.x
-- **LLM Integration:** Quarkus LangChain4j Extension (Ollama, OpenAI, Anthropic)
-- **Git Operations:** JGit
+- **Code Parsing:** JavaParser 3.27.1, Tree-sitter (java-tree-sitter 0.25.6)
+- **Search:** Apache Lucene 10.3.2
+- **Graph Database:** Neo4j Java Driver 6.0.2
+- **LLM Integration:** LangChain4j 1.9.1 (Ollama, OpenAI, Anthropic)
+- **Git Operations:** JGit 7.4.0
 - **CLI:** Picocli with Quarkus Integration
 - **Scheduling:** Quartz Scheduler
-- **Database:** PostgreSQL
+- **Database:** PostgreSQL (with pgvector for vector search)
 
 ## Project Structure
 
@@ -31,12 +39,9 @@ megabrain/
 │       │   ├── java/
 │       │   │   └── io/megabrain/
 │       │   │       ├── api/          # REST endpoints
-│       │   │       ├── cli/          # CLI commands
-│       │   │       ├── config/       # Configuration classes
-│       │   │       ├── core/         # Core services
-│       │   │       ├── ingestion/   # Code ingestion services
-│       │   │       ├── rag/          # RAG services
-│       │   │       └── search/      # Search services
+│       │   │       ├── core/         # Core services (search, vector, graph, LLM)
+│       │   │       ├── ingestion/    # Code ingestion & parsing
+│       │   │       └── repository/   # Repository state persistence
 │       │   └── resources/
 │       │       └── application.properties
 │       └── test/
@@ -45,11 +50,18 @@ megabrain/
 ├── frontend/                     # Angular 20 frontend
 │   ├── package.json             # npm dependencies
 │   ├── angular.json             # Angular CLI configuration
-│   ├── tsconfig.json             # TypeScript configuration
+│   ├── tsconfig.json            # TypeScript configuration
 │   └── src/
 │       ├── app/                  # Angular components
 │       ├── assets/               # Static assets
 │       └── environments/         # Environment configuration
+├── docs/                         # Documentation
+│   ├── README.md                # Documentation hub
+│   ├── getting-started.md       # Installation & setup
+│   ├── architecture.md          # Component architecture
+│   ├── implemented-features.md  # Completed feature details
+│   ├── api-reference.md         # REST API reference
+│   └── configuration-reference.md # Configuration properties
 ├── features/                     # Feature specifications
 │   ├── epics/                    # Epic definitions
 │   └── user-stories/            # User stories and tasks
