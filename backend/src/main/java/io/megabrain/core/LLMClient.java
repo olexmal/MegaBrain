@@ -22,6 +22,18 @@ public interface LLMClient {
     Uni<String> generate(String userMessage);
 
     /**
+     * Generates a completion for the given user message with optional per-request model override.
+     * When {@code modelOverride} is null or blank, uses the configured default model.
+     *
+     * @param userMessage the user prompt or question
+     * @param modelOverride optional model name override (e.g. mistral, codellama); null/blank to use default
+     * @return Uni that emits the model response text, or fails on connection or model errors
+     */
+    default Uni<String> generate(String userMessage, String modelOverride) {
+        return generate(userMessage);
+    }
+
+    /**
      * Returns whether this client is available (e.g. endpoint reachable and configured).
      * Used by health checks and feature flags.
      *

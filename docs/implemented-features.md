@@ -326,22 +326,23 @@ megabrain.neo4j.uri=bolt://localhost:7687
 
 ## EPIC-03: RAG Answer Generation (partial)
 
-### US-03-01: Ollama Local LLM Integration (Partial - T1-T2 of 6)
+### US-03-01: Ollama Local LLM Integration (Partial - T1-T3 of 6)
 
 Foundation for local LLM integration via Ollama.
 
 **Key Classes:**
-- `LLMClient` - Unified interface for LLM providers (generate, isAvailable)
+- `LLMClient` - Unified interface for LLM providers (generate, isAvailable, generate with model override)
 - `OllamaLLMClient` - Ollama implementation wrapping LangChain4j `OllamaChatModel`
-- `OllamaConfiguration` - Config mapping for base URL, model, and timeout
+- `OllamaConfiguration` - Config mapping for base URL, model, timeout, model availability cache
+- `OllamaModelAvailabilityService` - Model availability check via Ollama /api/tags with caching
 
 **Completed:**
 - LangChain4j Ollama dependency integrated (BOM 1.9.1)
 - `LLMClient` interface defined for provider abstraction
 - `OllamaLLMClient` implementation with configuration loading
+- Model selection with per-request override (T3): `generate(msg, modelOverride)`, model validation, cached availability
 
 **Not Yet Implemented:**
-- Model selection with per-request override (T3)
 - Endpoint configuration with retry logic (T4)
 - Health check for Ollama availability (T5)
 - Integration tests with real Ollama (T6)
@@ -351,6 +352,7 @@ Foundation for local LLM integration via Ollama.
 megabrain.llm.ollama.base-url=http://localhost:11434
 megabrain.llm.ollama.model=codellama
 megabrain.llm.ollama.timeout-seconds=60
+megabrain.llm.ollama.model-availability-cache-seconds=60
 ```
 
 **Tests:** Unit tests for OllamaLLMClient, LLMClient interface, OllamaConfiguration.

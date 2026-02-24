@@ -40,14 +40,15 @@
 - **Description:** Implement configuration support for Ollama model selection. Allow users to specify model name (codellama, mistral, llama2, etc.) via application.properties. Support per-request model override via API parameters.
 - **Estimated Hours:** 3 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T2 (needs OllamaLLMClient)
 - **Acceptance Criteria:**
-  - [ ] Model selection via configuration
-  - [ ] Default model configurable
-  - [ ] Per-request model override supported
-  - [ ] Model validation (check if model available)
+  - [x] Model selection via configuration
+  - [x] Default model configurable
+  - [x] Per-request model override supported
+  - [x] Model validation (check if model available)
 - **Technical Notes:** Use Quarkus configuration: `megabrain.llm.ollama.model=codellama`. Support model list query to verify availability. Cache model availability check.
+- **Implementation Notes:** Extended `LLMClient` with `generate(userMessage, modelOverride)` default method. Added `OllamaModelAvailabilityService` and `OllamaModelAvailabilityServiceImpl` for model availability check via Ollama `/api/tags` with configurable cache TTL (`megabrain.llm.ollama.model-availability-cache-seconds`). `OllamaLLMClient` validates model before generation and supports per-request override. Unit tests: OllamaLLMClientTest, LLMClientTest, OllamaConfigurationTest.
 
 ### T4: Add Ollama endpoint configuration
 - **Description:** Add configuration support for Ollama endpoint URL. Default to `http://localhost:11434`. Allow custom endpoint for remote Ollama instances. Support connection timeout and retry configuration.

@@ -14,7 +14,7 @@
 ## Acceptance Criteria
 
 - [x] **AC1:** Ollama client integration via LangChain4j
-- [ ] **AC2:** Configurable model selection (Codellama, Mistral, Llama2)
+- [x] **AC2:** Configurable model selection (Codellama, Mistral, Llama2)
 - [ ] **AC3:** Local LLM works without internet connectivity
 - [x] **AC4:** Connection to configurable Ollama endpoint
 - [ ] **AC5:** Health check verifies Ollama availability
@@ -57,7 +57,7 @@
 
 - [x] **T1:** Add LangChain4j Ollama dependency (backend)
 - [x] **T2:** Create `OllamaLLMClient` configuration (backend)
-- [ ] **T3:** Implement model selection configuration (backend)
+- [x] **T3:** Implement model selection configuration (backend)
 - [ ] **T4:** Add Ollama endpoint configuration (backend)
 - [ ] **T5:** Create health check for Ollama (backend)
 - [ ] **T6:** Write integration tests with Ollama (test)

@@ -49,4 +49,11 @@ class OllamaConfigurationTest {
         int timeout = config.timeoutSeconds();
         assertThat(timeout).isPositive();
     }
+
+    @Test
+    @DisplayName("modelAvailabilityCacheSeconds has default value (T3)")
+    void modelAvailabilityCacheSeconds_hasDefault() {
+        int cacheSeconds = config.modelAvailabilityCacheSeconds();
+        assertThat(cacheSeconds).isPositive();
+    }
 }

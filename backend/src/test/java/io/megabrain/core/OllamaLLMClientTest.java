@@ -17,11 +17,14 @@ import org.mockito.junit.jupiter.MockitoSettings;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 /**
- * Unit tests for OllamaLLMClient (US-03-01, T2).
- * Tests validation, availability, and contract without starting Ollama.
+ * Unit tests for OllamaLLMClient (US-03-01, T2, T3).
+ * Tests validation, availability, model selection, and contract without starting Ollama.
  */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -30,6 +33,9 @@ class OllamaLLMClientTest {
     @Mock
     private OllamaConfiguration config;
 
+    @Mock
+    private OllamaModelAvailabilityService modelAvailabilityService;
+
     private OllamaLLMClient client;
 
     @BeforeEach
@@ -37,8 +43,14 @@ class OllamaLLMClientTest {
         when(config.baseUrl()).thenReturn("http://localhost:11434");
         when(config.model()).thenReturn("codellama");
         when(config.timeoutSeconds()).thenReturn(60);
+        when(config.modelAvailabilityCacheSeconds()).thenReturn(60);
+        when(modelAvailabilityService.isModelAvailable(anyString(), any()))
+                .thenAnswer(inv -> {
+                    String model = inv.getArgument(1);
+                    return Uni.createFrom().item(model != null && !model.isBlank());
+                });
         // Client is constructed but @PostConstruct init() is not called (no CDI in this test)
-        client = new OllamaLLMClient(config);
+        client = new OllamaLLMClient(config, modelAvailabilityService);
     }
 
     @Test
@@ -88,5 +100,43 @@ class OllamaLLMClientTest {
         assertThatThrownBy(() -> result.await().indefinitely())
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("Ollama LLM client is not available");
+    }
+
+    @Test
+    @DisplayName("isModelAvailable with null returns false")
+    void isModelAvailable_null_returnsFalse() {
+        Uni<Boolean> result = client.isModelAvailable(null);
+        assertThat(result.await().indefinitely()).isFalse();
+    }
+
+    @Test
+    @DisplayName("isModelAvailable with blank string returns false")
+    void isModelAvailable_blank_returnsFalse() {
+        Uni<Boolean> result = client.isModelAvailable("   ");
+        assertThat(result.await().indefinitely()).isFalse();
+    }
+
+    @Test
+    @DisplayName("generate with model override when model not available fails with IllegalArgumentException")
+    void generate_modelOverride_notAvailable_failsWithIAE() {
+        client.init();
+        when(modelAvailabilityService.isModelAvailable(anyString(), eq("mistral")))
+                .thenReturn(Uni.createFrom().item(false));
+
+        Uni<String> result = client.generate("hello", "mistral");
+        assertThatThrownBy(() -> result.await().indefinitely())
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Model 'mistral' is not available on Ollama");
+    }
+
+    @Test
+    @DisplayName("generate with null model override delegates to default model")
+    void generate_nullModelOverride_usesDefaultModel() {
+        client.init();
+        // Default mock returns true for non-blank model; codellama is default
+        Uni<String> result = client.generate("hello", (String) null);
+        // Fails at chat (no Ollama) but not at model validation
+        assertThatThrownBy(() -> result.await().indefinitely())
+                .hasMessageNotContaining("Model 'codellama' is not available");
     }
 }

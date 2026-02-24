@@ -18,6 +18,7 @@ import java.time.Duration;
 /**
  * LLM client that wraps LangChain4j's Ollama integration.
  * Connects to an Ollama endpoint and loads configuration from application properties.
+ * Supports model selection via configuration and per-request model override (US-03-01 T3).
  */
 @ApplicationScoped
 public class OllamaLLMClient implements LLMClient {
@@ -25,11 +26,14 @@ public class OllamaLLMClient implements LLMClient {
     private static final Logger LOG = Logger.getLogger(OllamaLLMClient.class);
 
     private final OllamaConfiguration config;
+    private final OllamaModelAvailabilityService modelAvailabilityService;
     private volatile ChatModel chatModel;
     private volatile boolean available;
 
-    public OllamaLLMClient(OllamaConfiguration config) {
+    public OllamaLLMClient(OllamaConfiguration config,
+                          OllamaModelAvailabilityService modelAvailabilityService) {
         this.config = config;
+        this.modelAvailabilityService = modelAvailabilityService;
     }
 
     @PostConstruct
@@ -40,14 +44,10 @@ public class OllamaLLMClient implements LLMClient {
             String model = config.model();
             int timeoutSeconds = config.timeoutSeconds();
 
-            LOG.infof("Initializing Ollama LLM client: baseUrl=%s, model=%s, timeout=%ds", baseUrl, model, timeoutSeconds);
+            LOG.infof("Initializing Ollama LLM client: baseUrl=%s, model=%s, timeout=%ds",
+                    baseUrl, model, timeoutSeconds);
 
-            this.chatModel = OllamaChatModel.builder()
-                    .baseUrl(baseUrl)
-                    .modelName(model)
-                    .timeout(Duration.ofSeconds(timeoutSeconds))
-                    .build();
-
+            this.chatModel = buildChatModel(baseUrl, model, timeoutSeconds);
             this.available = true;
             long durationMs = (System.nanoTime() - startTime) / 1_000_000;
             LOG.infof("Ollama LLM client initialized in %d ms", durationMs);
@@ -68,6 +68,11 @@ public class OllamaLLMClient implements LLMClient {
 
     @Override
     public Uni<String> generate(String userMessage) {
+        return generate(userMessage, null);
+    }
+
+    @Override
+    public Uni<String> generate(String userMessage, String modelOverride) {
         if (userMessage == null || userMessage.isBlank()) {
             return Uni.createFrom().failure(new IllegalArgumentException("userMessage must not be blank"));
         }
@@ -75,19 +80,58 @@ public class OllamaLLMClient implements LLMClient {
             return Uni.createFrom().failure(new IllegalStateException("Ollama LLM client is not available"));
         }
 
+        String effectiveModel = (modelOverride != null && !modelOverride.isBlank())
+                ? modelOverride.trim()
+                : config.model();
+
+        return isModelAvailable(effectiveModel)
+                .flatMap(available -> {
+                    if (!available) {
+                        return Uni.createFrom().failure(new IllegalArgumentException(
+                                "Model '" + effectiveModel + "' is not available on Ollama. " +
+                                        "Use 'ollama pull " + effectiveModel + "' to install, or check megabrain.llm.ollama.model"));
+                    }
+                    return performGeneration(userMessage, effectiveModel);
+                });
+    }
+
+    /**
+     * Checks if the given model is available on the Ollama instance.
+     * Uses cached result with configurable TTL via {@link OllamaModelAvailabilityService}.
+     *
+     * @param model model name (e.g. codellama, mistral)
+     * @return Uni that emits true if available, false otherwise
+     */
+    public Uni<Boolean> isModelAvailable(String model) {
+        return modelAvailabilityService.isModelAvailable(config.baseUrl(), model);
+    }
+
+    private Uni<String> performGeneration(String userMessage, String model) {
+        ChatModel modelToUse = model.equals(config.model())
+                ? chatModel
+                : buildChatModel(config.baseUrl(), model, config.timeoutSeconds());
+
         return Uni.createFrom().item(() -> {
             long startTime = System.nanoTime();
             try {
-                String response = chatModel.chat(userMessage);
+                String response = modelToUse.chat(userMessage);
                 long durationMs = (System.nanoTime() - startTime) / 1_000_000;
-                LOG.debugf("Ollama generation completed in %d ms", durationMs);
+                LOG.debugf("Ollama generation (model=%s) completed in %d ms", model, durationMs);
                 return response;
             } catch (Exception e) {
                 long durationMs = (System.nanoTime() - startTime) / 1_000_000;
-                LOG.errorf(e, "Ollama generation failed after %d ms", durationMs);
+                LOG.errorf(e, "Ollama generation (model=%s) failed after %d ms", model, durationMs);
                 throw e;
             }
         });
+    }
+
+    private static ChatModel buildChatModel(String baseUrl, String modelName, int timeoutSeconds) {
+        return OllamaChatModel.builder()
+                .baseUrl(baseUrl)
+                .modelName(modelName)
+                .timeout(Duration.ofSeconds(timeoutSeconds))
+                .build();
     }
 
     @Override

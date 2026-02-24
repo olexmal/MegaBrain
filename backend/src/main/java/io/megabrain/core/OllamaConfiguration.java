@@ -32,4 +32,11 @@ public interface OllamaConfiguration {
      */
     @WithDefault("60")
     int timeoutSeconds();
+
+    /**
+     * Cache TTL in seconds for model availability checks (Ollama /api/tags).
+     * Reduces repeated API calls when validating model selection.
+     */
+    @WithDefault("60")
+    int modelAvailabilityCacheSeconds();
 }
