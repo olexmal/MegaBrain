@@ -58,7 +58,7 @@
 - [x] **T1:** Add LangChain4j Ollama dependency (backend)
 - [x] **T2:** Create `OllamaLLMClient` configuration (backend)
 - [x] **T3:** Implement model selection configuration (backend)
-- [ ] **T4:** Add Ollama endpoint configuration (backend)
+- [x] **T4:** Add Ollama endpoint configuration (backend)
 - [ ] **T5:** Create health check for Ollama (backend)
 - [ ] **T6:** Write integration tests with Ollama (test)
 

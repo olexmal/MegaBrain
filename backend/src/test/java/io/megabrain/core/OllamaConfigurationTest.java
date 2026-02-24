@@ -56,4 +56,18 @@ class OllamaConfigurationTest {
         int cacheSeconds = config.modelAvailabilityCacheSeconds();
         assertThat(cacheSeconds).isPositive();
     }
+
+    @Test
+    @DisplayName("retryAttempts has default value (T4)")
+    void retryAttempts_hasDefault() {
+        int retryAttempts = config.retryAttempts();
+        assertThat(retryAttempts).isGreaterThanOrEqualTo(0);
+    }
+
+    @Test
+    @DisplayName("retryDelaySeconds has default value (T4)")
+    void retryDelaySeconds_hasDefault() {
+        int retryDelaySeconds = config.retryDelaySeconds();
+        assertThat(retryDelaySeconds).isPositive();
+    }
 }

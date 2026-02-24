@@ -28,10 +28,22 @@ public interface OllamaConfiguration {
     String model();
 
     /**
-     * Request timeout in seconds.
+     * Request timeout in seconds for Ollama API calls.
      */
     @WithDefault("60")
     int timeoutSeconds();
+
+    /**
+     * Number of retry attempts on connection/transient failure (0 = no retries).
+     */
+    @WithDefault("0")
+    int retryAttempts();
+
+    /**
+     * Delay in seconds between retry attempts.
+     */
+    @WithDefault("2")
+    int retryDelaySeconds();
 
     /**
      * Cache TTL in seconds for model availability checks (Ollama /api/tags).

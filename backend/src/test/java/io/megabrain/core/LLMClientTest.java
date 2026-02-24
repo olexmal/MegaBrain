@@ -39,6 +39,8 @@ class LLMClientTest {
         when(config.baseUrl()).thenReturn("http://localhost:11434");
         when(config.model()).thenReturn("codellama");
         when(config.timeoutSeconds()).thenReturn(60);
+        when(config.retryAttempts()).thenReturn(0);
+        when(config.retryDelaySeconds()).thenReturn(2);
         when(config.modelAvailabilityCacheSeconds()).thenReturn(60);
         when(modelAvailabilityService.isModelAvailable(anyString(), anyString()))
                 .thenReturn(Uni.createFrom().item(true));

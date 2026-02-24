@@ -13,6 +13,7 @@ import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.jboss.logging.Logger;
 
+import java.net.URI;
 import java.time.Duration;
 
 /**
@@ -41,6 +42,7 @@ public class OllamaLLMClient implements LLMClient {
         long startTime = System.nanoTime();
         try {
             String baseUrl = config.baseUrl();
+            validateBaseUrl(baseUrl);
             String model = config.model();
             int timeoutSeconds = config.timeoutSeconds();
 
@@ -111,19 +113,64 @@ public class OllamaLLMClient implements LLMClient {
                 ? chatModel
                 : buildChatModel(config.baseUrl(), model, config.timeoutSeconds());
 
+        int maxAttempts = 1 + Math.max(0, config.retryAttempts());
+        long delayMs = (long) config.retryDelaySeconds() * 1000;
+
         return Uni.createFrom().item(() -> {
-            long startTime = System.nanoTime();
-            try {
-                String response = modelToUse.chat(userMessage);
-                long durationMs = (System.nanoTime() - startTime) / 1_000_000;
-                LOG.debugf("Ollama generation (model=%s) completed in %d ms", model, durationMs);
-                return response;
-            } catch (Exception e) {
-                long durationMs = (System.nanoTime() - startTime) / 1_000_000;
-                LOG.errorf(e, "Ollama generation (model=%s) failed after %d ms", model, durationMs);
-                throw e;
+            Exception lastException = null;
+            for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+                long startTime = System.nanoTime();
+                try {
+                    String response = modelToUse.chat(userMessage);
+                    long durationMs = (System.nanoTime() - startTime) / 1_000_000;
+                    LOG.debugf("Ollama generation (model=%s) completed in %d ms", model, durationMs);
+                    return response;
+                } catch (Exception e) {
+                    lastException = e;
+                    long durationMs = (System.nanoTime() - startTime) / 1_000_000;
+                    LOG.warnf(e, "Ollama generation attempt %d/%d (model=%s) failed after %d ms",
+                            attempt, maxAttempts, model, durationMs);
+                    if (attempt < maxAttempts && delayMs > 0) {
+                        try {
+                            Thread.sleep(delayMs);
+                        } catch (InterruptedException ie) {
+                            Thread.currentThread().interrupt();
+                            throw new RuntimeException("Interrupted during retry delay", ie);
+                        }
+                    }
+                }
             }
+            RuntimeException toThrow = lastException != null
+                    ? (lastException instanceof RuntimeException re ? re : new RuntimeException(lastException))
+                    : new RuntimeException("Ollama generation failed");
+            throw toThrow;
         });
+    }
+
+    /**
+     * Validates that the Ollama base URL uses http:// or https:// scheme.
+     * Called at startup to fail fast with a clear message if misconfigured.
+     *
+     * @param baseUrl the configured base URL
+     * @throws IllegalArgumentException if URL is blank or has invalid scheme
+     */
+    private static void validateBaseUrl(String baseUrl) {
+        if (baseUrl == null || baseUrl.isBlank()) {
+            throw new IllegalArgumentException("Ollama base URL must not be blank. Configure megabrain.llm.ollama.base-url");
+        }
+        String trimmed = baseUrl.trim();
+        try {
+            URI uri = URI.create(trimmed);
+            String scheme = uri.getScheme();
+            if (scheme == null || (!scheme.equalsIgnoreCase("http") && !scheme.equalsIgnoreCase("https"))) {
+                throw new IllegalArgumentException(
+                        "Ollama base URL must use http:// or https:// scheme: " + baseUrl);
+            }
+        } catch (IllegalArgumentException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Invalid Ollama base URL: " + baseUrl, e);
+        }
     }
 
     private static ChatModel buildChatModel(String baseUrl, String modelName, int timeoutSeconds) {

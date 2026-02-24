@@ -43,6 +43,8 @@ class OllamaLLMClientTest {
         when(config.baseUrl()).thenReturn("http://localhost:11434");
         when(config.model()).thenReturn("codellama");
         when(config.timeoutSeconds()).thenReturn(60);
+        when(config.retryAttempts()).thenReturn(0);
+        when(config.retryDelaySeconds()).thenReturn(2);
         when(config.modelAvailabilityCacheSeconds()).thenReturn(60);
         when(modelAvailabilityService.isModelAvailable(anyString(), any()))
                 .thenAnswer(inv -> {
@@ -138,5 +140,31 @@ class OllamaLLMClientTest {
         // Fails at chat (no Ollama) but not at model validation
         assertThatThrownBy(() -> result.await().indefinitely())
                 .hasMessageNotContaining("Model 'codellama' is not available");
+    }
+
+    @Test
+    @DisplayName("init with invalid base URL scheme throws IllegalArgumentException")
+    void init_invalidBaseUrlScheme_throwsIAE() {
+        when(config.baseUrl()).thenReturn("ftp://localhost:11434");
+        assertThatThrownBy(() -> client.init())
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("http:// or https://");
+    }
+
+    @Test
+    @DisplayName("init with blank base URL throws IllegalArgumentException")
+    void init_blankBaseUrl_throwsIAE() {
+        when(config.baseUrl()).thenReturn("   ");
+        assertThatThrownBy(() -> client.init())
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("must not be blank");
+    }
+
+    @Test
+    @DisplayName("init with https base URL succeeds")
+    void init_httpsBaseUrl_succeeds() {
+        when(config.baseUrl()).thenReturn("https://remote.example.com:11434");
+        client.init();
+        assertThat(client.isAvailable()).isTrue();
     }
 }

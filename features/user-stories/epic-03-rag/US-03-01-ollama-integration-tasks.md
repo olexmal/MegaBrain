@@ -54,14 +54,15 @@
 - **Description:** Add configuration support for Ollama endpoint URL. Default to `http://localhost:11434`. Allow custom endpoint for remote Ollama instances. Support connection timeout and retry configuration.
 - **Estimated Hours:** 2 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T2 (needs OllamaLLMClient)
 - **Acceptance Criteria:**
-  - [ ] Endpoint URL configurable
-  - [ ] Default endpoint: http://localhost:11434
-  - [ ] Custom endpoint supported
-  - [ ] Connection timeout configurable
+  - [x] Endpoint URL configurable
+  - [x] Default endpoint: http://localhost:11434
+  - [x] Custom endpoint supported
+  - [x] Connection timeout configurable
 - **Technical Notes:** Use Quarkus configuration: `megabrain.llm.ollama.endpoint=http://localhost:11434`. Support HTTP and HTTPS endpoints. Validate URL format on startup.
+- **Implementation Notes:** Endpoint configured via `megabrain.llm.ollama.base-url` (default http://localhost:11434). Added URL validation on startup (http/https scheme required). Added `retry-attempts` and `retry-delay-seconds` for retry on connection failure. Connection timeout via `timeout-seconds`. Unit tests: OllamaLLMClientTest (init with invalid/blank/https URL), OllamaConfigurationTest (retry config defaults).
 
 ### T5: Create health check for Ollama
 - **Description:** Implement health check that verifies Ollama service availability. Check if Ollama endpoint is reachable and if configured model is available. Integrate with Quarkus health checks.
