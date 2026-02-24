@@ -19,6 +19,21 @@ This command provides a comprehensive, reusable process for implementing any tas
 
 ## Process Overview
 
+## Subagent Usage
+
+Use the following subagents at the indicated phases to delegate specialized work:
+
+| Phase | Subagent Type | When to Use |
+|-------|---------------|-------------|
+| Task Analysis | `explore` | When the task touches unfamiliar areas or requires broad codebase search |
+| Unit Testing / Build | `test-runner` | To run `mvn clean install`, fix test failures, verify coverage |
+| Verification | `verifier` | After implementation to validate all requirements are met |
+| Code Review | `code-reviewer` | Before marking complete, for multi-file or complex changes |
+| Documentation | `doc-generator` | For API docs, technical notes, or user story updates |
+| Shell Operations | `shell` | For git operations, mvn commands when delegated |
+
+**Subagent invocation:** Use `mcp_task` with `subagent_type` and `prompt`. Provide full context (task id, files, requirements) in the prompt; subagents start with no prior context. For parallel work, launch multiple subagents in one turn (e.g. `code-reviewer` + `test-runner`).
+
 ## Implementation Checklist
 
 Use this checklist to track progress through the implementation process:
@@ -30,6 +45,7 @@ Use this checklist to track progress through the implementation process:
 - Estimate implementation effort (2-6 hours typical)
 - Identify required files, interfaces, and tests to create/modify
 - Document scope and deliverables clearly
+- **Subagent:** Use `explore` when the task touches 3+ packages or unfamiliar areas (thoroughness: medium or very thorough)
 
 ### Implementation Planning Phase
 - Design solution architecture and component interactions
@@ -63,6 +79,7 @@ Use this checklist to track progress through the implementation process:
 - Fix any test failures (assertions, mocking, logic errors)
 - **MANDATORY (Final Validation)**: Compile whole backend: `mvn clean install`
 - Verify test coverage meets requirements
+- **Subagent:** Use `test-runner` for final `mvn clean install` and to fix any test failures
 
 ### Documentation & Completion Phase
 - **MANDATORY (gate):** Run full backend build and tests: `mvn clean install`. Do not mark the task as done until this succeeds.
@@ -74,6 +91,7 @@ Use this checklist to track progress through the implementation process:
 - Update API documentation if applicable.
 - Verify all requirements and success criteria are met.
 - Commit changes following Git workflow standards.
+- **Subagent (optional):** Use `verifier` to validate completed work; use `doc-generator` for API docs; use `code-reviewer` before completion for complex changes.
 
 ## Detailed Process Phases
 
@@ -86,6 +104,7 @@ Use this checklist to track progress through the implementation process:
 - Review technical constraints and dependencies
 - Estimate implementation effort
 - Identify required changes (files, interfaces, tests)
+- Use `explore` subagent when task touches unfamiliar areas or 3+ packages
 
 **Output:** Clear understanding of scope and deliverables
 
@@ -210,6 +229,8 @@ class ServiceTest {
 - **Mocking**: Correct Mockito usage patterns
 
 **Output:** Compiling, tested code
+
+**Subagent:** Use `test-runner` to run `mvn clean install` and fix failures.
 
 #### Correlating tasks file and user story
 
