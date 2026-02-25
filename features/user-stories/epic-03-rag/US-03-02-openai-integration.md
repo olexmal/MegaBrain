@@ -48,7 +48,7 @@
 
 ## Technical Tasks
 
-- [ ] **T1:** Add LangChain4j OpenAI dependency (backend)
+- [x] **T1:** Add LangChain4j OpenAI dependency (backend)
 - [ ] **T2:** Create `OpenAILLMClient` configuration (backend)
 - [ ] **T3:** Add Anthropic Claude support (backend)
 - [ ] **T4:** Implement API key management (backend)
