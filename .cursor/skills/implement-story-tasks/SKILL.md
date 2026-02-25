@@ -1,6 +1,6 @@
 ---
 name: implement-story-tasks
-description: Implements all tasks from a MegaBrain *-tasks.md file in sequence. For each task (T1, T2, ...) not yet completed, runs the implement-task workflow via a subagent, commits the result, then runs the next task until the whole file is marked as implemented. Use when the user asks to implement a story's tasks file, run all tasks from a task file, implement US-03-02 tasks, or complete every task in a *-tasks.md file.
+description: Implements all tasks from a MegaBrain *-tasks.md file in sequence. For each task (T1, T2, ...) not yet completed, runs the implement-task workflow via a subagent (without full mvn clean install per task), commits the result, then the next task. When all tasks are done, runs the full test suite once via a test-runner subagent to fix failures. Use when the user asks to implement a story's tasks file, run all tasks from a task file, implement US-03-02 tasks, or complete every task in a *-tasks.md file.
 ---
 
 # Implement Story Tasks
@@ -25,13 +25,12 @@ Do **not** use for implementing a **single** task (use the implement-task comman
    - Execute the workflow defined in [.cursor/commands/implement-story-tasks.md](../../commands/implement-story-tasks.md).
    - In short:
      - Parse the task file for `### Tn:` and `- **Status:**`. Build an ordered list of tasks that are **not** `Completed`.
-     - For each such task in order: invoke a **generalPurpose** subagent with the implement-task process and the single task block; instruct the subagent not to commit and to reply `all done :)` when done.
-     - After each successful subagent run: commit the changes with a message derived from the task id and description.
-     - Continue until every task in the file has `Status: Completed`.
+     - For each such task in order: invoke a **generalPurpose** subagent with the implement-task process and the single task block; tell the subagent to **skip full mvn clean install** (use mvn compile / targeted tests only) and to reply `all done :)` when done. After each run: commit.
+     - When every task has `Status: Completed`: invoke a **test-runner** subagent to run `mvn clean install` and fix any failures; optionally commit, then report.
 
 3. **Report**
    - If all tasks were already completed, say so.
-   - Otherwise, after each task report progress (e.g. "T1 committed, starting T2") and at the end list the tasks completed in this run.
+   - Otherwise, after each task report progress (e.g. "T1 committed, starting T2"), then after the final test-runner run report whether the build passed and list the tasks completed in this run.
 
 ## Reference
 
