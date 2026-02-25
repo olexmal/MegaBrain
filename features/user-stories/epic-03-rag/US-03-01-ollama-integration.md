@@ -17,7 +17,7 @@
 - [x] **AC2:** Configurable model selection (Codellama, Mistral, Llama2)
 - [ ] **AC3:** Local LLM works without internet connectivity
 - [x] **AC4:** Connection to configurable Ollama endpoint
-- [ ] **AC5:** Health check verifies Ollama availability
+- [x] **AC5:** Health check verifies Ollama availability
 - [ ] **AC6:** Clear error messages when Ollama unavailable
 
 ---
@@ -59,7 +59,7 @@
 - [x] **T2:** Create `OllamaLLMClient` configuration (backend)
 - [x] **T3:** Implement model selection configuration (backend)
 - [x] **T4:** Add Ollama endpoint configuration (backend)
-- [ ] **T5:** Create health check for Ollama (backend)
+- [x] **T5:** Create health check for Ollama (backend)
 - [ ] **T6:** Write integration tests with Ollama (test)
 
 ---

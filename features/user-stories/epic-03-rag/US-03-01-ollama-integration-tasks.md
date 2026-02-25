@@ -68,14 +68,15 @@
 - **Description:** Implement health check that verifies Ollama service availability. Check if Ollama endpoint is reachable and if configured model is available. Integrate with Quarkus health checks.
 - **Estimated Hours:** 3 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T2, T3, T4 (needs client and configuration)
 - **Acceptance Criteria:**
-  - [ ] Health check verifies Ollama endpoint
-  - [ ] Health check verifies model availability
-  - [ ] Integrates with `/q/health/ready` endpoint
-  - [ ] Clear status messages
+  - [x] Health check verifies Ollama endpoint
+  - [x] Health check verifies model availability
+  - [x] Integrates with `/q/health/ready` endpoint
+  - [x] Clear status messages
 - **Technical Notes:** Use Quarkus SmallRye Health. Create custom health check that pings Ollama API. Check model availability via Ollama's `/api/tags` endpoint. Report status: UP, DOWN, UNKNOWN.
+- **Implementation Notes:** Added `OllamaHealthCheck` in `io.megabrain.api` with `@Readiness`; uses `OllamaLLMClient.isAvailable()` and `isModelAvailable(model)` with 10s timeout. Reports UP when endpoint and configured model are available, DOWN with clear messages otherwise (client not available, model not available, or endpoint unreachable). Response includes endpoint, model, message, and checkTimeMs. Unit tests: `OllamaHealthCheckTest`. Updated `HealthResourceTest` to accept 200 or 503 for `/q/health` when Ollama readiness is DOWN.
 
 ### T6: Write integration tests with Ollama
 - **Description:** Create integration tests that interact with real Ollama instance (or mock). Test model selection, endpoint configuration, health checks, and actual LLM generation. Use Testcontainers or mock Ollama server if needed.
