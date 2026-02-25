@@ -35,3 +35,7 @@ tmp/
 out/
 
 backend/data/
+
+# MkDocs
+site/
+.venv/

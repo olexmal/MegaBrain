@@ -2,9 +2,11 @@
 
 Scalable, self-hosted, intelligent code knowledge platform that indexes multi-language source code from various repositories and provides precise semantic search and natural language Q&A through a modern, reactive architecture.
 
+**[View Documentation](https://olexmal.github.io/MegaBrain/)**
+
 ## Documentation
 
-- [Documentation Hub](docs/README.md) - Complete documentation index
+- [Documentation Hub](docs/index.md) - Complete documentation index
 - [Getting Started](docs/getting-started.md) - Prerequisites and installation
 - [API Reference](docs/api-reference.md) - REST API endpoints and parameters
 - [Configuration Reference](docs/configuration-reference.md) - All configuration properties
@@ -56,7 +58,7 @@ megabrain/
 │       ├── assets/               # Static assets
 │       └── environments/         # Environment configuration
 ├── docs/                         # Documentation
-│   ├── README.md                # Documentation hub
+│   ├── index.md                 # Documentation hub
 │   ├── getting-started.md       # Installation & setup
 │   ├── architecture.md          # Component architecture
 │   ├── implemented-features.md  # Completed feature details

@@ -63,12 +63,12 @@ MegaBrain creates a private, intelligent knowledge base of your codebase that en
 
 ## Project Documentation
 
-- [Feature Specification](../features/feature_specification.md) - Complete feature specification
-- [Epics Overview](../features/epics/README.md) - All epics and their relationships
-- [User Stories Backlog](../features/user-stories/README.md) - User stories and sprint planning
-- [User Setup Guide](../USER_SETUP.md) - Deployment and user configuration
-- [Frontend README](../frontend/README.md) - Angular frontend documentation
-- [Backend Benchmarks](../backend/BENCHMARKS.md) - Performance benchmarks
+- [Feature Specification](https://github.com/olexmal/MegaBrain/blob/main/features/feature_specification.md) - Complete feature specification
+- [Epics Overview](https://github.com/olexmal/MegaBrain/blob/main/features/epics/README.md) - All epics and their relationships
+- [User Stories Backlog](https://github.com/olexmal/MegaBrain/blob/main/features/user-stories/README.md) - User stories and sprint planning
+- [User Setup Guide](https://github.com/olexmal/MegaBrain/blob/main/USER_SETUP.md) - Deployment and user configuration
+- [Frontend README](https://github.com/olexmal/MegaBrain/blob/main/frontend/README.md) - Angular frontend documentation
+- [Backend Benchmarks](https://github.com/olexmal/MegaBrain/blob/main/backend/BENCHMARKS.md) - Performance benchmarks
 
 ## External Resources
 
@@ -81,21 +81,21 @@ MegaBrain creates a private, intelligent knowledge base of your codebase that en
 
 ## Epic Documentation
 
-- [EPIC-00: Project Infrastructure Setup](../features/epics/EPIC-00-project-infrastructure.md)
-- [EPIC-01: Code Ingestion & Indexing](../features/epics/EPIC-01-ingestion.md)
-- [EPIC-02: Hybrid Search & Retrieval](../features/epics/EPIC-02-search.md)
-- [EPIC-03: RAG Answer Generation](../features/epics/EPIC-03-rag.md)
-- [EPIC-04: REST API & CLI](../features/epics/EPIC-04-api-cli.md)
-- [EPIC-05: Web Dashboard](../features/epics/EPIC-05-web-dashboard.md)
-- [EPIC-06: Dependency Graph Analysis](../features/epics/EPIC-06-dependency-graph.md)
-- [EPIC-07: Documentation Intelligence](../features/epics/EPIC-07-documentation.md)
-- [EPIC-08: MCP Tool Server](../features/epics/EPIC-08-mcp-server.md)
+- [EPIC-00: Project Infrastructure Setup](https://github.com/olexmal/MegaBrain/blob/main/features/epics/EPIC-00-project-infrastructure.md)
+- [EPIC-01: Code Ingestion & Indexing](https://github.com/olexmal/MegaBrain/blob/main/features/epics/EPIC-01-ingestion.md)
+- [EPIC-02: Hybrid Search & Retrieval](https://github.com/olexmal/MegaBrain/blob/main/features/epics/EPIC-02-search.md)
+- [EPIC-03: RAG Answer Generation](https://github.com/olexmal/MegaBrain/blob/main/features/epics/EPIC-03-rag.md)
+- [EPIC-04: REST API & CLI](https://github.com/olexmal/MegaBrain/blob/main/features/epics/EPIC-04-api-cli.md)
+- [EPIC-05: Web Dashboard](https://github.com/olexmal/MegaBrain/blob/main/features/epics/EPIC-05-web-dashboard.md)
+- [EPIC-06: Dependency Graph Analysis](https://github.com/olexmal/MegaBrain/blob/main/features/epics/EPIC-06-dependency-graph.md)
+- [EPIC-07: Documentation Intelligence](https://github.com/olexmal/MegaBrain/blob/main/features/epics/EPIC-07-documentation.md)
+- [EPIC-08: MCP Tool Server](https://github.com/olexmal/MegaBrain/blob/main/features/epics/EPIC-08-mcp-server.md)
 
 ---
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](../LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](https://github.com/olexmal/MegaBrain/blob/main/LICENSE) file for details.
 
 ## Support
 
