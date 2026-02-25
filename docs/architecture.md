@@ -6,61 +6,47 @@ MegaBrain follows a **modular, event-driven architecture** built on a modern Jav
 
 ## High-Level Architecture
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    Source Code Repositories                  │
-│         (GitHub, GitLab, Bitbucket, Local Git)              │
-└──────────────────────┬──────────────────────────────────────┘
-                       │
-                       ▼
-┌─────────────────────────────────────────────────────────────┐
-│              Ingestion Layer (EPIC-01)                       │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
-│  │ Source       │  │ Parser       │  │ Dependency   │      │
-│  │ Control      │→ │ Registry     │→ │ Extractor    │      │
-│  │ Client       │  │ (JavaParser/ │  │              │      │
-│  │ Factory      │  │ Tree-sitter) │  │              │      │
-│  └──────────────┘  └──────────────┘  └──────────────┘      │
-└──────────────────────┬──────────────────────────────────────┘
-                       │
-                       ▼
-┌─────────────────────────────────────────────────────────────┐
-│              Storage Layer                                   │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
-│  │ Lucene       │  │ Graph DB     │  │ Vector Store │      │
-│  │ Index        │  │ (Neo4j)      │  │ (pgvector)   │      │
-│  │ (Primary)    │  │              │  │ (Optional)   │      │
-│  └──────────────┘  └──────────────┘  └──────────────┘      │
-└──────────────────────┬──────────────────────────────────────┘
-                       │
-                       ▼
-┌─────────────────────────────────────────────────────────────┐
-│              Search & Retrieval Layer (EPIC-02)              │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │         Hybrid Search Orchestrator                    │  │
-│  │  (Keyword + Semantic + Graph + Vector)                │  │
-│  └──────────────────────────────────────────────────────┘  │
-└──────────────────────┬──────────────────────────────────────┘
-                       │
-                       ▼
-┌─────────────────────────────────────────────────────────────┐
-│              RAG Layer (EPIC-03)                             │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
-│  │ Context      │  │ LLM Provider │  │ Answer       │      │
-│  │ Assembler    │→ │ (Ollama/     │→ │ Streamer     │      │
-│  │              │  │ OpenAI/      │  │ (SSE)        │      │
-│  │              │  │ Anthropic)   │  │              │      │
-│  └──────────────┘  └──────────────┘  └──────────────┘      │
-└──────────────────────┬──────────────────────────────────────┘
-                       │
-                       ▼
-┌─────────────────────────────────────────────────────────────┐
-│              Interface Layer (EPIC-04, EPIC-05, EPIC-08)    │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐   │
-│  │ REST API │  │ Web UI   │  │ CLI      │  │ MCP      │   │
-│  │          │  │ (Angular)│  │ (Picocli)│  │ Server   │   │
-│  └──────────┘  └──────────┘  └──────────┘  └──────────┘   │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph sources ["Source Code Repositories"]
+        GitHub
+        GitLab
+        Bitbucket
+        LocalGit["Local Git"]
+    end
+
+    subgraph ingestion ["Ingestion Layer (EPIC-01)"]
+        SourceControl["Source Control\nClient Factory"] --> ParserRegistry["Parser Registry\n(JavaParser / Tree-sitter)"]
+        ParserRegistry --> DependencyExtractor["Dependency\nExtractor"]
+    end
+
+    subgraph storage ["Storage Layer"]
+        LuceneIndex["Lucene Index\n(Primary)"]
+        GraphDB["Graph DB\n(Neo4j)"]
+        VectorStore["Vector Store\n(pgvector, Optional)"]
+    end
+
+    subgraph search ["Search & Retrieval Layer (EPIC-02)"]
+        HybridSearch["Hybrid Search Orchestrator\n(Keyword + Semantic + Graph + Vector)"]
+    end
+
+    subgraph rag ["RAG Layer (EPIC-03)"]
+        ContextAssembler["Context\nAssembler"] --> LLMProvider["LLM Provider\n(Ollama / OpenAI / Anthropic)"]
+        LLMProvider --> AnswerStreamer["Answer\nStreamer (SSE)"]
+    end
+
+    subgraph interfaces ["Interface Layer (EPIC-04, EPIC-05, EPIC-08)"]
+        RestAPI["REST API"]
+        WebUI["Web UI\n(Angular)"]
+        CLI["CLI\n(Picocli)"]
+        MCPServer["MCP Server"]
+    end
+
+    sources --> ingestion
+    ingestion --> storage
+    storage --> search
+    search --> rag
+    rag --> interfaces
 ```
 
 ---
@@ -164,6 +150,17 @@ The frontend is currently scaffolded with Angular 20 standalone components. Feat
 
 ### Ingestion Flow
 
+```mermaid
+flowchart LR
+    Trigger["REST API / CLI"] --> Clone["Clone Repo\n(JGit)"]
+    Clone --> Extract["Extract Files\n(filter by ext / .gitignore)"]
+    Extract --> Route["ParserRegistry\n(language routing)"]
+    Route --> Parse["JavaParser /\nTreeSitterParser"]
+    Parse --> Grammar["GrammarManager\n(download & cache)"]
+    Parse --> Index["LuceneIndexService +\nEmbeddingService"]
+    Index --> Progress["SSE Progress\n(Mutiny Multi)"]
+```
+
 1. **Trigger** - Repository ingestion triggered via REST API or CLI
 2. **Source Control** - `GitHubSourceControlClient` (or GitLab/Bitbucket) clones repository via JGit
 3. **File Extraction** - Files extracted from clone, filtered by extension and `.gitignore`
@@ -174,6 +171,26 @@ The frontend is currently scaffolded with Angular 20 standalone components. Feat
 8. **Progress** - Events emitted via Mutiny `Multi` at each stage for real-time SSE streaming
 
 ### Query Flow
+
+```mermaid
+flowchart TD
+    Request["GET /api/v1/search"] --> Orchestrator["SearchOrchestrator"]
+
+    Orchestrator --> KeywordSearch["Keyword Search\n(LuceneIndexService)"]
+    Orchestrator --> VectorSearch["Vector Search\n(PgVectorStore)"]
+
+    KeywordSearch --> Normalize["VectorScoreNormalizer\n(0-1 range)"]
+    VectorSearch --> Normalize
+
+    Normalize --> Combine["HybridScorer\n(0.6 keyword + 0.4 vector)"]
+    Combine --> Merge["ResultMerger\n(deduplicate)"]
+    Merge --> Filter["LuceneFilterQueryBuilder\n(metadata filters)"]
+    Filter --> Facets["Facet Aggregation"]
+    Filter --> Transitive["GraphQueryService\n(optional transitive search)"]
+    Facets --> Boost["BoostConfiguration\n(field relevance)"]
+    Transitive --> Boost
+    Boost --> Response["Search Response\n(scores, facets, matches)"]
+```
 
 1. **Request** - User submits query via REST API (`GET /api/v1/search`)
 2. **Orchestration** - `SearchOrchestrator` coordinates the search pipeline
