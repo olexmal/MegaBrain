@@ -15,10 +15,10 @@
 
 - [x] **AC1:** Ollama client integration via LangChain4j
 - [x] **AC2:** Configurable model selection (Codellama, Mistral, Llama2)
-- [ ] **AC3:** Local LLM works without internet connectivity
+- [x] **AC3:** Local LLM works without internet connectivity
 - [x] **AC4:** Connection to configurable Ollama endpoint
 - [x] **AC5:** Health check verifies Ollama availability
-- [ ] **AC6:** Clear error messages when Ollama unavailable
+- [x] **AC6:** Clear error messages when Ollama unavailable
 
 ---
 
@@ -60,7 +60,7 @@
 - [x] **T3:** Implement model selection configuration (backend)
 - [x] **T4:** Add Ollama endpoint configuration (backend)
 - [x] **T5:** Create health check for Ollama (backend)
-- [ ] **T6:** Write integration tests with Ollama (test)
+- [x] **T6:** Write integration tests with Ollama (test)
 
 ---
 

@@ -84,6 +84,8 @@ Configure depth limits for graph-based transitive searches.
 
 ### Ollama (Free/Local)
 
+Ollama inference uses **only the configured base URL**. When the endpoint is local (e.g. `http://localhost:11434`), **no internet connectivity is required** at runtime. Pull models beforehand with `ollama pull <model>` for fully offline operation (AC3).
+
 | Property | Default | Description |
 |:---------|:--------|:------------|
 | `megabrain.llm.ollama.base-url` | `http://localhost:11434` | Ollama API endpoint |

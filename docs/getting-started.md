@@ -33,6 +33,7 @@ This guide covers prerequisites, installation, and verification for MegaBrain.
   ollama --version
   # Or install from https://ollama.ai
   ```
+  For **offline operation**: run Ollama locally and pull models before disconnecting (e.g. `ollama pull codellama`). Inference uses only the configured endpoint; no internet is required at runtime.
 
 ### Frontend Prerequisites
 
@@ -113,6 +114,15 @@ Expected response:
 
 **Frontend:**
 Open `http://localhost:4200` in your browser. You should see the MegaBrain dashboard.
+
+### 5. Local LLM (Ollama) – offline operation
+
+To use the local LLM **without internet connectivity** (AC3):
+
+1. Install and start Ollama on the same machine or a reachable host.
+2. Pull the model you will use while online: `ollama pull codellama` (or `mistral`, `llama2`, etc.).
+3. Configure MegaBrain to use that endpoint (default is `http://localhost:11434`) and the same model name in `application.properties` (see [Configuration Reference](configuration-reference.md#ollama-freelocal)).
+4. At runtime, all LLM requests go only to the configured Ollama endpoint; no external API calls are made. You can disconnect the network and continue using the local LLM.
 
 ---
 

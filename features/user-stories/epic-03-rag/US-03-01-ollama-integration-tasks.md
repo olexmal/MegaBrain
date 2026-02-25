@@ -82,15 +82,16 @@
 - **Description:** Create integration tests that interact with real Ollama instance (or mock). Test model selection, endpoint configuration, health checks, and actual LLM generation. Use Testcontainers or mock Ollama server if needed.
 - **Estimated Hours:** 4 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T1-T5 (needs complete implementation)
 - **Acceptance Criteria:**
-  - [ ] Integration tests for Ollama client
-  - [ ] Tests verify model selection
-  - [ ] Tests verify endpoint configuration
-  - [ ] Tests verify health checks
-  - [ ] Test coverage >80%
+  - [x] Integration tests for Ollama client
+  - [x] Tests verify model selection
+  - [x] Tests verify endpoint configuration
+  - [x] Tests verify health checks
+  - [x] Test coverage >80%
 - **Technical Notes:** Use Testcontainers with Ollama container, or mock Ollama HTTP server. Test both success and failure scenarios. Test offline scenario (Ollama unavailable).
+- **Implementation Notes:** Added Testcontainers Ollama dependency. Created `OllamaTestResource` (starts Ollama container, pulls tinyllama, sets base-url/model via config map) and `OllamaUnavailableTestResource` (unreachable base URL). `OllamaIntegrationTestIT` (@QuarkusTest + OllamaTestResource): client available, endpoint config, model availability, health UP, generate() and model override. `OllamaUnavailableIntegrationTestIT` (@QuarkusTest + OllamaUnavailableTestResource): health DOWN, generate fails with clear error, isModelAvailable returns false. Health check injection uses @Readiness qualifier.
 
 ---
 
