@@ -70,11 +70,24 @@ class AnthropicLLMClientTest {
     @Test
     @DisplayName("isAvailable is true when API key is set and init succeeds")
     void isAvailable_validApiKey_returnsTrue() {
-        when(config.apiKey()).thenReturn("test-key");
+        when(config.apiKey()).thenReturn("sk-ant-valid-key");
         when(config.model()).thenReturn("claude-3-5-sonnet-20241022");
         when(config.timeoutSeconds()).thenReturn(60);
         client.init();
         assertThat(client.isAvailable()).isTrue();
+    }
+
+    @Test
+    @DisplayName("init throws IllegalStateException when API key has invalid format")
+    void init_invalidKeyFormat_throwsIllegalStateException() {
+        when(config.apiKey()).thenReturn("invalid-key");
+        when(config.model()).thenReturn("claude-3-5-sonnet-20241022");
+        when(config.timeoutSeconds()).thenReturn(60);
+        assertThatThrownBy(() -> client.init())
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("invalid format")
+                .hasMessageContaining("sk-ant-")
+                .hasMessageContaining("ANTHROPIC_API_KEY");
     }
 
     @Test

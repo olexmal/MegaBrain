@@ -53,14 +53,15 @@
 - **Description:** Implement secure API key management for OpenAI and Anthropic. Load API keys from environment variables or configuration. Never log or expose keys in error messages. Support key validation on startup.
 - **Estimated Hours:** 3 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T2, T3 (needs client implementations)
 - **Acceptance Criteria:**
-  - [ ] API keys loaded from environment variables
-  - [ ] Keys never logged or exposed
-  - [ ] Key validation on startup
-  - [ ] Clear error messages for missing/invalid keys
+  - [x] API keys loaded from environment variables
+  - [x] Keys never logged or exposed
+  - [x] Key validation on startup
+  - [x] Clear error messages for missing/invalid keys
 - **Technical Notes:** Use Quarkus configuration with environment variable support: `megabrain.llm.openai.api-key=${OPENAI_API_KEY}`. Validate key format (starts with `sk-` for OpenAI). Mask keys in logs.
+- **Implementation Notes:** Added `LLMApiKeyValidator` with format checks (OpenAI: `sk-`, Anthropic: `sk-ant-`) and mask helpers. Both clients validate key format in `@PostConstruct init()` and fail fast with clear messages when invalid; init exceptions are wrapped so API keys are never included in logs or error messages. Unit tests: `LLMApiKeyValidatorTest`, and client tests updated for valid key formats plus invalid-format init tests.
 
 ### T5: Add rate limiting and retry logic
 - **Description:** Implement rate limiting handling and retry logic for API failures. Handle HTTP 429 (rate limit) and 5xx errors with exponential backoff. Configure retry attempts and backoff intervals.

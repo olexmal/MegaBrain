@@ -44,18 +44,27 @@ public class AnthropicLLMClient implements LLMClient {
                 this.chatModel = null;
                 return;
             }
+            String trimmed = apiKey.trim();
+            if (!LLMApiKeyValidator.isValidAnthropicKey(trimmed)) {
+                LOG.warnf("Anthropic API key has invalid format (expected to start with %s). Key not logged. Set megabrain.llm.anthropic.api-key or ANTHROPIC_API_KEY.",
+                        LLMApiKeyValidator.maskAnthropicKey(trimmed));
+                throw new IllegalStateException(
+                        "Anthropic API key has invalid format (expected to start with sk-ant-). Set megabrain.llm.anthropic.api-key or ANTHROPIC_API_KEY.");
+            }
             String model = config.model();
             LOG.infof("Initializing Anthropic LLM client: model=%s", model);
-            this.chatModel = buildChatModel(apiKey.trim(), model, config.timeoutSeconds());
+            this.chatModel = buildChatModel(trimmed, model, config.timeoutSeconds());
             this.available = true;
             long durationMs = (System.nanoTime() - startTime) / 1_000_000;
             LOG.infof("Anthropic LLM client initialized in %d ms", durationMs);
+        } catch (IllegalStateException e) {
+            throw e;
         } catch (Exception e) {
             long durationMs = (System.nanoTime() - startTime) / 1_000_000;
-            LOG.errorf(e, "Failed to initialize Anthropic LLM client after %d ms", durationMs);
+            LOG.errorf("Failed to initialize Anthropic LLM client after %d ms: check API key and configuration (key not logged)", durationMs);
             this.available = false;
             this.chatModel = null;
-            throw e;
+            throw new IllegalStateException("Anthropic LLM client failed to initialize: check API key and configuration.", e);
         }
     }
 

@@ -51,7 +51,7 @@
 - [x] **T1:** Add LangChain4j OpenAI dependency (backend)
 - [x] **T2:** Create `OpenAILLMClient` configuration (backend)
 - [x] **T3:** Add Anthropic Claude support (backend)
-- [ ] **T4:** Implement API key management (backend)
+- [x] **T4:** Implement API key management (backend)
 - [ ] **T5:** Add rate limiting and retry logic (backend)
 - [ ] **T6:** Implement usage logging (backend)
 - [ ] **T7:** Write integration tests with mock API (test)
