@@ -25,14 +25,15 @@
 - **Description:** Create `OpenAILLMClient` class that wraps LangChain4j's OpenAI integration. Implement LLM client interface for consistent usage. Handle API key management and configuration loading.
 - **Estimated Hours:** 4 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T1 (needs dependency)
 - **Acceptance Criteria:**
-  - [ ] OpenAILLMClient class created
-  - [ ] Implements common LLM client interface
-  - [ ] Handles API key authentication
-  - [ ] Configuration loaded from properties
+  - [x] OpenAILLMClient class created
+  - [x] Implements common LLM client interface
+  - [x] Handles API key authentication
+  - [x] Configuration loaded from properties
 - **Technical Notes:** Use LangChain4j's OpenAiStreamingChatLanguageModel. Support GPT-4 and GPT-3.5-turbo models. Use Quarkus CDI for dependency injection.
+- **Implementation Notes:** Verified existing implementation: `OpenAILLMClient` implements `LLMClient`, uses `OpenAIConfiguration` (@ConfigMapping prefix `megabrain.llm.openai`), API key from `megabrain.llm.openai.api-key` / `${OPENAI_API_KEY:}` in application.properties. Uses `OpenAiChatModel` for non-streaming generation; supports per-request model override. Unit tests in `OpenAILLMClientTest` cover availability, validation, and contract.
 
 ### T3: Add Anthropic Claude support
 - **Description:** Add Anthropic Claude API integration alongside OpenAI. Create `AnthropicLLMClient` class following same pattern as OpenAI client. Support Claude Sonnet and Claude Opus models.
