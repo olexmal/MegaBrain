@@ -44,6 +44,7 @@ class OpenAILLMClientTest {
         when(config.timeoutSeconds()).thenReturn(60);
         when(config.maxRetries()).thenReturn(4);
         when(config.baseDelayMs()).thenReturn(1000L);
+        when(config.baseUrl()).thenReturn("");
         client = new OpenAILLMClient(config, retryHelper, usageRecorder);
     }
 
@@ -83,6 +84,7 @@ class OpenAILLMClientTest {
         when(config.timeoutSeconds()).thenReturn(60);
         when(config.maxRetries()).thenReturn(4);
         when(config.baseDelayMs()).thenReturn(1000L);
+        when(config.baseUrl()).thenReturn("");
         client.init();
         assertThat(client.isAvailable()).isTrue();
     }
@@ -93,6 +95,7 @@ class OpenAILLMClientTest {
         when(config.apiKey()).thenReturn("invalid-key");
         when(config.model()).thenReturn("gpt-4");
         when(config.timeoutSeconds()).thenReturn(60);
+        when(config.baseUrl()).thenReturn("");
         assertThatThrownBy(() -> client.init())
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("invalid format")

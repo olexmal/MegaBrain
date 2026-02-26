@@ -58,7 +58,7 @@ public class AnthropicLLMClient implements LLMClient {
             }
             String model = config.model();
             LOG.infof("Initializing Anthropic LLM client: model=%s", model);
-            this.chatModel = buildChatModel(trimmed, model, config.timeoutSeconds());
+            this.chatModel = buildChatModel(trimmed, model, config.timeoutSeconds(), config.baseUrl());
             this.available = true;
             long durationMs = (System.nanoTime() - startTime) / 1_000_000;
             LOG.infof("Anthropic LLM client initialized in %d ms", durationMs);
@@ -102,7 +102,7 @@ public class AnthropicLLMClient implements LLMClient {
     private Uni<String> performGeneration(String userMessage, String model) {
         ChatModel modelToUse = model.equals(config.model())
                 ? chatModel
-                : buildChatModel(config.apiKey().trim(), model, config.timeoutSeconds());
+                : buildChatModel(config.apiKey().trim(), model, config.timeoutSeconds(), config.baseUrl());
 
         return Uni.createFrom().item(() -> {
             long startTime = System.nanoTime();
@@ -132,12 +132,15 @@ public class AnthropicLLMClient implements LLMClient {
         });
     }
 
-    private static ChatModel buildChatModel(String apiKey, String modelName, int timeoutSeconds) {
-        return AnthropicChatModel.builder()
+    private static ChatModel buildChatModel(String apiKey, String modelName, int timeoutSeconds, String baseUrl) {
+        var builder = AnthropicChatModel.builder()
                 .apiKey(apiKey)
                 .modelName(modelName)
-                .timeout(Duration.ofSeconds(timeoutSeconds))
-                .build();
+                .timeout(Duration.ofSeconds(timeoutSeconds));
+        if (baseUrl != null && !baseUrl.isBlank()) {
+            builder.baseUrl(baseUrl.trim());
+        }
+        return builder.build();
     }
 
     @Override

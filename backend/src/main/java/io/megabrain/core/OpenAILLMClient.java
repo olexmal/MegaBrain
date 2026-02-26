@@ -58,7 +58,7 @@ public class OpenAILLMClient implements LLMClient {
             }
             String model = config.model();
             LOG.infof("Initializing OpenAI LLM client: model=%s", model);
-            this.chatModel = buildChatModel(trimmed, model, config.timeoutSeconds());
+            this.chatModel = buildChatModel(trimmed, model, config.timeoutSeconds(), config.baseUrl());
             this.available = true;
             long durationMs = (System.nanoTime() - startTime) / 1_000_000;
             LOG.infof("OpenAI LLM client initialized in %d ms", durationMs);
@@ -102,7 +102,7 @@ public class OpenAILLMClient implements LLMClient {
     private Uni<String> performGeneration(String userMessage, String model) {
         ChatModel modelToUse = model.equals(config.model())
                 ? chatModel
-                : buildChatModel(config.apiKey().trim(), model, config.timeoutSeconds());
+                : buildChatModel(config.apiKey().trim(), model, config.timeoutSeconds(), config.baseUrl());
 
         return Uni.createFrom().item(() -> {
             long startTime = System.nanoTime();
@@ -132,12 +132,15 @@ public class OpenAILLMClient implements LLMClient {
         });
     }
 
-    private static ChatModel buildChatModel(String apiKey, String modelName, int timeoutSeconds) {
-        return OpenAiChatModel.builder()
+    private static ChatModel buildChatModel(String apiKey, String modelName, int timeoutSeconds, String baseUrl) {
+        var builder = OpenAiChatModel.builder()
                 .apiKey(apiKey)
                 .modelName(modelName)
-                .timeout(Duration.ofSeconds(timeoutSeconds))
-                .build();
+                .timeout(Duration.ofSeconds(timeoutSeconds));
+        if (baseUrl != null && !baseUrl.isBlank()) {
+            builder.baseUrl(baseUrl.trim());
+        }
+        return builder.build();
     }
 
     @Override

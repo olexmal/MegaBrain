@@ -46,4 +46,11 @@ public interface OpenAIConfiguration {
      */
     @WithDefault("1000")
     long baseDelayMs();
+
+    /**
+     * Optional base URL for the OpenAI API (e.g. for testing with WireMock).
+     * When blank, default LangChain4j URL is used.
+     */
+    @WithDefault("")
+    String baseUrl();
 }

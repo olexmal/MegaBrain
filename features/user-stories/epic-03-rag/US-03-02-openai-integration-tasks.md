@@ -95,15 +95,16 @@
 - **Description:** Create integration tests using mock OpenAI and Anthropic API servers. Test API key management, rate limiting, retry logic, and usage logging. Test both success and failure scenarios.
 - **Estimated Hours:** 4 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T1-T6 (needs complete implementation)
 - **Acceptance Criteria:**
-  - [ ] Integration tests with mock APIs
-  - [ ] Tests cover rate limiting scenarios
-  - [ ] Tests cover retry logic
-  - [ ] Tests verify usage logging
-  - [ ] Test coverage >80%
+  - [x] Integration tests with mock APIs
+  - [x] Tests cover rate limiting scenarios
+  - [x] Tests cover retry logic
+  - [x] Tests verify usage logging
+  - [x] Test coverage >80%
 - **Technical Notes:** Use WireMock or similar for HTTP mocking. Test rate limit responses (429), retry behavior, and usage tracking. Test both OpenAI and Anthropic clients.
+- **Implementation Notes:** Added optional `baseUrl()` to OpenAIConfiguration and AnthropicConfiguration (default blank) so clients can point at WireMock. Updated OpenAILLMClient and AnthropicLLMClient to call .baseUrl(...) when set. Added WireMock 3.13.0 (wiremock-standalone) test dependency. Created WireMockLLMTestResource (starts WireMock on dynamic port, sets API keys and base URLs for test profile) and CloudLLMIntegrationTestIT (@QuarkusTest): success and usage recorded for OpenAI and Anthropic; 429 then 200 succeeds after retry; 429 always throws with Rate limit message; 503 then 200 succeeds after retry; API key in Authorization (OpenAI) and x-api-key (Anthropic) headers verified. Tests reset WireMock before each test. Unit tests updated for new baseUrl() config mock.
 
 ---
 

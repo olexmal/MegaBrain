@@ -54,7 +54,7 @@
 - [x] **T4:** Implement API key management (backend)
 - [x] **T5:** Add rate limiting and retry logic (backend)
 - [x] **T6:** Implement usage logging (backend)
-- [ ] **T7:** Write integration tests with mock API (test)
+- [x] **T7:** Write integration tests with mock API (test)
 
 ---
 
