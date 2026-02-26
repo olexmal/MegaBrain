@@ -67,14 +67,15 @@
 - **Description:** Implement rate limiting handling and retry logic for API failures. Handle HTTP 429 (rate limit) and 5xx errors with exponential backoff. Configure retry attempts and backoff intervals.
 - **Estimated Hours:** 4 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T2, T3 (needs client implementations)
 - **Acceptance Criteria:**
-  - [ ] Rate limit errors handled gracefully
-  - [ ] Exponential backoff implemented
-  - [ ] Retry attempts configurable
-  - [ ] Clear error messages for rate limits
+  - [x] Rate limit errors handled gracefully
+  - [x] Exponential backoff implemented
+  - [x] Retry attempts configurable
+  - [x] Clear error messages for rate limits
 - **Technical Notes:** Use resilience4j or similar for retry logic. Exponential backoff: 1s, 2s, 4s, 8s. Max retries: 3-5. Handle both rate limit (429) and server errors (5xx).
+- **Implementation Notes:** Implemented shared LLMRetryHelper with manual retry loop and exponential backoff (baseDelayMs, 2x, 4x, 8x, cap 30s). Retryable detection via exception message/cause (429, rate limit, 503/502/500, service unavailable). Config: megabrain.llm.openai.max-retries, base-delay-ms; same for anthropic. OpenAILLMClient and AnthropicLLMClient inject LLMRetryHelper and wrap chat calls. Clear messages: "Rate limit exceeded. Please try again later." and "Service temporarily unavailable. Please try again later." Unit tests: LLMRetryHelperTest (succeed on Nth attempt, fail after max retries, non-retryable fails immediately, isRetryable). Client tests updated to inject mock LLMRetryHelper.
 
 ### T6: Implement usage logging
 - **Description:** Implement usage logging for API calls to track costs. Log model used, tokens consumed (input/output), and estimated cost. Store usage metrics for reporting and billing.

@@ -26,11 +26,13 @@ public class OpenAILLMClient implements LLMClient {
     private static final Logger LOG = Logger.getLogger(OpenAILLMClient.class);
 
     private final OpenAIConfiguration config;
+    private final LLMRetryHelper retryHelper;
     private volatile ChatModel chatModel;
     private volatile boolean available;
 
-    public OpenAILLMClient(OpenAIConfiguration config) {
+    public OpenAILLMClient(OpenAIConfiguration config, LLMRetryHelper retryHelper) {
         this.config = config;
+        this.retryHelper = retryHelper;
     }
 
     @PostConstruct
@@ -102,10 +104,16 @@ public class OpenAILLMClient implements LLMClient {
         return Uni.createFrom().item(() -> {
             long startTime = System.nanoTime();
             try {
-                String response = modelToUse.chat(userMessage);
+                String response = retryHelper.executeWithRetry(
+                        () -> modelToUse.chat(userMessage),
+                        "OpenAI",
+                        config.maxRetries(),
+                        config.baseDelayMs());
                 long durationMs = (System.nanoTime() - startTime) / 1_000_000;
                 LOG.debugf("OpenAI generation (model=%s) completed in %d ms", model, durationMs);
                 return response;
+            } catch (IllegalStateException e) {
+                throw e;
             } catch (Exception e) {
                 long durationMs = (System.nanoTime() - startTime) / 1_000_000;
                 LOG.warnf(e, "OpenAI generation (model=%s) failed after %d ms", model, durationMs);

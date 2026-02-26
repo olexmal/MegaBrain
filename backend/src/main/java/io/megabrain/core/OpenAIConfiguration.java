@@ -33,4 +33,17 @@ public interface OpenAIConfiguration {
      */
     @WithDefault("60")
     int timeoutSeconds();
+
+    /**
+     * Maximum number of retry attempts for rate limit (429) and server errors (5xx).
+     * Total attempts = maxRetries + 1. Default 4 (5 attempts).
+     */
+    @WithDefault("4")
+    int maxRetries();
+
+    /**
+     * Base delay in milliseconds for exponential backoff. Delays: baseDelayMs, 2x, 4x, 8x.
+     */
+    @WithDefault("1000")
+    long baseDelayMs();
 }

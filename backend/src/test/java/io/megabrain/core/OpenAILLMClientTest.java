@@ -29,6 +29,9 @@ class OpenAILLMClientTest {
     @Mock
     private OpenAIConfiguration config;
 
+    @Mock
+    private LLMRetryHelper retryHelper;
+
     private OpenAILLMClient client;
 
     @BeforeEach
@@ -36,7 +39,9 @@ class OpenAILLMClientTest {
         when(config.apiKey()).thenReturn("");
         when(config.model()).thenReturn("gpt-4");
         when(config.timeoutSeconds()).thenReturn(60);
-        client = new OpenAILLMClient(config);
+        when(config.maxRetries()).thenReturn(4);
+        when(config.baseDelayMs()).thenReturn(1000L);
+        client = new OpenAILLMClient(config, retryHelper);
     }
 
     @Test
@@ -73,6 +78,8 @@ class OpenAILLMClientTest {
         when(config.apiKey()).thenReturn("sk-valid-key");
         when(config.model()).thenReturn("gpt-4");
         when(config.timeoutSeconds()).thenReturn(60);
+        when(config.maxRetries()).thenReturn(4);
+        when(config.baseDelayMs()).thenReturn(1000L);
         client.init();
         assertThat(client.isAvailable()).isTrue();
     }

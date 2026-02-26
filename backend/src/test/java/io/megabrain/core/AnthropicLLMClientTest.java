@@ -29,6 +29,9 @@ class AnthropicLLMClientTest {
     @Mock
     private AnthropicConfiguration config;
 
+    @Mock
+    private LLMRetryHelper retryHelper;
+
     private AnthropicLLMClient client;
 
     @BeforeEach
@@ -36,7 +39,9 @@ class AnthropicLLMClientTest {
         when(config.apiKey()).thenReturn("");
         when(config.model()).thenReturn("claude-3-5-sonnet-20241022");
         when(config.timeoutSeconds()).thenReturn(60);
-        client = new AnthropicLLMClient(config);
+        when(config.maxRetries()).thenReturn(4);
+        when(config.baseDelayMs()).thenReturn(1000L);
+        client = new AnthropicLLMClient(config, retryHelper);
     }
 
     @Test
@@ -73,6 +78,8 @@ class AnthropicLLMClientTest {
         when(config.apiKey()).thenReturn("sk-ant-valid-key");
         when(config.model()).thenReturn("claude-3-5-sonnet-20241022");
         when(config.timeoutSeconds()).thenReturn(60);
+        when(config.maxRetries()).thenReturn(4);
+        when(config.baseDelayMs()).thenReturn(1000L);
         client.init();
         assertThat(client.isAvailable()).isTrue();
     }

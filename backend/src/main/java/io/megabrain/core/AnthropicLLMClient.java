@@ -26,11 +26,13 @@ public class AnthropicLLMClient implements LLMClient {
     private static final Logger LOG = Logger.getLogger(AnthropicLLMClient.class);
 
     private final AnthropicConfiguration config;
+    private final LLMRetryHelper retryHelper;
     private volatile ChatModel chatModel;
     private volatile boolean available;
 
-    public AnthropicLLMClient(AnthropicConfiguration config) {
+    public AnthropicLLMClient(AnthropicConfiguration config, LLMRetryHelper retryHelper) {
         this.config = config;
+        this.retryHelper = retryHelper;
     }
 
     @PostConstruct
@@ -102,10 +104,16 @@ public class AnthropicLLMClient implements LLMClient {
         return Uni.createFrom().item(() -> {
             long startTime = System.nanoTime();
             try {
-                String response = modelToUse.chat(userMessage);
+                String response = retryHelper.executeWithRetry(
+                        () -> modelToUse.chat(userMessage),
+                        "Anthropic",
+                        config.maxRetries(),
+                        config.baseDelayMs());
                 long durationMs = (System.nanoTime() - startTime) / 1_000_000;
                 LOG.debugf("Anthropic generation (model=%s) completed in %d ms", model, durationMs);
                 return response;
+            } catch (IllegalStateException e) {
+                throw e;
             } catch (Exception e) {
                 long durationMs = (System.nanoTime() - startTime) / 1_000_000;
                 LOG.warnf(e, "Anthropic generation (model=%s) failed after %d ms", model, durationMs);

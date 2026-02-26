@@ -17,7 +17,7 @@
 - [x] **AC2:** Anthropic API integration (Claude)
 - [x] **AC3:** API keys managed via environment variables
 - [x] **AC4:** Model selection configurable per request or globally
-- [ ] **AC5:** Rate limiting and retry logic for API failures
+- [x] **AC5:** Rate limiting and retry logic for API failures
 - [ ] **AC6:** Usage logging for cost tracking
 
 ---
@@ -52,7 +52,7 @@
 - [x] **T2:** Create `OpenAILLMClient` configuration (backend)
 - [x] **T3:** Add Anthropic Claude support (backend)
 - [x] **T4:** Implement API key management (backend)
-- [ ] **T5:** Add rate limiting and retry logic (backend)
+- [x] **T5:** Add rate limiting and retry logic (backend)
 - [ ] **T6:** Implement usage logging (backend)
 - [ ] **T7:** Write integration tests with mock API (test)
 
