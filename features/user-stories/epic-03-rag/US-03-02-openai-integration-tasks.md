@@ -39,14 +39,15 @@
 - **Description:** Add Anthropic Claude API integration alongside OpenAI. Create `AnthropicLLMClient` class following same pattern as OpenAI client. Support Claude Sonnet and Claude Opus models.
 - **Estimated Hours:** 5 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T2 (needs OpenAI client pattern)
 - **Acceptance Criteria:**
-  - [ ] AnthropicLLMClient class created
-  - [ ] Supports Claude Sonnet and Claude Opus
-  - [ ] API key authentication working
-  - [ ] Consistent interface with OpenAI client
+  - [x] AnthropicLLMClient class created
+  - [x] Supports Claude Sonnet and Claude Opus
+  - [x] API key authentication working
+  - [x] Consistent interface with OpenAI client
 - **Technical Notes:** Use LangChain4j's Anthropic integration or direct Anthropic SDK. Support Claude 3.5 Sonnet and Claude 3 Opus models. Follow same configuration pattern as OpenAI.
+- **Implementation Notes:** `AnthropicLLMClient` implements `LLMClient`, uses `AnthropicConfiguration` (@ConfigMapping prefix `megabrain.llm.anthropic`), API key from `megabrain.llm.anthropic.api-key` / `${ANTHROPIC_API_KEY:}` in application.properties. Uses LangChain4j `AnthropicChatModel` for non-streaming generation; supports per-request model override. Default model `claude-3-5-sonnet-20241022`. Unit tests in `AnthropicLLMClientTest` cover availability, validation, and contract without calling real API.
 
 ### T4: Implement API key management
 - **Description:** Implement secure API key management for OpenAI and Anthropic. Load API keys from environment variables or configuration. Never log or expose keys in error messages. Support key validation on startup.

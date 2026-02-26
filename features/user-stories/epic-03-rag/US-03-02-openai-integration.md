@@ -14,7 +14,7 @@
 ## Acceptance Criteria
 
 - [x] **AC1:** OpenAI API integration (GPT-4, GPT-3.5-turbo)
-- [ ] **AC2:** Anthropic API integration (Claude)
+- [x] **AC2:** Anthropic API integration (Claude)
 - [x] **AC3:** API keys managed via environment variables
 - [x] **AC4:** Model selection configurable per request or globally
 - [ ] **AC5:** Rate limiting and retry logic for API failures
@@ -50,7 +50,7 @@
 
 - [x] **T1:** Add LangChain4j OpenAI dependency (backend)
 - [x] **T2:** Create `OpenAILLMClient` configuration (backend)
-- [ ] **T3:** Add Anthropic Claude support (backend)
+- [x] **T3:** Add Anthropic Claude support (backend)
 - [ ] **T4:** Implement API key management (backend)
 - [ ] **T5:** Add rate limiting and retry logic (backend)
 - [ ] **T6:** Implement usage logging (backend)
