@@ -32,6 +32,9 @@ class AnthropicLLMClientTest {
     @Mock
     private LLMRetryHelper retryHelper;
 
+    @Mock
+    private LLMUsageRecorder usageRecorder;
+
     private AnthropicLLMClient client;
 
     @BeforeEach
@@ -41,7 +44,7 @@ class AnthropicLLMClientTest {
         when(config.timeoutSeconds()).thenReturn(60);
         when(config.maxRetries()).thenReturn(4);
         when(config.baseDelayMs()).thenReturn(1000L);
-        client = new AnthropicLLMClient(config, retryHelper);
+        client = new AnthropicLLMClient(config, retryHelper, usageRecorder);
     }
 
     @Test

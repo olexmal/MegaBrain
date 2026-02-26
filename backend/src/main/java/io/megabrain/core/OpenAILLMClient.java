@@ -13,6 +13,7 @@ import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.jboss.logging.Logger;
 
+import java.time.Instant;
 import java.time.Duration;
 
 /**
@@ -27,12 +28,14 @@ public class OpenAILLMClient implements LLMClient {
 
     private final OpenAIConfiguration config;
     private final LLMRetryHelper retryHelper;
+    private final LLMUsageRecorder usageRecorder;
     private volatile ChatModel chatModel;
     private volatile boolean available;
 
-    public OpenAILLMClient(OpenAIConfiguration config, LLMRetryHelper retryHelper) {
+    public OpenAILLMClient(OpenAIConfiguration config, LLMRetryHelper retryHelper, LLMUsageRecorder usageRecorder) {
         this.config = config;
         this.retryHelper = retryHelper;
+        this.usageRecorder = usageRecorder != null ? usageRecorder : new NoOpLLMUsageRecorder();
     }
 
     @PostConstruct
@@ -110,6 +113,13 @@ public class OpenAILLMClient implements LLMClient {
                         config.maxRetries(),
                         config.baseDelayMs());
                 long durationMs = (System.nanoTime() - startTime) / 1_000_000;
+                int inputTokens = LLMCostEstimator.estimateTokens(userMessage);
+                int outputTokens = LLMCostEstimator.estimateTokens(response);
+                double costEstimate = LLMCostEstimator.estimateCost("openai", model, inputTokens, outputTokens);
+                LLMUsageRecord usage = new LLMUsageRecord("openai", model, inputTokens, outputTokens, costEstimate, Instant.now());
+                usageRecorder.record(usage);
+                LOG.infof("OpenAI usage: model=%s inputTokens=%d outputTokens=%d costEstimate=$%.6f durationMs=%d",
+                        model, inputTokens, outputTokens, costEstimate, durationMs);
                 LOG.debugf("OpenAI generation (model=%s) completed in %d ms", model, durationMs);
                 return response;
             } catch (IllegalStateException e) {

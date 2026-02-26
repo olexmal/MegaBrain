@@ -81,14 +81,15 @@
 - **Description:** Implement usage logging for API calls to track costs. Log model used, tokens consumed (input/output), and estimated cost. Store usage metrics for reporting and billing.
 - **Estimated Hours:** 4 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T2, T3 (needs client implementations)
 - **Acceptance Criteria:**
-  - [ ] Usage logged for each API call
-  - [ ] Tracks model, tokens, estimated cost
-  - [ ] Usage metrics stored (database or metrics system)
-  - [ ] Cost estimation accurate
+  - [x] Usage logged for each API call
+  - [x] Tracks model, tokens, estimated cost
+  - [x] Usage metrics stored (database or metrics system)
+  - [x] Cost estimation accurate
 - **Technical Notes:** Log to database table or metrics system (Prometheus). Track: model, input_tokens, output_tokens, cost_estimate. Use current pricing for cost calculation. Support usage reports/APIs.
+- **Implementation Notes:** Added LLMUsageRecord (provider, model, inputTokens, outputTokens, costEstimate, timestamp), LLMCostEstimator (estimateCost for OpenAI GPT-4/GPT-3.5 and Anthropic Sonnet/Opus; estimateTokens from text length), LLMUsageRecorder interface with InMemoryLLMUsageRecorder (bounded in-memory store) and NoOpLLMUsageRecorder for optional injection. OpenAILLMClient and AnthropicLLMClient inject LLMUsageRecorder; after each successful chat call they estimate tokens (chars/4), compute cost, record usage, and log (model, tokens, cost, duration). GET /api/v1/llm/usage?limit= returns recent records and totalCostEstimate. Unit tests: LLMCostEstimatorTest, InMemoryLLMUsageRecorderTest, NoOpLLMUsageRecorderTest.
 
 ### T7: Write integration tests with mock API
 - **Description:** Create integration tests using mock OpenAI and Anthropic API servers. Test API key management, rate limiting, retry logic, and usage logging. Test both success and failure scenarios.

@@ -32,6 +32,9 @@ class OpenAILLMClientTest {
     @Mock
     private LLMRetryHelper retryHelper;
 
+    @Mock
+    private LLMUsageRecorder usageRecorder;
+
     private OpenAILLMClient client;
 
     @BeforeEach
@@ -41,7 +44,7 @@ class OpenAILLMClientTest {
         when(config.timeoutSeconds()).thenReturn(60);
         when(config.maxRetries()).thenReturn(4);
         when(config.baseDelayMs()).thenReturn(1000L);
-        client = new OpenAILLMClient(config, retryHelper);
+        client = new OpenAILLMClient(config, retryHelper, usageRecorder);
     }
 
     @Test

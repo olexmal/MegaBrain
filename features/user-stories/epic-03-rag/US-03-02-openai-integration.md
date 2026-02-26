@@ -18,7 +18,7 @@
 - [x] **AC3:** API keys managed via environment variables
 - [x] **AC4:** Model selection configurable per request or globally
 - [x] **AC5:** Rate limiting and retry logic for API failures
-- [ ] **AC6:** Usage logging for cost tracking
+- [x] **AC6:** Usage logging for cost tracking
 
 ---
 
@@ -53,7 +53,7 @@
 - [x] **T3:** Add Anthropic Claude support (backend)
 - [x] **T4:** Implement API key management (backend)
 - [x] **T5:** Add rate limiting and retry logic (backend)
-- [ ] **T6:** Implement usage logging (backend)
+- [x] **T6:** Implement usage logging (backend)
 - [ ] **T7:** Write integration tests with mock API (test)
 
 ---

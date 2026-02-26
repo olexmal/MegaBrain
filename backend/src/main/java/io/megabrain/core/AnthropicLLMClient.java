@@ -13,6 +13,7 @@ import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.jboss.logging.Logger;
 
+import java.time.Instant;
 import java.time.Duration;
 
 /**
@@ -27,12 +28,14 @@ public class AnthropicLLMClient implements LLMClient {
 
     private final AnthropicConfiguration config;
     private final LLMRetryHelper retryHelper;
+    private final LLMUsageRecorder usageRecorder;
     private volatile ChatModel chatModel;
     private volatile boolean available;
 
-    public AnthropicLLMClient(AnthropicConfiguration config, LLMRetryHelper retryHelper) {
+    public AnthropicLLMClient(AnthropicConfiguration config, LLMRetryHelper retryHelper, LLMUsageRecorder usageRecorder) {
         this.config = config;
         this.retryHelper = retryHelper;
+        this.usageRecorder = usageRecorder != null ? usageRecorder : new NoOpLLMUsageRecorder();
     }
 
     @PostConstruct
@@ -110,6 +113,13 @@ public class AnthropicLLMClient implements LLMClient {
                         config.maxRetries(),
                         config.baseDelayMs());
                 long durationMs = (System.nanoTime() - startTime) / 1_000_000;
+                int inputTokens = LLMCostEstimator.estimateTokens(userMessage);
+                int outputTokens = LLMCostEstimator.estimateTokens(response);
+                double costEstimate = LLMCostEstimator.estimateCost("anthropic", model, inputTokens, outputTokens);
+                LLMUsageRecord usage = new LLMUsageRecord("anthropic", model, inputTokens, outputTokens, costEstimate, Instant.now());
+                usageRecorder.record(usage);
+                LOG.infof("Anthropic usage: model=%s inputTokens=%d outputTokens=%d costEstimate=$%.6f durationMs=%d",
+                        model, inputTokens, outputTokens, costEstimate, durationMs);
                 LOG.debugf("Anthropic generation (model=%s) completed in %d ms", model, durationMs);
                 return response;
             } catch (IllegalStateException e) {
