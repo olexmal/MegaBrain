@@ -38,13 +38,13 @@
 - **Description:** Implement token counting functionality to estimate token usage for prompt construction. Count tokens in system prompt, user question, and code chunks. Use approximate token counting (e.g., 1 token ≈ 4 characters) or integrate with model's tokenizer if available.
 - **Estimated Hours:** 4 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T1, T2 (needs template and formatter)
 - **Acceptance Criteria:**
-  - [ ] Token counting implemented
-  - [ ] Accurate enough for context window management
-  - [ ] Handles different models (different context windows)
-  - [ ] Efficient (doesn't slow down prompt construction)
+  - [x] Token counting implemented
+  - [x] Accurate enough for context window management
+  - [x] Handles different models (different context windows)
+  - [x] Efficient (doesn't slow down prompt construction)
 - **Technical Notes:** Use approximate counting: tokens ≈ characters / 4. Or use tiktoken library if available for Java. Support different context windows per model (GPT-4: 8K/32K, Claude: 100K, Ollama: varies).
 
 ### T4: Add chunk selection based on relevance and token budget

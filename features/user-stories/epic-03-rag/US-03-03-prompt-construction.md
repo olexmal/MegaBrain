@@ -52,7 +52,7 @@
 
 - [x] **T1:** Design prompt template structure (backend)
 - [x] **T2:** Implement context formatter for code chunks (backend)
-- [ ] **T3:** Implement token counting for context window (backend)
+- [x] **T3:** Implement token counting for context window (backend)
 - [ ] **T4:** Add chunk selection based on relevance and token budget (backend)
 - [ ] **T5:** Create configurable prompt template system (backend)
 - [ ] **T6:** Write tests for prompt construction (test)
