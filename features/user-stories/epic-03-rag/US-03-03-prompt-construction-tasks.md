@@ -64,13 +64,13 @@
 - **Description:** Implement configurable prompt template system that allows users to customize prompts. Load templates from files or database. Support template variables and conditional sections. Validate template syntax.
 - **Estimated Hours:** 4 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T1 (needs template structure)
 - **Acceptance Criteria:**
-  - [ ] Templates loadable from files/database
-  - [ ] Template variables supported
-  - [ ] Templates configurable per model if needed
-  - [ ] Template validation on load
+  - [x] Templates loadable from files/database
+  - [x] Template variables supported
+  - [x] Templates configurable per model if needed
+  - [x] Template validation on load
 - **Technical Notes:** Use template engine (Mustache, FreeMarker) or custom parser. Support variables: {{question}}, {{context}}, {{sources}}. Store templates in resources or configurable path. Validate on startup.
 
 ### T6: Write tests for prompt construction

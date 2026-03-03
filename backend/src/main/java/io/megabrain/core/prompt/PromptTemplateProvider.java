@@ -16,8 +16,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Provides access to configured prompt templates.
@@ -28,6 +29,7 @@ public class PromptTemplateProvider {
     private final PromptTemplateConfiguration config;
     private PromptTemplate defaultTemplate;
     private PromptTemplate systemTemplate;
+    private final Map<String, PromptTemplate> modelTemplatesCache = new ConcurrentHashMap<>();
 
     @Inject
     public PromptTemplateProvider(PromptTemplateConfiguration config) {
@@ -35,13 +37,14 @@ public class PromptTemplateProvider {
     }
 
     /**
-     * Initializes the default template by loading it from the configured path.
+     * Initializes the templates by loading them from configured paths.
      */
     @jakarta.annotation.PostConstruct
     public void init() {
         String path = config.templatePath();
         try {
             String content = loadContent(path);
+            validateTemplateContent(content, path, true);
             this.defaultTemplate = PromptTemplate.from(content);
         } catch (IOException e) {
             throw new RuntimeException("Failed to load prompt template from " + path, e);
@@ -51,9 +54,34 @@ public class PromptTemplateProvider {
             String sysPath = config.systemTemplatePath().get();
             try {
                 String sysContent = loadContent(sysPath);
+                // System template usually doesn't need question, but might need context
                 this.systemTemplate = PromptTemplate.from(sysContent);
             } catch (IOException e) {
                 throw new RuntimeException("Failed to load system prompt template from " + sysPath, e);
+            }
+        }
+
+        Map<String, String> modelTemplates = config.modelTemplates();
+        if (modelTemplates != null) {
+            for (Map.Entry<String, String> entry : modelTemplates.entrySet()) {
+                try {
+                    String content = loadContent(entry.getValue());
+                    validateTemplateContent(content, entry.getValue(), true);
+                    modelTemplatesCache.put(entry.getKey(), PromptTemplate.from(content));
+                } catch (IOException e) {
+                    throw new RuntimeException("Failed to load model prompt template for '" + entry.getKey() + "' from " + entry.getValue(), e);
+                }
+            }
+        }
+    }
+
+    private void validateTemplateContent(String content, String sourcePath, boolean isUserTemplate) {
+        if (isUserTemplate) {
+            if (!content.contains("{{question}}")) {
+                throw new IllegalArgumentException("Template from " + sourcePath + " is missing required variable: {{question}}");
+            }
+            if (!content.contains("{{context}}")) {
+                throw new IllegalArgumentException("Template from " + sourcePath + " is missing required variable: {{context}}");
             }
         }
     }
@@ -68,6 +96,22 @@ public class PromptTemplateProvider {
             init();
         }
         return defaultTemplate;
+    }
+
+    /**
+     * Gets the prompt template for a specific model, falling back to default if not configured.
+     *
+     * @param modelName the name of the model
+     * @return the prompt template
+     */
+    public PromptTemplate getTemplateForModel(String modelName) {
+        if (modelName == null) {
+            return getDefaultTemplate();
+        }
+        if (defaultTemplate == null) {
+            init();
+        }
+        return modelTemplatesCache.getOrDefault(modelName, defaultTemplate);
     }
 
     /**

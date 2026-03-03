@@ -7,6 +7,7 @@ package io.megabrain.core.prompt;
 
 import io.smallrye.config.ConfigMapping;
 import io.smallrye.config.WithDefault;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -31,4 +32,13 @@ public interface PromptTemplateConfiguration {
      * @return The system template path
      */
     Optional<String> systemTemplatePath();
+
+    /**
+     * Optional model-specific prompt templates.
+     * The key is the model name.
+     * The value is the path to the template.
+     * 
+     * @return Map of model name to template path
+     */
+    Map<String, String> modelTemplates();
 }
