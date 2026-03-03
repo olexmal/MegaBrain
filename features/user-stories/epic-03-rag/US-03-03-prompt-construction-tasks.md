@@ -51,13 +51,13 @@
 - **Description:** Implement intelligent chunk selection that selects top-k most relevant chunks while staying within token budget. Prioritize high-relevance chunks, ensure diversity, and respect context window limits. Handle cases where all chunks don't fit.
 - **Estimated Hours:** 5 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T2, T3 (needs formatter and token counting)
 - **Acceptance Criteria:**
-  - [ ] Chunks selected based on relevance
-  - [ ] Token budget respected
-  - [ ] Selection is efficient
-  - [ ] Handles edge cases (too many chunks, no chunks)
+  - [x] Chunks selected based on relevance
+  - [x] Token budget respected
+  - [x] Selection is efficient
+  - [x] Handles edge cases (too many chunks, no chunks)
 - **Technical Notes:** Sort chunks by relevance score. Select chunks until token budget exhausted. Reserve tokens for system prompt and user question (e.g., 20% of context window). Consider diversity (avoid duplicate files).
 
 ### T5: Create configurable prompt template system
