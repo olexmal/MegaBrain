@@ -25,13 +25,13 @@
 - **Description:** Implement code chunk formatter that formats search results into readable context for LLM. Include source file path, entity name, line numbers, and code content. Format consistently across languages.
 - **Estimated Hours:** 4 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T1 (needs template structure)
 - **Acceptance Criteria:**
-  - [ ] Code chunks formatted consistently
-  - [ ] Includes source file, entity, line numbers
-  - [ ] Format is clear and readable
-  - [ ] Works for all supported languages
+  - [x] Code chunks formatted consistently
+  - [x] Includes source file, entity, line numbers
+  - [x] Format is clear and readable
+  - [x] Works for all supported languages
 - **Technical Notes:** Format: `[Source: path/to/file.java - EntityName.method() (lines 25-45)]\n<code content>`. Use consistent formatting across languages. Include language identifier if helpful.
 
 ### T3: Implement token counting for context window
