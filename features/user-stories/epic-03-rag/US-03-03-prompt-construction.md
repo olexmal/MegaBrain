@@ -50,7 +50,7 @@
 
 ## Technical Tasks
 
-- [ ] **T1:** Design prompt template structure (backend)
+- [x] **T1:** Design prompt template structure (backend)
 - [ ] **T2:** Implement context formatter for code chunks (backend)
 - [ ] **T3:** Implement token counting for context window (backend)
 - [ ] **T4:** Add chunk selection based on relevance and token budget (backend)

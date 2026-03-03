@@ -12,13 +12,13 @@
 - **Description:** Design the prompt template structure that includes system prompt, user question, and code context. Define template sections: role definition, constraints, instructions, context formatting, and citation requirements. Create template as configurable resource.
 - **Estimated Hours:** 4 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** US-02-03 (needs search results)
 - **Acceptance Criteria:**
-  - [ ] Prompt template structure designed
-  - [ ] Template includes all required sections
-  - [ ] Template is configurable
-  - [ ] Template supports citation instructions
+  - [x] Prompt template structure designed
+  - [x] Template includes all required sections
+  - [x] Template is configurable
+  - [x] Template supports citation instructions
 - **Technical Notes:** Use template engine (e.g., Mustache, FreeMarker) or simple string replacement. Define sections: system_prompt, user_question, code_context, instructions. Store template in resources or database.
 
 ### T2: Implement context formatter for code chunks
