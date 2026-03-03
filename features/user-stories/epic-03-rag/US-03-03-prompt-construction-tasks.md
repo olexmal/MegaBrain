@@ -77,14 +77,14 @@
 - **Description:** Create comprehensive tests for prompt construction. Test template rendering, context formatting, token counting, chunk selection, and edge cases. Verify prompts are well-formed and within token limits.
 - **Estimated Hours:** 4 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T1-T5 (needs complete implementation)
 - **Acceptance Criteria:**
-  - [ ] Tests for template rendering
-  - [ ] Tests for context formatting
-  - [ ] Tests for token counting
-  - [ ] Tests for chunk selection
-  - [ ] Test coverage >80%
+  - [x] Tests for template rendering
+  - [x] Tests for context formatting
+  - [x] Tests for token counting
+  - [x] Tests for chunk selection
+  - [x] Test coverage >80%
 - **Technical Notes:** Use JUnit 5. Test with various chunk counts, token budgets, and template configurations. Verify token counts are accurate. Test edge cases (empty context, too many chunks).
 
 ---

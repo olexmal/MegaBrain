@@ -13,12 +13,12 @@
 
 ## Acceptance Criteria
 
-- [ ] **AC1:** System prompt establishes role and constraints
-- [ ] **AC2:** Context window efficiently utilized
-- [ ] **AC3:** Code chunks clearly delineated in prompt
-- [ ] **AC4:** Instructions to cite sources included
-- [ ] **AC5:** Instructions to admit uncertainty when context insufficient
-- [ ] **AC6:** Prompt templates configurable
+- [x] **AC1:** System prompt establishes role and constraints
+- [x] **AC2:** Context window efficiently utilized
+- [x] **AC3:** Code chunks clearly delineated in prompt
+- [x] **AC4:** Instructions to cite sources included
+- [x] **AC5:** Instructions to admit uncertainty when context insufficient
+- [x] **AC6:** Prompt templates configurable
 
 ---
 
@@ -55,7 +55,7 @@
 - [x] **T3:** Implement token counting for context window (backend)
 - [x] **T4:** Add chunk selection based on relevance and token budget (backend)
 - [x] **T5:** Create configurable prompt template system (backend)
-- [ ] **T6:** Write tests for prompt construction (test)
+- [x] **T6:** Write tests for prompt construction (test)
 
 ---
 
