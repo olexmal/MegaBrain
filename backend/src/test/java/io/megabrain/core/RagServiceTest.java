@@ -13,8 +13,8 @@ import io.megabrain.api.CancelledEvent;
 import io.megabrain.api.ErrorStreamEvent;
 import io.megabrain.api.LineRange;
 import io.megabrain.api.RagResponse;
-import io.megabrain.api.RagSourceMetadata;
 import io.megabrain.api.SearchResult;
+import io.megabrain.api.SourceDTO;
 import io.megabrain.api.SseStreamEvent;
 import io.megabrain.api.TokenStreamEvent;
 import io.smallrye.mutiny.Multi;
@@ -227,8 +227,8 @@ class RagServiceTest {
         assertThat(response.sources()).containsExactly("src/auth/AuthService.java:25");
         assertThat(response.sourceMetadata()).hasSize(1);
         assertThat(response.sourceMetadata().get(0).filePath()).isEqualTo("src/auth/AuthService.java");
-        assertThat(response.sourceMetadata().get(0).lineRange().getStartLine()).isEqualTo(25);
-        assertThat(response.sourceMetadata().get(0).lineRange().getEndLine()).isEqualTo(25);
+        assertThat(response.sourceMetadata().get(0).lineStart()).isEqualTo(25);
+        assertThat(response.sourceMetadata().get(0).lineEnd()).isEqualTo(25);
     }
 
     @Test
@@ -283,11 +283,11 @@ class RagServiceTest {
         RagResponse response = result.await().indefinitely();
 
         assertThat(response.sourceMetadata()).hasSize(1);
-        RagSourceMetadata meta = response.sourceMetadata().get(0);
+        SourceDTO meta = response.sourceMetadata().get(0);
         assertThat(meta.filePath()).isEqualTo("src/auth/AuthService.java");
         assertThat(meta.entityName()).isEqualTo("AuthService");
-        assertThat(meta.lineRange().getStartLine()).isEqualTo(20);
-        assertThat(meta.lineRange().getEndLine()).isEqualTo(45);
+        assertThat(meta.lineStart()).isEqualTo(20);
+        assertThat(meta.lineEnd()).isEqualTo(45);
         assertThat(meta.relevanceScore()).isEqualTo(0.92f);
         assertThat(meta.chunkId()).isEqualTo("chunk-0");
     }

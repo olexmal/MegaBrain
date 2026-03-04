@@ -15,11 +15,12 @@ import java.util.List;
  * Same shape as the logical "complete" payload when streaming ends:
  * full answer text, optional sources, optional model identifier.
  * US-03-05 T3: source_metadata lists all context and cited sources with full metadata.
+ * T4: source_metadata uses SourceDTO for full metadata (file_path, entity_name, line_start, line_end, relevance_score, repository, language, chunk_id).
  */
 public record RagResponse(
         @JsonProperty("answer") String answer,
         @JsonProperty("sources") List<String> sources,
-        @JsonProperty("source_metadata") List<RagSourceMetadata> sourceMetadata,
+        @JsonProperty("source_metadata") List<SourceDTO> sourceMetadata,
         @JsonProperty("model_used") String modelUsed
 ) {
     public RagResponse {

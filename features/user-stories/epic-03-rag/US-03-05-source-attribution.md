@@ -63,7 +63,7 @@
 - [x] **T1:** Update prompt template to require citations (backend)
 - [x] **T2:** Parse LLM response for citation extraction (backend)
 - [x] **T3:** Attach source metadata to response (backend)
-- [ ] **T4:** Create source DTO with all metadata (backend)
+- [x] **T4:** Create source DTO with all metadata (backend)
 - [ ] **T5:** Write tests for citation parsing (test)
 
 ---

@@ -7,10 +7,9 @@ package io.megabrain.core;
 
 import io.megabrain.api.CancelledEvent;
 import io.megabrain.api.ErrorStreamEvent;
-import io.megabrain.api.LineRange;
 import io.megabrain.api.RagResponse;
-import io.megabrain.api.RagSourceMetadata;
 import io.megabrain.api.SearchResult;
+import io.megabrain.api.SourceDTO;
 import io.megabrain.api.SseStreamEvent;
 import io.megabrain.api.TokenStreamEvent;
 import dev.langchain4j.model.chat.StreamingChatModel;
@@ -192,7 +191,7 @@ public class RagService {
                     List<String> sourceStrings = citations.stream()
                             .map(ExtractedCitation::toSourceString)
                             .collect(Collectors.toList());
-                    List<RagSourceMetadata> sourceMetadata = buildSourceMetadata(chunks, citations);
+                    List<SourceDTO> sourceMetadata = buildSourceMetadata(chunks, citations);
                     return new RagResponse(answerText, sourceStrings, sourceMetadata, null);
                 });
     }
@@ -201,28 +200,18 @@ public class RagService {
      * Builds the combined source metadata list: all context chunks first (with relevance scores and chunk ids),
      * then any cited sources not already present (with file path and line range only).
      */
-    private static List<RagSourceMetadata> buildSourceMetadata(List<SearchResult> contextChunks, List<ExtractedCitation> citations) {
-        List<RagSourceMetadata> list = new ArrayList<>();
+    private static List<SourceDTO> buildSourceMetadata(List<SearchResult> contextChunks, List<ExtractedCitation> citations) {
+        List<SourceDTO> list = new ArrayList<>();
         int index = 0;
         for (SearchResult r : contextChunks) {
-            list.add(new RagSourceMetadata(
-                    r.getSourceFile(),
-                    r.getEntityName(),
-                    r.getLineRange(),
-                    r.getScore(),
-                    "chunk-" + index));
+            list.add(SourceDTO.fromSearchResult(r, "chunk-" + index));
             index++;
         }
         for (ExtractedCitation c : citations) {
             boolean alreadyPresent = list.stream().anyMatch(m ->
-                    c.filePath().equals(m.filePath()) && c.lineStart() == m.lineRange().getStartLine() && c.lineEnd() == m.lineRange().getEndLine());
+                    c.filePath().equals(m.filePath()) && c.lineStart() == m.lineStart() && c.lineEnd() == m.lineEnd());
             if (!alreadyPresent) {
-                list.add(new RagSourceMetadata(
-                        c.filePath(),
-                        null,
-                        new LineRange(c.lineStart(), c.lineEnd()),
-                        null,
-                        null));
+                list.add(SourceDTO.fromCitation(c));
             }
         }
         return list;

@@ -51,13 +51,13 @@
 - **Description:** Create SourceDTO class that represents source information in responses. Include all metadata fields: file path, entity name, line numbers, relevance score, repository, language. Make it serializable to JSON.
 - **Estimated Hours:** 2 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T3 (needs source metadata)
 - **Acceptance Criteria:**
-  - [ ] SourceDTO class created
-  - [ ] Includes all required metadata fields
-  - [ ] Serializable to JSON
-  - [ ] Fields are well-documented
+  - [x] SourceDTO class created
+  - [x] Includes all required metadata fields
+  - [x] Serializable to JSON
+  - [x] Fields are well-documented
 - **Technical Notes:** Use Java record or POJO with Jackson annotations. Fields: file_path, entity_name, line_start, line_end, relevance_score, repository, language, chunk_id. Include optional fields for future use.
 
 ### T5: Write tests for citation parsing
