@@ -13,12 +13,12 @@
 
 ## Acceptance Criteria
 
-- [ ] **AC1:** `POST /api/v1/ingest/{source}` initiates ingestion
-- [ ] **AC2:** Request body accepts: repository URL, branch, credentials reference
+- [x] **AC1:** `POST /api/v1/ingest/{source}` initiates ingestion
+- [x] **AC2:** Request body accepts: repository URL, branch, credentials reference
 - [x] **AC3:** Response is SSE stream with progress events
-- [ ] **AC4:** Source parameter supports: `github`, `gitlab`, `bitbucket`, `local`
-- [ ] **AC5:** Returns job ID for tracking
-- [ ] **AC6:** Concurrent ingestion requests handled
+- [x] **AC4:** Source parameter supports: `github`, `gitlab`, `bitbucket`, `local`
+- [x] **AC5:** Returns job ID for tracking
+- [x] **AC6:** Concurrent ingestion requests handled
 
 ---
 
@@ -53,7 +53,7 @@
 - [x] **T3:** Create ingestion request DTO (backend)
 - [x] **T4:** Integrate with RepositoryIngestionService (backend)
 - [x] **T5:** Return SSE stream from Mutiny Multi (backend)
-- [ ] **T6:** Write integration tests (test)
+- [x] **T6:** Write integration tests (test)
 
 ---
 

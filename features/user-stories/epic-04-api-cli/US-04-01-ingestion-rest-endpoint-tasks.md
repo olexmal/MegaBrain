@@ -77,14 +77,14 @@
 - **Description:** Create integration tests for ingestion endpoint. Test POST requests, source validation, SSE streaming, error handling, and concurrent requests. Use REST Assured or similar.
 - **Estimated Hours:** 3 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T1-T5 (needs complete implementation)
 - **Acceptance Criteria:**
-  - [ ] Integration tests for endpoint
-  - [ ] Tests cover all source types
-  - [ ] Tests verify SSE streaming
-  - [ ] Tests cover error scenarios
-  - [ ] Test coverage >80%
+  - [x] Integration tests for endpoint
+  - [x] Tests cover all source types
+  - [x] Tests verify SSE streaming
+  - [x] Tests cover error scenarios
+  - [x] Test coverage >80%
 - **Technical Notes:** Use REST Assured or Quarkus test framework. Test with mock ingestion service. Verify SSE events are received correctly.
 
 ---

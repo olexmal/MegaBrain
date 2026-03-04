@@ -24,7 +24,7 @@ import jakarta.ws.rs.core.Response;
  * REST endpoint for repository ingestion operations.
  */
 @ApplicationScoped
-@Path("/api/v1/ingest")
+@Path("/ingest")
 public class IngestionResource {
 
     private final IngestionService ingestionService;
