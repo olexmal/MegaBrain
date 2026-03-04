@@ -1,67 +1,28 @@
+/*
+ * Copyright (c) 2025 MegaBrain Contributors
+ * Licensed under the MIT License - see LICENSE file for details.
+ */
+
 package io.megabrain.api;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.validation.constraints.NotNull;
+
 /**
- * Request DTO for repository ingestion operations.
- * Supports both full and incremental indexing modes.
+ * DTO for repository ingestion request.
  */
-public class IngestionRequest {
+public record IngestionRequest(
+    @NotNull(message = "Repository URL must not be null")
+    @JsonProperty("repository")
+    String repository,
 
-    private String repositoryUrl;
-    private boolean incremental = false;
+    @JsonProperty("branch")
+    String branch,
 
-    /**
-     * Default constructor.
-     */
-    public IngestionRequest() {
-    }
+    @JsonProperty("token")
+    String token,
 
-    /**
-     * Constructor with parameters.
-     */
-    public IngestionRequest(String repositoryUrl, boolean incremental) {
-        this.repositoryUrl = repositoryUrl;
-        this.incremental = incremental;
-    }
-
-    /**
-     * Gets the repository URL to ingest.
-     * @return the repository URL
-     */
-    public String getRepositoryUrl() {
-        return repositoryUrl;
-    }
-
-    /**
-     * Sets the repository URL to ingest.
-     * @param repositoryUrl the repository URL
-     */
-    public void setRepositoryUrl(String repositoryUrl) {
-        this.repositoryUrl = repositoryUrl;
-    }
-
-    /**
-     * Gets whether to perform incremental indexing.
-     * When true, only processes changes since the last indexing.
-     * When false (default), performs full indexing.
-     * @return true for incremental indexing, false for full indexing
-     */
-    public boolean isIncremental() {
-        return incremental;
-    }
-
-    /**
-     * Sets whether to perform incremental indexing.
-     * @param incremental true for incremental indexing, false for full indexing
-     */
-    public void setIncremental(boolean incremental) {
-        this.incremental = incremental;
-    }
-
-    @Override
-    public String toString() {
-        return "IngestionRequest{" +
-                "repositoryUrl='" + repositoryUrl + '\'' +
-                ", incremental=" + incremental +
-                '}';
-    }
+    @JsonProperty("incremental")
+    Boolean incremental
+) {
 }

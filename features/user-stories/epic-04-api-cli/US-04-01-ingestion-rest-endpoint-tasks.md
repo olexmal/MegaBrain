@@ -38,13 +38,13 @@
 - **Description:** Create `IngestionRequest` DTO class for request body. Include fields: repository (String), branch (String, optional), token (String, optional), incremental (boolean, optional). Use Bean Validation annotations.
 - **Estimated Hours:** 2 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T2 (needs endpoint)
 - **Acceptance Criteria:**
-  - [ ] IngestionRequest DTO created
-  - [ ] Includes all required fields
-  - [ ] Validation annotations applied
-  - [ ] Serializable from JSON
+  - [x] IngestionRequest DTO created
+  - [x] Includes all required fields
+  - [x] Validation annotations applied
+  - [x] Serializable from JSON
 - **Technical Notes:** Use Java record or POJO with Jackson annotations. Add `@NotNull` for repository. Use `@JsonProperty` for JSON mapping.
 
 ### T4: Integrate with RepositoryIngestionService
