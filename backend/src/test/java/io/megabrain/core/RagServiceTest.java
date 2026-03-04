@@ -11,7 +11,10 @@ import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import io.megabrain.api.CancelledEvent;
 import io.megabrain.api.ErrorStreamEvent;
+import io.megabrain.api.LineRange;
 import io.megabrain.api.RagResponse;
+import io.megabrain.api.RagSourceMetadata;
+import io.megabrain.api.SearchResult;
 import io.megabrain.api.SseStreamEvent;
 import io.megabrain.api.TokenStreamEvent;
 import io.smallrye.mutiny.Multi;
@@ -199,6 +202,7 @@ class RagServiceTest {
 
         assertThat(response.answer()).isEqualTo("Hello world");
         assertThat(response.sources()).isEmpty();
+        assertThat(response.sourceMetadata()).isEmpty();
     }
 
     @Test
@@ -221,6 +225,10 @@ class RagServiceTest {
 
         assertThat(response.answer()).isEqualTo(answerWithCitations);
         assertThat(response.sources()).containsExactly("src/auth/AuthService.java:25");
+        assertThat(response.sourceMetadata()).hasSize(1);
+        assertThat(response.sourceMetadata().get(0).filePath()).isEqualTo("src/auth/AuthService.java");
+        assertThat(response.sourceMetadata().get(0).lineRange().getStartLine()).isEqualTo(25);
+        assertThat(response.sourceMetadata().get(0).lineRange().getEndLine()).isEqualTo(25);
     }
 
     @Test
@@ -244,5 +252,43 @@ class RagServiceTest {
         assertThatThrownBy(() -> ragService.ask("Hi").await().indefinitely())
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("LLM error");
+    }
+
+    @Test
+    @DisplayName("ask with context chunks includes them in source_metadata with relevance scores")
+    void ask_withContextChunks_includesThemInSourceMetadata() {
+        StreamingChatModel mockModel = mock(StreamingChatModel.class);
+        when(streamingModelProvider.getStreamingModel()).thenReturn(Optional.of(mockModel));
+        doAnswer(invocation -> {
+            StreamingChatResponseHandler handler = invocation.getArgument(1);
+            handler.onPartialResponse("The auth logic is in AuthService.");
+            handler.onCompleteResponse(ChatResponse.builder()
+                    .aiMessage(AiMessage.from("The auth logic is in AuthService."))
+                    .build());
+            return null;
+        }).when(mockModel).chat(anyString(), any(StreamingChatResponseHandler.class));
+
+        LineRange range = new LineRange(20, 45);
+        SearchResult chunk = SearchResult.create(
+                "public class AuthService { ... }",
+                "AuthService",
+                "class",
+                "src/auth/AuthService.java",
+                "java",
+                "my-repo",
+                0.92f,
+                range
+        );
+        Uni<RagResponse> result = ragService.ask("Where is auth?", List.of(chunk));
+        RagResponse response = result.await().indefinitely();
+
+        assertThat(response.sourceMetadata()).hasSize(1);
+        RagSourceMetadata meta = response.sourceMetadata().get(0);
+        assertThat(meta.filePath()).isEqualTo("src/auth/AuthService.java");
+        assertThat(meta.entityName()).isEqualTo("AuthService");
+        assertThat(meta.lineRange().getStartLine()).isEqualTo(20);
+        assertThat(meta.lineRange().getEndLine()).isEqualTo(45);
+        assertThat(meta.relevanceScore()).isEqualTo(0.92f);
+        assertThat(meta.chunkId()).isEqualTo("chunk-0");
     }
 }

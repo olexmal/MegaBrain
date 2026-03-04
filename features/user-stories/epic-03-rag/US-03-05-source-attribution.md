@@ -13,12 +13,12 @@
 
 ## Acceptance Criteria
 
-- [ ] **AC1:** Each answer includes list of source chunks used
-- [ ] **AC2:** Sources include: file path, entity name, line numbers
+- [x] **AC1:** Each answer includes list of source chunks used
+- [x] **AC2:** Sources include: file path, entity name, line numbers
 - [x] **AC3:** LLM instructed to reference sources in answer text
 - [x] **AC4:** Inline citations: `[Source: path/to/file.java:42]`
-- [ ] **AC5:** Source relevance scores included
-- [ ] **AC6:** Sources clickable/linkable in UI (data provided)
+- [x] **AC5:** Source relevance scores included
+- [x] **AC6:** Sources clickable/linkable in UI (data provided)
 
 ---
 
@@ -62,7 +62,7 @@
 
 - [x] **T1:** Update prompt template to require citations (backend)
 - [x] **T2:** Parse LLM response for citation extraction (backend)
-- [ ] **T3:** Attach source metadata to response (backend)
+- [x] **T3:** Attach source metadata to response (backend)
 - [ ] **T4:** Create source DTO with all metadata (backend)
 - [ ] **T5:** Write tests for citation parsing (test)
 

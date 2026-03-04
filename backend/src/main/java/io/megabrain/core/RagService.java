@@ -7,7 +7,10 @@ package io.megabrain.core;
 
 import io.megabrain.api.CancelledEvent;
 import io.megabrain.api.ErrorStreamEvent;
+import io.megabrain.api.LineRange;
 import io.megabrain.api.RagResponse;
+import io.megabrain.api.RagSourceMetadata;
+import io.megabrain.api.SearchResult;
 import io.megabrain.api.SseStreamEvent;
 import io.megabrain.api.TokenStreamEvent;
 import dev.langchain4j.model.chat.StreamingChatModel;
@@ -22,6 +25,7 @@ import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Executor;
@@ -145,14 +149,29 @@ public class RagService {
      * Returns the full RAG answer for the given question by buffering all tokens from the stream.
      * Use for non-streaming clients (e.g. when {@code stream=false}). Same logical result as
      * concatenating all token events from {@link #streamTokens(String)}.
+     * Source metadata is built from context chunks (when provided) and from citations in the answer.
      *
      * @param question the user question
      * @return Uni that resolves to the complete RagResponse, or fails on error/cancellation
      */
     public Uni<RagResponse> ask(String question) {
+        return ask(question, List.of());
+    }
+
+    /**
+     * Returns the full RAG answer with source metadata from both context chunks and extracted citations.
+     * Use this overload when context chunks are available (e.g. from search/US-03-03). Includes all
+     * context sources plus any cited sources not already in context.
+     *
+     * @param question the user question
+     * @param contextChunks chunks used as context for the LLM (may be empty)
+     * @return Uni that resolves to the complete RagResponse with source_metadata populated
+     */
+    public Uni<RagResponse> ask(String question, List<SearchResult> contextChunks) {
         if (question == null || question.isBlank()) {
             return Uni.createFrom().item(RagResponse.of(""));
         }
+        List<SearchResult> chunks = contextChunks != null ? contextChunks : List.of();
         return streamTokens(question.trim())
                 .collect().asList()
                 .onItem().transform(events -> {
@@ -173,8 +192,40 @@ public class RagService {
                     List<String> sourceStrings = citations.stream()
                             .map(ExtractedCitation::toSourceString)
                             .collect(Collectors.toList());
-                    return new RagResponse(answerText, sourceStrings, null);
+                    List<RagSourceMetadata> sourceMetadata = buildSourceMetadata(chunks, citations);
+                    return new RagResponse(answerText, sourceStrings, sourceMetadata, null);
                 });
+    }
+
+    /**
+     * Builds the combined source metadata list: all context chunks first (with relevance scores and chunk ids),
+     * then any cited sources not already present (with file path and line range only).
+     */
+    private static List<RagSourceMetadata> buildSourceMetadata(List<SearchResult> contextChunks, List<ExtractedCitation> citations) {
+        List<RagSourceMetadata> list = new ArrayList<>();
+        int index = 0;
+        for (SearchResult r : contextChunks) {
+            list.add(new RagSourceMetadata(
+                    r.getSourceFile(),
+                    r.getEntityName(),
+                    r.getLineRange(),
+                    r.getScore(),
+                    "chunk-" + index));
+            index++;
+        }
+        for (ExtractedCitation c : citations) {
+            boolean alreadyPresent = list.stream().anyMatch(m ->
+                    c.filePath().equals(m.filePath()) && c.lineStart() == m.lineRange().getStartLine() && c.lineEnd() == m.lineRange().getEndLine());
+            if (!alreadyPresent) {
+                list.add(new RagSourceMetadata(
+                        c.filePath(),
+                        null,
+                        new LineRange(c.lineStart(), c.lineEnd()),
+                        null,
+                        null));
+            }
+        }
+        return list;
     }
 
     /**

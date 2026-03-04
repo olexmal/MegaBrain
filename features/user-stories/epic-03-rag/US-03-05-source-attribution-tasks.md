@@ -38,13 +38,13 @@
 - **Description:** Attach full source metadata to RAG response. Include all source chunks used in context, their relevance scores, and metadata (file path, entity name, line ranges). Include both cited sources and all context sources.
 - **Estimated Hours:** 4 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T2 (needs citation extraction), US-03-03 (needs source chunks)
 - **Acceptance Criteria:**
-  - [ ] Source metadata attached to response
-  - [ ] Includes all context sources
-  - [ ] Includes relevance scores
-  - [ ] Metadata is complete and accurate
+  - [x] Source metadata attached to response
+  - [x] Includes all context sources
+  - [x] Includes relevance scores
+  - [x] Metadata is complete and accurate
 - **Technical Notes:** Extend RagResponse DTO with `sources` field. Include: file_path, entity_name, line_range, relevance_score, chunk_id. Include both cited and non-cited sources for transparency.
 
 ### T4: Create source DTO with all metadata
