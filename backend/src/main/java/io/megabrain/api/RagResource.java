@@ -67,7 +67,22 @@ public class RagResource {
             return ragService.ask(question)
                     .map(r -> Response.ok(r).type(MediaType.APPLICATION_JSON).build());
         }
+        return streamRag(question);
+    }
 
+    /**
+     * SSE streaming endpoint for RAG. Returns Multi so the framework streams the response.
+     * Use POST /api/v1/rag/stream with same body as /rag for streaming; Accept: text/event-stream.
+     */
+    @POST
+    @Path("stream")
+    @Produces(MediaType.SERVER_SENT_EVENTS)
+    public Multi<String> streamRag(@Valid RagRequest request) {
+        String question = request != null && request.getQuestion() != null ? request.getQuestion().trim() : "";
+        return streamRag(question);
+    }
+
+    private Multi<String> streamRag(String question) {
         return ragService.streamTokens(question)
                 .map(event -> toSseLine(event))
                 .onFailure().recoverWithItem(throwable -> {

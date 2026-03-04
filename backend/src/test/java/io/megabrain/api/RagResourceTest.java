@@ -146,9 +146,7 @@ class RagResourceTest {
         when(ragService.ask(anyString())).thenReturn(Uni.createFrom().item(response));
 
         Object result = ragResource.rag(request, false);
-        @SuppressWarnings("unchecked")
-        Uni<Response> responseUni = (Uni<Response>) result;
-        Response res = responseUni.await().indefinitely();
+        Response res = ((Uni<Response>) result).await().indefinitely();
 
         assertThat(res.getStatus()).isEqualTo(200);
         assertThat(res.getEntity()).isInstanceOf(RagResponse.class);

@@ -31,17 +31,17 @@ public class WireMockLLMTestResource implements QuarkusTestResourceLifecycleMana
         int port = wireMockServer.port();
         String baseUrl = "http://localhost:" + port + "/v1";
 
-        return Map.of(
-                "megabrain.llm.openai.api-key", OPENAI_API_KEY,
-                "megabrain.llm.openai.base-url", baseUrl,
-                "megabrain.llm.openai.model", "gpt-4",
-                "megabrain.llm.openai.max-retries", "2",
-                "megabrain.llm.openai.base-delay-ms", "10",
-                "megabrain.llm.anthropic.api-key", ANTHROPIC_API_KEY,
-                "megabrain.llm.anthropic.base-url", baseUrl,
-                "megabrain.llm.anthropic.model", "claude-3-5-sonnet-20241022",
-                "megabrain.llm.anthropic.max-retries", "2",
-                "megabrain.llm.anthropic.base-delay-ms", "10"
+        return Map.ofEntries(
+                Map.entry("megabrain.llm.openai.api-key", OPENAI_API_KEY),
+                Map.entry("megabrain.llm.openai.base-url", baseUrl),
+                Map.entry("megabrain.llm.openai.model", "gpt-4"),
+                Map.entry("megabrain.llm.openai.max-retries", "2"),
+                Map.entry("megabrain.llm.openai.base-delay-ms", "10"),
+                Map.entry("megabrain.llm.anthropic.api-key", ANTHROPIC_API_KEY),
+                Map.entry("megabrain.llm.anthropic.base-url", baseUrl),
+                Map.entry("megabrain.llm.anthropic.model", "claude-3-5-sonnet-20241022"),
+                Map.entry("megabrain.llm.anthropic.max-retries", "2"),
+                Map.entry("megabrain.llm.anthropic.base-delay-ms", "10")
         );
     }
 

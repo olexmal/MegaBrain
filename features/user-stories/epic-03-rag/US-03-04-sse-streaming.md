@@ -60,7 +60,7 @@
 - [x] **T3:** Handle stream cancellation (backend)
 - [x] **T4:** Add error event for failures (backend)
 - [x] **T5:** Add non-streaming fallback option (backend)
-- [ ] **T6:** Write integration tests for streaming (test)
+- [x] **T6:** Write integration tests for streaming (test)
 
 ---
 
