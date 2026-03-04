@@ -202,6 +202,28 @@ class RagServiceTest {
     }
 
     @Test
+    @DisplayName("ask extracts citations from answer and populates sources")
+    void ask_answerWithCitations_populatesSources() {
+        StreamingChatModel mockModel = mock(StreamingChatModel.class);
+        when(streamingModelProvider.getStreamingModel()).thenReturn(Optional.of(mockModel));
+        String answerWithCitations = "Auth is in AuthService [Source: src/auth/AuthService.java:25].";
+        doAnswer(invocation -> {
+            StreamingChatResponseHandler handler = invocation.getArgument(1);
+            handler.onPartialResponse(answerWithCitations);
+            handler.onCompleteResponse(ChatResponse.builder()
+                    .aiMessage(AiMessage.from(answerWithCitations))
+                    .build());
+            return null;
+        }).when(mockModel).chat(anyString(), any(StreamingChatResponseHandler.class));
+
+        Uni<RagResponse> result = ragService.ask("Where is auth?");
+        RagResponse response = result.await().indefinitely();
+
+        assertThat(response.answer()).isEqualTo(answerWithCitations);
+        assertThat(response.sources()).containsExactly("src/auth/AuthService.java:25");
+    }
+
+    @Test
     @DisplayName("ask returns empty answer for blank question")
     void ask_withBlankQuestion_returnsEmptyAnswer() {
         RagResponse response = ragService.ask("   ").await().indefinitely();

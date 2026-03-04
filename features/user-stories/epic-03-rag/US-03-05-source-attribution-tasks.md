@@ -25,13 +25,13 @@
 - **Description:** Implement citation parser that extracts citations from LLM-generated answers. Parse citation format `[Source: path:line]` and extract file path, entity name, and line numbers. Handle multiple citations per answer. Validate extracted citations.
 - **Estimated Hours:** 5 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T1 (needs citation format), US-03-04 (needs LLM responses)
 - **Acceptance Criteria:**
-  - [ ] Citations extracted from answer text
-  - [ ] File path, line numbers extracted
-  - [ ] Multiple citations handled
-  - [ ] Invalid citations handled gracefully
+  - [x] Citations extracted from answer text
+  - [x] File path, line numbers extracted
+  - [x] Multiple citations handled
+  - [x] Invalid citations handled gracefully
 - **Technical Notes:** Use regex or parser to extract citations: `\[Source:\s*([^\]]+)\]`. Parse path and line numbers. Validate citations match actual source chunks. Handle malformed citations.
 
 ### T3: Attach source metadata to response

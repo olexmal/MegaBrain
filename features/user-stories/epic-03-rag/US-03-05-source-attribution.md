@@ -61,7 +61,7 @@
 ## Technical Tasks
 
 - [x] **T1:** Update prompt template to require citations (backend)
-- [ ] **T2:** Parse LLM response for citation extraction (backend)
+- [x] **T2:** Parse LLM response for citation extraction (backend)
 - [ ] **T3:** Attach source metadata to response (backend)
 - [ ] **T4:** Create source DTO with all metadata (backend)
 - [ ] **T5:** Write tests for citation parsing (test)

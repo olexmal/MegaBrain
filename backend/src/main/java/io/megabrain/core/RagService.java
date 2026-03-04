@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 /**
  * Service for RAG answer generation and token streaming (US-03-04).
@@ -40,19 +41,28 @@ public class RagService {
     private static final Logger LOG = Logger.getLogger(RagService.class);
 
     private final StreamingChatModelProvider streamingModelProvider;
+    private final CitationParser citationParser;
     private Executor executor;
 
     @Inject
-    public RagService(StreamingChatModelProvider streamingModelProvider) {
-        this(streamingModelProvider, null);
+    public RagService(StreamingChatModelProvider streamingModelProvider, CitationParser citationParser) {
+        this(streamingModelProvider, citationParser, null);
+    }
+
+    /**
+     * Constructor for testing: allows injecting an executor so tests can run streaming synchronously.
+     */
+    RagService(StreamingChatModelProvider streamingModelProvider, CitationParser citationParser, Executor executor) {
+        this.streamingModelProvider = streamingModelProvider;
+        this.citationParser = citationParser;
+        this.executor = executor;
     }
 
     /**
      * Constructor for testing: allows injecting an executor so tests can run streaming synchronously.
      */
     RagService(StreamingChatModelProvider streamingModelProvider, Executor executor) {
-        this.streamingModelProvider = streamingModelProvider;
-        this.executor = executor;
+        this(streamingModelProvider, new CitationParser(), executor);
     }
 
     @PostConstruct
@@ -158,7 +168,12 @@ public class RagService {
                             answer.append(tokenEvent.token());
                         }
                     }
-                    return RagResponse.of(answer.toString());
+                    String answerText = answer.toString();
+                    List<ExtractedCitation> citations = citationParser.parse(answerText);
+                    List<String> sourceStrings = citations.stream()
+                            .map(ExtractedCitation::toSourceString)
+                            .collect(Collectors.toList());
+                    return new RagResponse(answerText, sourceStrings, null);
                 });
     }
 
