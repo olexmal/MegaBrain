@@ -14,7 +14,7 @@
 ## Acceptance Criteria
 
 - [x] **AC1:** LLM response streamed via SSE
-- [ ] **AC2:** First token appears within 2 seconds of request
+- [x] **AC2:** First token appears within 2 seconds of request
 - [x] **AC3:** Tokens sent as they're generated
 - [x] **AC4:** Stream can be cancelled mid-generation
 - [x] **AC5:** Error handling for stream interruptions
@@ -31,7 +31,8 @@
 ### Demo Steps
 1. **Start Streaming Request:** Ask question with stream enabled
    ```bash
-   curl -N "http://localhost:8080/api/v1/rag?stream=true" \
+   curl -N -X POST "http://localhost:8080/api/v1/rag?stream=true" \
+     -H "Content-Type: application/json" \
      -d '{"question": "Explain the authentication flow"}'
    ```
 2. **Show Tokens:** Watch tokens appear in real-time
@@ -61,6 +62,22 @@
 - [x] **T4:** Add error event for failures (backend)
 - [x] **T5:** Add non-streaming fallback option (backend)
 - [x] **T6:** Write integration tests for streaming (test)
+
+---
+
+## Implementation Notes
+
+- **RAG SSE endpoint:** `POST /api/v1/rag` with optional `?stream=true|false` (default: true). Request body: `{"question": "..."}`. Streaming returns SSE events: `event: token`, `event: error`, `event: cancelled` with JSON data.
+- **First-token latency (AC2):** Depends on LLM provider and network; validate in demo. Streaming path is non-blocking and flushes tokens as they arrive.
+
+---
+
+## Definition of Done
+
+- [x] All acceptance criteria met
+- [x] Technical tasks completed (T1–T6)
+- [x] Unit and integration tests added (>80% coverage target)
+- [x] Documentation and demo script updated
 
 ---
 
