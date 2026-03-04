@@ -55,7 +55,7 @@
 
 ## Technical Tasks
 
-- [ ] **T1:** Implement SSE response builder in RagService (backend)
+- [x] **T1:** Implement SSE response builder in RagService (backend)
 - [ ] **T2:** Integrate LangChain4j streaming callback (backend)
 - [ ] **T3:** Handle stream cancellation (backend)
 - [ ] **T4:** Add error event for failures (backend)

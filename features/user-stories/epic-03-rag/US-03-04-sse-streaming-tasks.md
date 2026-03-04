@@ -12,13 +12,13 @@
 - **Description:** Implement Server-Sent Events (SSE) response builder in RagService. Create endpoint that returns `Multi<StreamEvent>` for streaming LLM responses. Handle SSE format (event: token, data: {...}). Integrate with Quarkus reactive REST.
 - **Estimated Hours:** 4 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** US-03-01 or US-03-02 (needs LLM client)
 - **Acceptance Criteria:**
-  - [ ] SSE endpoint returns streaming response
-  - [ ] Events formatted correctly (event: token, data: {...})
-  - [ ] Proper SSE headers set
-  - [ ] Response is reactive (non-blocking)
+  - [x] SSE endpoint returns streaming response
+  - [x] Events formatted correctly (event: token, data: {...})
+  - [x] Proper SSE headers set
+  - [x] Response is reactive (non-blocking)
 - **Technical Notes:** Use Quarkus RESTEasy Reactive with `@Produces(MediaType.SERVER_SENT_EVENTS)`. Use Mutiny's `Multi` for reactive streams. Format: `event: token\ndata: {"token": "..."}\n\n`.
 
 ### T2: Integrate LangChain4j streaming callback
