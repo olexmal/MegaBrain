@@ -51,13 +51,13 @@
 - **Description:** Integrate endpoint with RepositoryIngestionService. Call ingestion service with request parameters. Handle service responses and errors. Return appropriate HTTP status codes.
 - **Estimated Hours:** 3 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T2, T3 (needs endpoint and DTO), US-01-01 (needs service)
 - **Acceptance Criteria:**
-  - [ ] Endpoint calls ingestion service
-  - [ ] Request parameters passed correctly
-  - [ ] Errors handled gracefully
-  - [ ] Appropriate HTTP status codes returned
+  - [x] Endpoint calls ingestion service
+  - [x] Request parameters passed correctly
+  - [x] Errors handled gracefully
+  - [x] Appropriate HTTP status codes returned
 - **Technical Notes:** Inject RepositoryIngestionService. Call `ingest()` method with parameters. Handle exceptions and map to HTTP status codes (400, 500, etc.).
 
 ### T5: Return SSE stream from Mutiny Multi
