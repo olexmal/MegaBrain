@@ -25,13 +25,13 @@
 - **Description:** Integrate LangChain4j's streaming callback to receive tokens as they're generated from LLM. Convert streaming tokens into SSE events. Handle both OpenAI and Ollama streaming formats.
 - **Estimated Hours:** 5 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T1 (needs SSE endpoint), US-03-01, US-03-02 (needs LLM clients)
 - **Acceptance Criteria:**
-  - [ ] Streaming callback integrated
-  - [ ] Tokens converted to SSE events
-  - [ ] Works with OpenAI streaming
-  - [ ] Works with Ollama streaming
+  - [x] Streaming callback integrated
+  - [x] Tokens converted to SSE events
+  - [x] Works with OpenAI streaming
+  - [x] Works with Ollama streaming
 - **Technical Notes:** Use LangChain4j's StreamingResponseHandler. Implement TokenStreamHandler that emits SSE events. Handle different streaming formats (OpenAI delta, Ollama response chunks).
 
 ### T3: Handle stream cancellation
