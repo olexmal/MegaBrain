@@ -12,13 +12,13 @@
 - **Description:** Create `IngestionResource` JAX-RS REST resource class using Quarkus RESTEasy Reactive. Define base path `/api/v1/ingest`. Use CDI for dependency injection. Follow RESTful conventions.
 - **Estimated Hours:** 2 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** US-01-01 (needs ingestion service)
 - **Acceptance Criteria:**
-  - [ ] IngestionResource class created
-  - [ ] Base path `/api/v1/ingest` defined
-  - [ ] CDI injection working
-  - [ ] Follows REST conventions
+  - [x] IngestionResource class created
+  - [x] Base path `/api/v1/ingest` defined
+  - [x] CDI injection working
+  - [x] Follows REST conventions
 - **Technical Notes:** Use Quarkus RESTEasy Reactive. Annotate with `@Path("/api/v1/ingest")`. Inject RepositoryIngestionService via CDI.
 
 ### T2: Implement POST endpoint with path parameter
