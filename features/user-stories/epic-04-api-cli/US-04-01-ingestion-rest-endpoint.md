@@ -49,7 +49,7 @@
 ## Technical Tasks
 
 - [x] **T1:** Create `IngestionResource` JAX-RS class (backend)
-- [ ] **T2:** Implement POST endpoint with path parameter (backend)
+- [x] **T2:** Implement POST endpoint with path parameter (backend)
 - [ ] **T3:** Create ingestion request DTO (backend)
 - [ ] **T4:** Integrate with RepositoryIngestionService (backend)
 - [ ] **T5:** Return SSE stream from Mutiny Multi (backend)

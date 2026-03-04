@@ -25,13 +25,13 @@
 - **Description:** Implement POST endpoint with path parameter for source type: `/api/v1/ingest/{source}`. Support sources: github, gitlab, bitbucket, local. Validate source parameter. Route to appropriate ingestion service.
 - **Estimated Hours:** 3 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T1 (needs resource class)
 - **Acceptance Criteria:**
-  - [ ] POST endpoint with path parameter implemented
-  - [ ] Supports github, gitlab, bitbucket, local sources
-  - [ ] Source parameter validated
-  - [ ] Routes to correct service
+  - [x] POST endpoint with path parameter implemented
+  - [x] Supports github, gitlab, bitbucket, local sources
+  - [x] Source parameter validated
+  - [x] Routes to correct service
 - **Technical Notes:** Use `@POST @Path("/{source}")` annotation. Validate source enum. Return 400 Bad Request for invalid source.
 
 ### T3: Create ingestion request DTO
