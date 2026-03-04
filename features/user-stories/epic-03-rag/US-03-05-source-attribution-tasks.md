@@ -64,14 +64,14 @@
 - **Description:** Create comprehensive tests for citation extraction and parsing. Test various citation formats, multiple citations, malformed citations, and edge cases. Verify citations are correctly extracted and validated.
 - **Estimated Hours:** 3 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T1-T4 (needs complete implementation)
 - **Acceptance Criteria:**
-  - [ ] Tests for citation extraction
-  - [ ] Tests for various citation formats
-  - [ ] Tests for malformed citations
-  - [ ] Tests for citation validation
-  - [ ] Test coverage >80%
+  - [x] Tests for citation extraction
+  - [x] Tests for various citation formats
+  - [x] Tests for malformed citations
+  - [x] Tests for citation validation
+  - [x] Test coverage >80%
 - **Technical Notes:** Use JUnit 5. Test with sample answer texts containing citations. Test edge cases: no citations, multiple citations, invalid format, missing file paths. Verify extracted data is correct.
 
 ---

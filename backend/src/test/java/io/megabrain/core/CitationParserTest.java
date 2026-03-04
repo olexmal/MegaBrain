@@ -150,4 +150,106 @@ class CitationParserTest {
         assertThat(citations.get(1).filePath()).isEqualTo("src/b.java");
         assertThat(citations.get(1).lineStart()).isEqualTo(2);
     }
+
+    @Test
+    @DisplayName("parse path with multiple colons uses last colon as path-line separator")
+    void parse_pathWithMultipleColons_extractsPathAndLine() {
+        String answer = "See [Source: src/pkg:sub:File.java:10].";
+        List<ExtractedCitation> citations = citationParser.parse(answer);
+        assertThat(citations).hasSize(1);
+        ExtractedCitation c = citations.get(0);
+        assertThat(c.filePath()).isEqualTo("src/pkg:sub:File.java");
+        assertThat(c.lineStart()).isEqualTo(10);
+        assertThat(c.lineEnd()).isEqualTo(10);
+        assertThat(c.toSourceString()).isEqualTo("src/pkg:sub:File.java:10");
+    }
+
+    @Test
+    @DisplayName("parse line range with spaces around hyphen extracts range")
+    void parse_lineRangeWithSpacesAroundHyphen_extractsRange() {
+        String answer = "Text [Source: src/App.java: 10 - 20 ] more.";
+        List<ExtractedCitation> citations = citationParser.parse(answer);
+        assertThat(citations).hasSize(1);
+        ExtractedCitation c = citations.get(0);
+        assertThat(c.filePath()).isEqualTo("src/App.java");
+        assertThat(c.lineStart()).isEqualTo(10);
+        assertThat(c.lineEnd()).isEqualTo(20);
+        assertThat(c.toSourceString()).isEqualTo("src/App.java:10-20");
+    }
+
+    @Test
+    @DisplayName("parse skips line range when start greater than end")
+    void parse_lineRangeStartGreaterThanEnd_skipsGracefully() {
+        String answer = "Text [Source: src/App.java:20-10] more.";
+        List<ExtractedCitation> citations = citationParser.parse(answer);
+        assertThat(citations).isEmpty();
+    }
+
+    @Test
+    @DisplayName("parse preserves rawSegment in extracted citation for validation")
+    void parse_preservesRawSegmentInExtractedCitation() {
+        String raw = "[Source: src/auth/AuthService.java:25]";
+        String answer = "Auth is here " + raw + ".";
+        List<ExtractedCitation> citations = citationParser.parse(answer);
+        assertThat(citations).hasSize(1);
+        assertThat(citations.get(0).rawSegment()).isEqualTo(raw);
+    }
+
+    @Test
+    @DisplayName("parse skips citation with empty file path")
+    void parse_emptyFilePath_skipsGracefully() {
+        String answer = "Text [Source: :42] more.";
+        List<ExtractedCitation> citations = citationParser.parse(answer);
+        assertThat(citations).isEmpty();
+    }
+
+    @Test
+    @DisplayName("parse skips citation with non-numeric line range end")
+    void parse_lineRangeWithInvalidEnd_skipsGracefully() {
+        String answer = "Text [Source: src/App.java:10-1x] more.";
+        List<ExtractedCitation> citations = citationParser.parse(answer);
+        assertThat(citations).isEmpty();
+    }
+
+    @Test
+    @DisplayName("parse does not match lowercase source tag")
+    void parse_lowercaseSourceTag_doesNotMatch() {
+        String answer = "Text [source: src/App.java:1] more.";
+        List<ExtractedCitation> citations = citationParser.parse(answer);
+        assertThat(citations).isEmpty();
+    }
+
+    @Test
+    @DisplayName("parse skips citation with empty path after last colon")
+    void parse_emptyPathAfterTrim_skipsGracefully() {
+        String answer = "Text [Source:  :7] more.";
+        List<ExtractedCitation> citations = citationParser.parse(answer);
+        assertThat(citations).isEmpty();
+    }
+
+    @Test
+    @DisplayName("parse skips citation with empty line part after colon")
+    void parse_emptyLinePart_skipsGracefully() {
+        String answer = "Text [Source: src/App.java: ] more.";
+        List<ExtractedCitation> citations = citationParser.parse(answer);
+        assertThat(citations).isEmpty();
+    }
+
+    @Test
+    @DisplayName("ExtractedCitation toSourceString returns path:line for single line")
+    void extractedCitation_toSourceString_singleLine_returnsPathColonLine() {
+        String answer = "See [Source: src/main/App.java:42].";
+        List<ExtractedCitation> citations = citationParser.parse(answer);
+        assertThat(citations).hasSize(1);
+        assertThat(citations.get(0).toSourceString()).isEqualTo("src/main/App.java:42");
+    }
+
+    @Test
+    @DisplayName("ExtractedCitation toSourceString returns path:start-end for range")
+    void extractedCitation_toSourceString_range_returnsPathColonStartEnd() {
+        String answer = "See [Source: src/main/App.java:5-15].";
+        List<ExtractedCitation> citations = citationParser.parse(answer);
+        assertThat(citations).hasSize(1);
+        assertThat(citations.get(0).toSourceString()).isEqualTo("src/main/App.java:5-15");
+    }
 }

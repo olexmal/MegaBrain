@@ -291,4 +291,149 @@ class RagServiceTest {
         assertThat(meta.relevanceScore()).isEqualTo(0.92f);
         assertThat(meta.chunkId()).isEqualTo("chunk-0");
     }
+
+    @Test
+    @DisplayName("ask with multiple citations in answer populates sources and sourceMetadata")
+    void ask_answerWithMultipleCitations_populatesSourcesAndMetadata() {
+        StreamingChatModel mockModel = mock(StreamingChatModel.class);
+        when(streamingModelProvider.getStreamingModel()).thenReturn(Optional.of(mockModel));
+        String answer = "Auth in AuthService [Source: src/auth/AuthService.java:25] and UserRepo [Source: src/data/UserRepository.java:42].";
+        doAnswer(invocation -> {
+            StreamingChatResponseHandler handler = invocation.getArgument(1);
+            handler.onPartialResponse(answer);
+            handler.onCompleteResponse(ChatResponse.builder()
+                    .aiMessage(AiMessage.from(answer))
+                    .build());
+            return null;
+        }).when(mockModel).chat(anyString(), any(StreamingChatResponseHandler.class));
+
+        RagResponse response = ragService.ask("Where is auth?").await().indefinitely();
+
+        assertThat(response.sources()).containsExactly(
+                "src/auth/AuthService.java:25",
+                "src/data/UserRepository.java:42");
+        assertThat(response.sourceMetadata()).hasSize(2);
+        assertThat(response.sourceMetadata().get(0).filePath()).isEqualTo("src/auth/AuthService.java");
+        assertThat(response.sourceMetadata().get(0).lineStart()).isEqualTo(25);
+        assertThat(response.sourceMetadata().get(0).lineEnd()).isEqualTo(25);
+        assertThat(response.sourceMetadata().get(1).filePath()).isEqualTo("src/data/UserRepository.java");
+        assertThat(response.sourceMetadata().get(1).lineStart()).isEqualTo(42);
+        assertThat(response.sourceMetadata().get(1).lineEnd()).isEqualTo(42);
+    }
+
+    @Test
+    @DisplayName("ask with line range citation populates sourceMetadata with line range")
+    void ask_answerWithLineRangeCitation_populatesSourceMetadataWithRange() {
+        StreamingChatModel mockModel = mock(StreamingChatModel.class);
+        when(streamingModelProvider.getStreamingModel()).thenReturn(Optional.of(mockModel));
+        String answer = "See [Source: src/main/App.java:10-20] for details.";
+        doAnswer(invocation -> {
+            StreamingChatResponseHandler handler = invocation.getArgument(1);
+            handler.onPartialResponse(answer);
+            handler.onCompleteResponse(ChatResponse.builder()
+                    .aiMessage(AiMessage.from(answer))
+                    .build());
+            return null;
+        }).when(mockModel).chat(anyString(), any(StreamingChatResponseHandler.class));
+
+        RagResponse response = ragService.ask("Show me App.").await().indefinitely();
+
+        assertThat(response.sources()).containsExactly("src/main/App.java:10-20");
+        assertThat(response.sourceMetadata()).hasSize(1);
+        assertThat(response.sourceMetadata().get(0).filePath()).isEqualTo("src/main/App.java");
+        assertThat(response.sourceMetadata().get(0).lineStart()).isEqualTo(10);
+        assertThat(response.sourceMetadata().get(0).lineEnd()).isEqualTo(20);
+    }
+
+    @Test
+    @DisplayName("ask with malformed and valid citations returns only valid in sources")
+    void ask_answerWithMalformedAndValidCitations_returnsOnlyValidSources() {
+        StreamingChatModel mockModel = mock(StreamingChatModel.class);
+        when(streamingModelProvider.getStreamingModel()).thenReturn(Optional.of(mockModel));
+        String answer = "Valid [Source: src/a.java:1] bad [Source: no-colon] valid2 [Source: src/b.java:2].";
+        doAnswer(invocation -> {
+            StreamingChatResponseHandler handler = invocation.getArgument(1);
+            handler.onPartialResponse(answer);
+            handler.onCompleteResponse(ChatResponse.builder()
+                    .aiMessage(AiMessage.from(answer))
+                    .build());
+            return null;
+        }).when(mockModel).chat(anyString(), any(StreamingChatResponseHandler.class));
+
+        RagResponse response = ragService.ask("Mix?").await().indefinitely();
+
+        assertThat(response.sources()).containsExactly("src/a.java:1", "src/b.java:2");
+        assertThat(response.sourceMetadata()).hasSize(2);
+    }
+
+    @Test
+    @DisplayName("ask with context chunks and citation not in context adds citation to sourceMetadata")
+    void ask_withContextChunksAndCitationNotInContext_addsCitationToSourceMetadata() {
+        StreamingChatModel mockModel = mock(StreamingChatModel.class);
+        when(streamingModelProvider.getStreamingModel()).thenReturn(Optional.of(mockModel));
+        String answer = "Auth in AuthService [Source: src/other/Util.java:5].";
+        doAnswer(invocation -> {
+            StreamingChatResponseHandler handler = invocation.getArgument(1);
+            handler.onPartialResponse(answer);
+            handler.onCompleteResponse(ChatResponse.builder()
+                    .aiMessage(AiMessage.from(answer))
+                    .build());
+            return null;
+        }).when(mockModel).chat(anyString(), any(StreamingChatResponseHandler.class));
+
+        LineRange range = new LineRange(20, 45);
+        SearchResult chunk = SearchResult.create(
+                "public class AuthService { }",
+                "AuthService",
+                "class",
+                "src/auth/AuthService.java",
+                "java",
+                "my-repo",
+                0.9f,
+                range
+        );
+        RagResponse response = ragService.ask("Where?", List.of(chunk)).await().indefinitely();
+
+        assertThat(response.sourceMetadata()).hasSize(2);
+        assertThat(response.sourceMetadata().get(0).filePath()).isEqualTo("src/auth/AuthService.java");
+        assertThat(response.sourceMetadata().get(1).filePath()).isEqualTo("src/other/Util.java");
+        assertThat(response.sourceMetadata().get(1).lineStart()).isEqualTo(5);
+        assertThat(response.sourceMetadata().get(1).lineEnd()).isEqualTo(5);
+    }
+
+    @Test
+    @DisplayName("ask with context chunk matching citation deduplicates in sourceMetadata")
+    void ask_withContextChunksAndCitationMatchingContext_deduplicatesInSourceMetadata() {
+        StreamingChatModel mockModel = mock(StreamingChatModel.class);
+        when(streamingModelProvider.getStreamingModel()).thenReturn(Optional.of(mockModel));
+        String answer = "See [Source: src/auth/AuthService.java:20-45].";
+        doAnswer(invocation -> {
+            StreamingChatResponseHandler handler = invocation.getArgument(1);
+            handler.onPartialResponse(answer);
+            handler.onCompleteResponse(ChatResponse.builder()
+                    .aiMessage(AiMessage.from(answer))
+                    .build());
+            return null;
+        }).when(mockModel).chat(anyString(), any(StreamingChatResponseHandler.class));
+
+        LineRange range = new LineRange(20, 45);
+        SearchResult chunk = SearchResult.create(
+                "public class AuthService { }",
+                "AuthService",
+                "class",
+                "src/auth/AuthService.java",
+                "java",
+                "my-repo",
+                0.9f,
+                range
+        );
+        RagResponse response = ragService.ask("Where?", List.of(chunk)).await().indefinitely();
+
+        assertThat(response.sources()).containsExactly("src/auth/AuthService.java:20-45");
+        assertThat(response.sourceMetadata()).hasSize(1);
+        assertThat(response.sourceMetadata().get(0).filePath()).isEqualTo("src/auth/AuthService.java");
+        assertThat(response.sourceMetadata().get(0).lineStart()).isEqualTo(20);
+        assertThat(response.sourceMetadata().get(0).lineEnd()).isEqualTo(45);
+        assertThat(response.sourceMetadata().get(0).chunkId()).isEqualTo("chunk-0");
+    }
 }

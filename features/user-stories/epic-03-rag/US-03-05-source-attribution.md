@@ -64,7 +64,7 @@
 - [x] **T2:** Parse LLM response for citation extraction (backend)
 - [x] **T3:** Attach source metadata to response (backend)
 - [x] **T4:** Create source DTO with all metadata (backend)
-- [ ] **T5:** Write tests for citation parsing (test)
+- [x] **T5:** Write tests for citation parsing (test)
 
 ---
 
