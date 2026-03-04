@@ -16,6 +16,8 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
 /**
@@ -47,12 +49,15 @@ public class IngestionResource {
 
     @POST
     @Path("/{source}")
-    public Uni<Response> ingest(@PathParam("source") String source, @Valid @NotNull IngestionRequest request) {
+    @Produces(MediaType.SERVER_SENT_EVENTS)
+    public Multi<String> ingest(@PathParam("source") String source, @Valid @NotNull IngestionRequest request) {
         SourceType sourceType = SourceType.fromString(source);
         if (sourceType == null) {
-            return Uni.createFrom().item(Response.status(Response.Status.BAD_REQUEST)
-                    .entity("Invalid source: " + source + ". Supported sources: github, gitlab, bitbucket, local")
-                    .build());
+            throw new jakarta.ws.rs.WebApplicationException(
+                    Response.status(Response.Status.BAD_REQUEST)
+                            .entity("Invalid source: " + source + ". Supported sources: github, gitlab, bitbucket, local")
+                            .build()
+            );
         }
 
         try {
@@ -62,22 +67,54 @@ public class IngestionResource {
             } else {
                 progressStream = ingestionService.ingestRepository(request.repository());
             }
-            
-            // Start the ingestion process in the background for now (T5 will implement SSE streaming)
-            progressStream.subscribe().with(
-                event -> {},
-                failure -> {}
-            );
 
-            return Uni.createFrom().item(Response.accepted().build());
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            mapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
+
+            return progressStream.map(pe -> {
+                io.megabrain.ingestion.StreamEvent.Stage stage = io.megabrain.ingestion.StreamEvent.Stage.INDEXING;
+                String msg = pe.message() != null ? pe.message().toLowerCase() : "";
+                if (msg.contains("clone") || msg.contains("cloning")) {
+                    stage = io.megabrain.ingestion.StreamEvent.Stage.CLONING;
+                } else if (msg.contains("pars")) {
+                    stage = io.megabrain.ingestion.StreamEvent.Stage.PARSING;
+                } else if (msg.contains("success") || msg.contains("completed")) {
+                    stage = io.megabrain.ingestion.StreamEvent.Stage.COMPLETE;
+                } else if (msg.contains("fail") || msg.contains("error")) {
+                    stage = io.megabrain.ingestion.StreamEvent.Stage.FAILED;
+                }
+                
+                io.megabrain.ingestion.StreamEvent event = io.megabrain.ingestion.StreamEvent.of(stage, pe.message(), (int) pe.progress());
+                try {
+                    return "event: progress\ndata: " + mapper.writeValueAsString(event) + "\n\n";
+                } catch (Exception e) {
+                    return "event: progress\ndata: {\"stage\":\"FAILED\",\"message\":\"Serialization error\",\"percentage\":0}\n\n";
+                }
+            }).onFailure().recoverWithItem(error -> {
+                io.megabrain.ingestion.StreamEvent event = io.megabrain.ingestion.StreamEvent.of(
+                    io.megabrain.ingestion.StreamEvent.Stage.FAILED, 
+                    "Ingestion failed: " + (error != null ? error.getMessage() : "Unknown error"), 
+                    0
+                );
+                try {
+                    return "event: progress\ndata: " + mapper.writeValueAsString(event) + "\n\n";
+                } catch (Exception e) {
+                    return "event: progress\ndata: {\"stage\":\"FAILED\",\"message\":\"Ingestion failed\",\"percentage\":0}\n\n";
+                }
+            });
+
         } catch (IllegalArgumentException e) {
-            return Uni.createFrom().item(Response.status(Response.Status.BAD_REQUEST)
-                    .entity("Invalid request: " + e.getMessage())
-                    .build());
+            throw new jakarta.ws.rs.WebApplicationException(
+                    Response.status(Response.Status.BAD_REQUEST)
+                            .entity("Invalid request: " + e.getMessage())
+                            .build()
+            );
         } catch (Exception e) {
-            return Uni.createFrom().item(Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                    .entity("Failed to start ingestion: " + e.getMessage())
-                    .build());
+            throw new jakarta.ws.rs.WebApplicationException(
+                    Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                            .entity("Failed to start ingestion: " + e.getMessage())
+                            .build()
+            );
         }
     }
 }

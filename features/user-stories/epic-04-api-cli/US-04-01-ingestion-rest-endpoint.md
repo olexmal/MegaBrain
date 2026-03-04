@@ -15,7 +15,7 @@
 
 - [ ] **AC1:** `POST /api/v1/ingest/{source}` initiates ingestion
 - [ ] **AC2:** Request body accepts: repository URL, branch, credentials reference
-- [ ] **AC3:** Response is SSE stream with progress events
+- [x] **AC3:** Response is SSE stream with progress events
 - [ ] **AC4:** Source parameter supports: `github`, `gitlab`, `bitbucket`, `local`
 - [ ] **AC5:** Returns job ID for tracking
 - [ ] **AC6:** Concurrent ingestion requests handled
@@ -52,7 +52,7 @@
 - [x] **T2:** Implement POST endpoint with path parameter (backend)
 - [x] **T3:** Create ingestion request DTO (backend)
 - [x] **T4:** Integrate with RepositoryIngestionService (backend)
-- [ ] **T5:** Return SSE stream from Mutiny Multi (backend)
+- [x] **T5:** Return SSE stream from Mutiny Multi (backend)
 - [ ] **T6:** Write integration tests (test)
 
 ---
