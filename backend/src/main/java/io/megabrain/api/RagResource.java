@@ -17,6 +17,9 @@ import org.jboss.logging.Logger;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.megabrain.api.CancelledEvent;
+import io.megabrain.api.SseStreamEvent;
+import io.megabrain.api.TokenStreamEvent;
 import io.megabrain.core.RagService;
 import io.smallrye.mutiny.Multi;
 
@@ -59,13 +62,19 @@ public class RagResource {
                 });
     }
 
-    private static String toSseLine(TokenStreamEvent event) {
-        try {
-            String json = OBJECT_MAPPER.writeValueAsString(event);
-            return "event: token\ndata: " + json + "\n\n";
-        } catch (Exception e) {
-            return "event: token\ndata: {\"token\":\"\"}\n\n";
+    private static String toSseLine(SseStreamEvent event) {
+        if (event instanceof TokenStreamEvent tokenEvent) {
+            try {
+                String json = OBJECT_MAPPER.writeValueAsString(tokenEvent);
+                return "event: token\ndata: " + json + "\n\n";
+            } catch (Exception e) {
+                return "event: token\ndata: {\"token\":\"\"}\n\n";
+            }
         }
+        if (event instanceof CancelledEvent) {
+            return "event: cancelled\ndata: {}\n\n";
+        }
+        return "event: token\ndata: {\"token\":\"\"}\n\n";
     }
 
     private static String escapeJson(String s) {

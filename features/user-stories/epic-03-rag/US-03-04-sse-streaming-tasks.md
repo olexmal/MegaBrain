@@ -38,13 +38,13 @@
 - **Description:** Implement stream cancellation handling. Allow clients to cancel ongoing generation via connection close or explicit cancel request. Clean up resources (cancel LLM request, close connections) when stream is cancelled.
 - **Estimated Hours:** 3 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T1, T2 (needs streaming working)
 - **Acceptance Criteria:**
-  - [ ] Stream cancellation supported
-  - [ ] Resources cleaned up on cancellation
-  - [ ] LLM request cancelled if possible
-  - [ ] Client notified of cancellation
+  - [x] Stream cancellation supported
+  - [x] Resources cleaned up on cancellation
+  - [x] LLM request cancelled if possible
+  - [x] Client notified of cancellation
 - **Technical Notes:** Handle connection close events. Cancel underlying LLM request if API supports it. Emit cancellation event to client. Clean up any resources (connections, buffers).
 
 ### T4: Add error event for failures

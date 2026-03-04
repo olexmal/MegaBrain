@@ -16,7 +16,7 @@
 - [x] **AC1:** LLM response streamed via SSE
 - [ ] **AC2:** First token appears within 2 seconds of request
 - [x] **AC3:** Tokens sent as they're generated
-- [ ] **AC4:** Stream can be cancelled mid-generation
+- [x] **AC4:** Stream can be cancelled mid-generation
 - [ ] **AC5:** Error handling for stream interruptions
 - [ ] **AC6:** Option for non-streaming response
 
@@ -57,7 +57,7 @@
 
 - [x] **T1:** Implement SSE response builder in RagService (backend)
 - [x] **T2:** Integrate LangChain4j streaming callback (backend)
-- [ ] **T3:** Handle stream cancellation (backend)
+- [x] **T3:** Handle stream cancellation (backend)
 - [ ] **T4:** Add error event for failures (backend)
 - [ ] **T5:** Add non-streaming fallback option (backend)
 - [ ] **T6:** Write integration tests for streaming (test)

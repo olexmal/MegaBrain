@@ -13,7 +13,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  */
 public record TokenStreamEvent(
         @JsonProperty("token") String token
-) {
+) implements SseStreamEvent {
     public TokenStreamEvent {
         token = token != null ? token : "";
     }

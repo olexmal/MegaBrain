@@ -6,6 +6,9 @@
 package io.megabrain.api;
 
 import io.megabrain.core.RagService;
+import io.megabrain.api.CancelledEvent;
+import io.megabrain.api.SseStreamEvent;
+import io.megabrain.api.TokenStreamEvent;
 import io.smallrye.mutiny.Multi;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -69,5 +72,28 @@ class RagResourceTest {
 
         // Then
         verify(ragService).streamTokens("hello");
+    }
+
+    @Test
+    @DisplayName("stream formats cancelled event as event: cancelled")
+    void stream_withCancelledEvent_returnsCancelledSseLine() {
+        // Given: service returns token then cancelled
+        RagRequest request = new RagRequest("Stop");
+        when(ragService.streamTokens(anyString())).thenReturn(
+                Multi.createFrom().items(
+                        new TokenStreamEvent("Partial"),
+                        new CancelledEvent()
+                )
+        );
+
+        // When
+        Multi<String> sseStream = ragResource.stream(request);
+        List<String> lines = sseStream.collect().asList().await().indefinitely();
+
+        // Then
+        assertThat(lines).hasSize(2);
+        assertThat(lines.get(0)).startsWith("event: token\n").contains("\"token\":\"Partial\"");
+        assertThat(lines.get(1)).isEqualTo("event: cancelled\ndata: {}\n\n");
+        verify(ragService).streamTokens("Stop");
     }
 }

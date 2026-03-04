@@ -9,6 +9,8 @@ import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
+import io.megabrain.api.CancelledEvent;
+import io.megabrain.api.SseStreamEvent;
 import io.megabrain.api.TokenStreamEvent;
 import io.smallrye.mutiny.Multi;
 import org.junit.jupiter.api.BeforeEach;
@@ -60,23 +62,24 @@ class RagServiceTest {
         }).when(mockModel).chat(anyString(), any(StreamingChatResponseHandler.class));
 
         // When
-        Multi<TokenStreamEvent> stream = ragService.streamTokens("What is auth?");
-        List<TokenStreamEvent> collected = stream.collect().asList().await().indefinitely();
+        Multi<SseStreamEvent> stream = ragService.streamTokens("What is auth?");
+        List<SseStreamEvent> collected = stream.collect().asList().await().indefinitely();
 
         // Then
         assertThat(collected).isNotEmpty();
         assertThat(collected).hasSize(3);
-        assertThat(collected.get(0).token()).isEqualTo("Hello");
-        assertThat(collected.get(1).token()).isEqualTo(" ");
-        assertThat(collected.get(2).token()).isEqualTo("world");
+        assertThat(collected.get(0)).isInstanceOf(TokenStreamEvent.class);
+        assertThat(((TokenStreamEvent) collected.get(0)).token()).isEqualTo("Hello");
+        assertThat(((TokenStreamEvent) collected.get(1)).token()).isEqualTo(" ");
+        assertThat(((TokenStreamEvent) collected.get(2)).token()).isEqualTo("world");
     }
 
     @Test
     @DisplayName("streamTokens returns empty stream for blank question")
     void streamTokens_withBlankQuestion_returnsEmptyStream() {
         // When
-        Multi<TokenStreamEvent> stream = ragService.streamTokens("   ");
-        List<TokenStreamEvent> collected = stream.collect().asList().await().indefinitely();
+        Multi<SseStreamEvent> stream = ragService.streamTokens("   ");
+        List<SseStreamEvent> collected = stream.collect().asList().await().indefinitely();
 
         // Then
         assertThat(collected).isEmpty();
@@ -86,8 +89,8 @@ class RagServiceTest {
     @DisplayName("streamTokens returns empty stream for null question")
     void streamTokens_withNullQuestion_returnsEmptyStream() {
         // When
-        Multi<TokenStreamEvent> stream = ragService.streamTokens(null);
-        List<TokenStreamEvent> collected = stream.collect().asList().await().indefinitely();
+        Multi<SseStreamEvent> stream = ragService.streamTokens(null);
+        List<SseStreamEvent> collected = stream.collect().asList().await().indefinitely();
 
         // Then
         assertThat(collected).isEmpty();
@@ -98,7 +101,7 @@ class RagServiceTest {
     void streamTokens_noStreamingModelAvailable_fails() {
         when(streamingModelProvider.getStreamingModel()).thenReturn(Optional.empty());
 
-        Multi<TokenStreamEvent> stream = ragService.streamTokens("Hello?");
+        Multi<SseStreamEvent> stream = ragService.streamTokens("Hello?");
 
         assertThatThrownBy(() -> stream.collect().asList().await().indefinitely())
                 .hasMessageContaining("No LLM available for streaming");
@@ -115,9 +118,38 @@ class RagServiceTest {
             return null;
         }).when(mockModel).chat(anyString(), any(StreamingChatResponseHandler.class));
 
-        Multi<TokenStreamEvent> stream = ragService.streamTokens("Hi");
+        Multi<SseStreamEvent> stream = ragService.streamTokens("Hi");
 
         assertThatThrownBy(() -> stream.collect().asList().await().indefinitely())
                 .hasMessageContaining("LLM error");
+    }
+
+    @Test
+    @DisplayName("streamTokens emits CancelledEvent and completes when subscription is cancelled")
+    void streamTokens_subscriptionCancelled_emitsCancelledAndCleansUp() {
+        // Given: model emits one token then never completes (simulating slow stream)
+        StreamingChatModel mockModel = mock(StreamingChatModel.class);
+        when(streamingModelProvider.getStreamingModel()).thenReturn(Optional.of(mockModel));
+        doAnswer(invocation -> {
+            StreamingChatResponseHandler handler = invocation.getArgument(1);
+            handler.onPartialResponse("One");
+            // Do not call onCompleteResponse; subscriber will cancel
+            return null;
+        }).when(mockModel).chat(anyString(), any(StreamingChatResponseHandler.class));
+
+        // When: subscribe and cancel after first item
+        Multi<SseStreamEvent> stream = ragService.streamTokens("Q");
+        List<SseStreamEvent> collected = new java.util.ArrayList<>();
+        io.smallrye.mutiny.subscription.Cancellable subscription = stream.subscribe().with(
+                collected::add,
+                f -> { },
+                () -> { });
+        // Same-thread executor: first token emitted immediately
+        assertThat(collected).hasSize(1);
+        assertThat(collected.get(0)).isInstanceOf(TokenStreamEvent.class);
+        subscription.cancel();
+
+        // Then: stream was cancelled without failure; onTermination runs and cleans up
+        assertThat(((TokenStreamEvent) collected.get(0)).token()).isEqualTo("One");
     }
 }
