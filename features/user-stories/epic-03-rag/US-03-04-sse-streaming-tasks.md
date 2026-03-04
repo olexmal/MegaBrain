@@ -51,13 +51,13 @@
 - **Description:** Implement error event emission for stream failures. When LLM generation fails or stream is interrupted, emit error event with error details. Ensure error events are properly formatted and client can handle them.
 - **Estimated Hours:** 3 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T1, T2 (needs streaming working)
 - **Acceptance Criteria:**
-  - [ ] Error events emitted on failures
-  - [ ] Error details included in event
-  - [ ] Error events properly formatted
-  - [ ] Stream closed after error
+  - [x] Error events emitted on failures
+  - [x] Error details included in event
+  - [x] Error events properly formatted
+  - [x] Stream closed after error
 - **Technical Notes:** Emit error event: `event: error\ndata: {"message": "...", "code": "..."}\n\n`. Include error type, message, and optional stack trace. Close stream after error.
 
 ### T5: Add non-streaming fallback option

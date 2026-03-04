@@ -7,7 +7,7 @@ package io.megabrain.api;
 
 /**
  * Marker for SSE stream events in RAG token streaming (US-03-04).
- * Allows emitting token events or a cancellation event when the client disconnects.
+ * Allows emitting token events, cancellation event, or error event when the stream fails.
  */
-public sealed interface SseStreamEvent permits TokenStreamEvent, CancelledEvent {
+public sealed interface SseStreamEvent permits TokenStreamEvent, CancelledEvent, ErrorStreamEvent {
 }

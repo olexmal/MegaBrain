@@ -6,6 +6,7 @@
 package io.megabrain.core;
 
 import io.megabrain.api.CancelledEvent;
+import io.megabrain.api.ErrorStreamEvent;
 import io.megabrain.api.SseStreamEvent;
 import io.megabrain.api.TokenStreamEvent;
 import dev.langchain4j.model.chat.StreamingChatModel;
@@ -112,20 +113,28 @@ public class RagService {
                         @Override
                         public void onError(Throwable error) {
                             if (!cancelled.get()) {
-                                emitter.fail(error);
-                            } else {
-                                emitter.complete();
+                                emitter.emit(errorEventFrom(error, "LLM_ERROR"));
                             }
+                            emitter.complete();
                         }
                     });
                 } catch (Throwable t) {
                     if (!cancelled.get()) {
-                        emitter.fail(t);
-                    } else {
-                        emitter.complete();
+                        emitter.emit(errorEventFrom(t, "STREAM_ERROR"));
                     }
+                    emitter.complete();
                 }
             });
         });
+    }
+
+    /**
+     * Builds an error event from a throwable. Uses a safe message (no stack trace, no sensitive data).
+     */
+    private static ErrorStreamEvent errorEventFrom(Throwable t, String defaultCode) {
+        String message = t != null && t.getMessage() != null && !t.getMessage().isBlank()
+                ? t.getMessage()
+                : "An error occurred";
+        return new ErrorStreamEvent(message, defaultCode);
     }
 }

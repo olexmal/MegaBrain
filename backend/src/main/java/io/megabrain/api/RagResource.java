@@ -18,6 +18,7 @@ import org.jboss.logging.Logger;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.megabrain.api.CancelledEvent;
+import io.megabrain.api.ErrorStreamEvent;
 import io.megabrain.api.SseStreamEvent;
 import io.megabrain.api.TokenStreamEvent;
 import io.megabrain.core.RagService;
@@ -58,7 +59,15 @@ public class RagResource {
                 .map(event -> toSseLine(event))
                 .onFailure().recoverWithItem(throwable -> {
                     LOG.error("RAG stream failed", throwable);
-                    return "event: error\ndata: {\"message\":\"" + escapeJson(throwable.getMessage()) + "\"}\n\n";
+                    ErrorStreamEvent err = new ErrorStreamEvent(
+                            throwable != null && throwable.getMessage() != null ? throwable.getMessage() : "An error occurred",
+                            "STREAM_ERROR");
+                    try {
+                        String json = OBJECT_MAPPER.writeValueAsString(err);
+                        return "event: error\ndata: " + json + "\n\n";
+                    } catch (Exception e) {
+                        return "event: error\ndata: {\"message\":\"" + escapeJson(err.message()) + "\",\"code\":\"" + escapeJson(err.code()) + "\"}\n\n";
+                    }
                 });
     }
 
@@ -73,6 +82,14 @@ public class RagResource {
         }
         if (event instanceof CancelledEvent) {
             return "event: cancelled\ndata: {}\n\n";
+        }
+        if (event instanceof ErrorStreamEvent errorEvent) {
+            try {
+                String json = OBJECT_MAPPER.writeValueAsString(errorEvent);
+                return "event: error\ndata: " + json + "\n\n";
+            } catch (Exception e) {
+                return "event: error\ndata: {\"message\":\"" + escapeJson(errorEvent.message()) + "\",\"code\":\"" + escapeJson(errorEvent.code()) + "\"}\n\n";
+            }
         }
         return "event: token\ndata: {\"token\":\"\"}\n\n";
     }

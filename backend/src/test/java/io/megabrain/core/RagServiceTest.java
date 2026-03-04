@@ -10,6 +10,7 @@ import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import io.megabrain.api.CancelledEvent;
+import io.megabrain.api.ErrorStreamEvent;
 import io.megabrain.api.SseStreamEvent;
 import io.megabrain.api.TokenStreamEvent;
 import io.smallrye.mutiny.Multi;
@@ -108,8 +109,8 @@ class RagServiceTest {
     }
 
     @Test
-    @DisplayName("streamTokens propagates error when streaming model calls onError")
-    void streamTokens_modelCallsOnError_failsStream() {
+    @DisplayName("streamTokens emits error event and completes when streaming model calls onError")
+    void streamTokens_modelCallsOnError_emitsErrorEventAndCompletes() {
         StreamingChatModel mockModel = mock(StreamingChatModel.class);
         when(streamingModelProvider.getStreamingModel()).thenReturn(Optional.of(mockModel));
         doAnswer(invocation -> {
@@ -119,11 +120,33 @@ class RagServiceTest {
         }).when(mockModel).chat(anyString(), any(StreamingChatResponseHandler.class));
 
         Multi<SseStreamEvent> stream = ragService.streamTokens("Hi");
+        List<SseStreamEvent> collected = stream.collect().asList().await().indefinitely();
 
-        assertThatThrownBy(() -> stream.collect().asList().await().indefinitely())
-                .hasMessageContaining("LLM error");
+        assertThat(collected).hasSize(1);
+        assertThat(collected.get(0)).isInstanceOf(ErrorStreamEvent.class);
+        ErrorStreamEvent err = (ErrorStreamEvent) collected.get(0);
+        assertThat(err.message()).contains("LLM error");
+        assertThat(err.code()).isEqualTo("LLM_ERROR");
     }
 
+    @Test
+    @DisplayName("streamTokens emits error event with STREAM_ERROR when chat throws")
+    void streamTokens_chatThrows_emitsErrorEventAndCompletes() {
+        StreamingChatModel mockModel = mock(StreamingChatModel.class);
+        when(streamingModelProvider.getStreamingModel()).thenReturn(Optional.of(mockModel));
+        doAnswer(invocation -> {
+            throw new IllegalStateException("Connection refused");
+        }).when(mockModel).chat(anyString(), any(StreamingChatResponseHandler.class));
+
+        Multi<SseStreamEvent> stream = ragService.streamTokens("Hi");
+        List<SseStreamEvent> collected = stream.collect().asList().await().indefinitely();
+
+        assertThat(collected).hasSize(1);
+        assertThat(collected.get(0)).isInstanceOf(ErrorStreamEvent.class);
+        ErrorStreamEvent err = (ErrorStreamEvent) collected.get(0);
+        assertThat(err.message()).contains("Connection refused");
+        assertThat(err.code()).isEqualTo("STREAM_ERROR");
+    }
     @Test
     @DisplayName("streamTokens emits CancelledEvent and completes when subscription is cancelled")
     void streamTokens_subscriptionCancelled_emitsCancelledAndCleansUp() {

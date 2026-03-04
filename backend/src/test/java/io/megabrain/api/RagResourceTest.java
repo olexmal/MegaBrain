@@ -7,6 +7,7 @@ package io.megabrain.api;
 
 import io.megabrain.core.RagService;
 import io.megabrain.api.CancelledEvent;
+import io.megabrain.api.ErrorStreamEvent;
 import io.megabrain.api.SseStreamEvent;
 import io.megabrain.api.TokenStreamEvent;
 import io.smallrye.mutiny.Multi;
@@ -95,5 +96,42 @@ class RagResourceTest {
         assertThat(lines.get(0)).startsWith("event: token\n").contains("\"token\":\"Partial\"");
         assertThat(lines.get(1)).isEqualTo("event: cancelled\ndata: {}\n\n");
         verify(ragService).streamTokens("Stop");
+    }
+
+    @Test
+    @DisplayName("stream formats error event as event: error with message and code")
+    void stream_withErrorEvent_returnsErrorSseLine() {
+        RagRequest request = new RagRequest("Fail");
+        when(ragService.streamTokens(anyString())).thenReturn(
+                Multi.createFrom().items(
+                        new ErrorStreamEvent("Something went wrong", "LLM_ERROR")
+                )
+        );
+
+        Multi<String> sseStream = ragResource.stream(request);
+        List<String> lines = sseStream.collect().asList().await().indefinitely();
+
+        assertThat(lines).hasSize(1);
+        assertThat(lines.get(0)).startsWith("event: error\n").contains("data: ");
+        assertThat(lines.get(0)).contains("\"message\":\"Something went wrong\"").contains("\"code\":\"LLM_ERROR\"");
+        assertThat(lines.get(0)).endsWith("\n\n");
+        verify(ragService).streamTokens("Fail");
+    }
+
+    @Test
+    @DisplayName("stream recovers from failure with error event containing message and code")
+    void stream_whenServiceFails_returnsErrorSseLineAndCompletes() {
+        RagRequest request = new RagRequest("x");
+        when(ragService.streamTokens(anyString())).thenReturn(
+                Multi.createFrom().failure(new RuntimeException("Backend error"))
+        );
+
+        Multi<String> sseStream = ragResource.stream(request);
+        List<String> lines = sseStream.collect().asList().await().indefinitely();
+
+        assertThat(lines).hasSize(1);
+        assertThat(lines.get(0)).startsWith("event: error\n").contains("data: ");
+        assertThat(lines.get(0)).contains("\"message\":\"Backend error\"").contains("\"code\":\"STREAM_ERROR\"");
+        assertThat(lines.get(0)).endsWith("\n\n");
     }
 }
