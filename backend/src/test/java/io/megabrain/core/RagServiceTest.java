@@ -11,9 +11,11 @@ import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import io.megabrain.api.CancelledEvent;
 import io.megabrain.api.ErrorStreamEvent;
+import io.megabrain.api.RagResponse;
 import io.megabrain.api.SseStreamEvent;
 import io.megabrain.api.TokenStreamEvent;
 import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.Uni;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -174,5 +176,51 @@ class RagServiceTest {
 
         // Then: stream was cancelled without failure; onTermination runs and cleans up
         assertThat(((TokenStreamEvent) collected.get(0)).token()).isEqualTo("One");
+    }
+
+    @Test
+    @DisplayName("ask returns complete answer by buffering token stream")
+    void ask_withNonBlankQuestion_returnsRagResponseWithConcatenatedTokens() {
+        StreamingChatModel mockModel = mock(StreamingChatModel.class);
+        when(streamingModelProvider.getStreamingModel()).thenReturn(Optional.of(mockModel));
+        doAnswer(invocation -> {
+            StreamingChatResponseHandler handler = invocation.getArgument(1);
+            handler.onPartialResponse("Hello");
+            handler.onPartialResponse(" ");
+            handler.onPartialResponse("world");
+            handler.onCompleteResponse(ChatResponse.builder()
+                    .aiMessage(AiMessage.from("Hello world"))
+                    .build());
+            return null;
+        }).when(mockModel).chat(anyString(), any(StreamingChatResponseHandler.class));
+
+        Uni<RagResponse> result = ragService.ask("Say hi");
+        RagResponse response = result.await().indefinitely();
+
+        assertThat(response.answer()).isEqualTo("Hello world");
+        assertThat(response.sources()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("ask returns empty answer for blank question")
+    void ask_withBlankQuestion_returnsEmptyAnswer() {
+        RagResponse response = ragService.ask("   ").await().indefinitely();
+        assertThat(response.answer()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("ask fails when stream emits error event")
+    void ask_whenStreamEmitsError_fails() {
+        StreamingChatModel mockModel = mock(StreamingChatModel.class);
+        when(streamingModelProvider.getStreamingModel()).thenReturn(Optional.of(mockModel));
+        doAnswer(invocation -> {
+            StreamingChatResponseHandler handler = invocation.getArgument(1);
+            handler.onError(new RuntimeException("LLM error"));
+            return null;
+        }).when(mockModel).chat(anyString(), any(StreamingChatResponseHandler.class));
+
+        assertThatThrownBy(() -> ragService.ask("Hi").await().indefinitely())
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("LLM error");
     }
 }

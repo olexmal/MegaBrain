@@ -7,12 +7,14 @@ package io.megabrain.core;
 
 import io.megabrain.api.CancelledEvent;
 import io.megabrain.api.ErrorStreamEvent;
+import io.megabrain.api.RagResponse;
 import io.megabrain.api.SseStreamEvent;
 import io.megabrain.api.TokenStreamEvent;
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.infrastructure.Infrastructure;
 import org.jboss.logging.Logger;
 
@@ -20,6 +22,7 @@ import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -126,6 +129,37 @@ public class RagService {
                 }
             });
         });
+    }
+
+    /**
+     * Returns the full RAG answer for the given question by buffering all tokens from the stream.
+     * Use for non-streaming clients (e.g. when {@code stream=false}). Same logical result as
+     * concatenating all token events from {@link #streamTokens(String)}.
+     *
+     * @param question the user question
+     * @return Uni that resolves to the complete RagResponse, or fails on error/cancellation
+     */
+    public Uni<RagResponse> ask(String question) {
+        if (question == null || question.isBlank()) {
+            return Uni.createFrom().item(RagResponse.of(""));
+        }
+        return streamTokens(question.trim())
+                .collect().asList()
+                .onItem().transform(events -> {
+                    StringBuilder answer = new StringBuilder();
+                    for (SseStreamEvent event : events) {
+                        if (event instanceof ErrorStreamEvent err) {
+                            throw new RuntimeException(err.message());
+                        }
+                        if (event instanceof CancelledEvent) {
+                            throw new RuntimeException("Stream was cancelled");
+                        }
+                        if (event instanceof TokenStreamEvent tokenEvent) {
+                            answer.append(tokenEvent.token());
+                        }
+                    }
+                    return RagResponse.of(answer.toString());
+                });
     }
 
     /**

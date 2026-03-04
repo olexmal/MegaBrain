@@ -8,9 +8,12 @@ package io.megabrain.api;
 import io.megabrain.core.RagService;
 import io.megabrain.api.CancelledEvent;
 import io.megabrain.api.ErrorStreamEvent;
+import io.megabrain.api.RagResponse;
 import io.megabrain.api.SseStreamEvent;
 import io.megabrain.api.TokenStreamEvent;
 import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.Uni;
+import jakarta.ws.rs.core.Response;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -50,7 +53,7 @@ class RagResourceTest {
         );
 
         // When
-        Multi<String> sseStream = ragResource.stream(request);
+        Multi<String> sseStream = (Multi<String>) ragResource.rag(request, true);
         List<String> lines = sseStream.collect().asList().await().indefinitely();
 
         // Then
@@ -69,7 +72,7 @@ class RagResourceTest {
         when(ragService.streamTokens(anyString())).thenReturn(Multi.createFrom().empty());
 
         // When
-        ragResource.stream(request).collect().asList().await().indefinitely();
+        ((Multi<String>) ragResource.rag(request, true)).collect().asList().await().indefinitely();
 
         // Then
         verify(ragService).streamTokens("hello");
@@ -88,7 +91,7 @@ class RagResourceTest {
         );
 
         // When
-        Multi<String> sseStream = ragResource.stream(request);
+        Multi<String> sseStream = (Multi<String>) ragResource.rag(request, true);
         List<String> lines = sseStream.collect().asList().await().indefinitely();
 
         // Then
@@ -108,7 +111,7 @@ class RagResourceTest {
                 )
         );
 
-        Multi<String> sseStream = ragResource.stream(request);
+        Multi<String> sseStream = (Multi<String>) ragResource.rag(request, true);
         List<String> lines = sseStream.collect().asList().await().indefinitely();
 
         assertThat(lines).hasSize(1);
@@ -126,12 +129,44 @@ class RagResourceTest {
                 Multi.createFrom().failure(new RuntimeException("Backend error"))
         );
 
-        Multi<String> sseStream = ragResource.stream(request);
+        Multi<String> sseStream = (Multi<String>) ragResource.rag(request, true);
         List<String> lines = sseStream.collect().asList().await().indefinitely();
 
         assertThat(lines).hasSize(1);
         assertThat(lines.get(0)).startsWith("event: error\n").contains("data: ");
         assertThat(lines.get(0)).contains("\"message\":\"Backend error\"").contains("\"code\":\"STREAM_ERROR\"");
         assertThat(lines.get(0)).endsWith("\n\n");
+    }
+
+    @Test
+    @DisplayName("rag with stream=false returns complete RagResponse as JSON")
+    void rag_streamFalse_returnsCompleteResponse() {
+        RagRequest request = new RagRequest("What is auth?");
+        RagResponse response = RagResponse.of("Authentication is the process of verifying identity.");
+        when(ragService.ask(anyString())).thenReturn(Uni.createFrom().item(response));
+
+        Object result = ragResource.rag(request, false);
+        @SuppressWarnings("unchecked")
+        Uni<Response> responseUni = (Uni<Response>) result;
+        Response res = responseUni.await().indefinitely();
+
+        assertThat(res.getStatus()).isEqualTo(200);
+        assertThat(res.getEntity()).isInstanceOf(RagResponse.class);
+        RagResponse body = (RagResponse) res.getEntity();
+        assertThat(body.answer()).isEqualTo("Authentication is the process of verifying identity.");
+        assertThat(body.sources()).isEmpty();
+        verify(ragService).ask("What is auth?");
+    }
+
+    @Test
+    @DisplayName("rag with stream=false uses trimmed question")
+    void rag_streamFalse_usesTrimmedQuestion() {
+        RagRequest request = new RagRequest("  hello  ");
+        when(ragService.ask(anyString())).thenReturn(Uni.createFrom().item(RagResponse.of("Hi")));
+
+        Object result = ragResource.rag(request, false);
+        ((Uni<?>) result).await().indefinitely();
+
+        verify(ragService).ask("hello");
     }
 }

@@ -8,10 +8,13 @@ package io.megabrain.api;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 
 import org.jboss.logging.Logger;
 
@@ -23,12 +26,14 @@ import io.megabrain.api.SseStreamEvent;
 import io.megabrain.api.TokenStreamEvent;
 import io.megabrain.core.RagService;
 import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.Uni;
 
 /**
- * REST API resource for RAG question-answering with SSE token streaming (US-03-04).
+ * REST API resource for RAG question-answering with optional SSE token streaming (US-03-04).
+ * Use {@code stream=true} (default) for Server-Sent Events; {@code stream=false} for a single JSON response.
  */
 @Path("/rag")
-@Produces(MediaType.APPLICATION_JSON)
+@Produces({ MediaType.APPLICATION_JSON, MediaType.SERVER_SENT_EVENTS })
 @Consumes(MediaType.APPLICATION_JSON)
 public class RagResource {
 
@@ -43,17 +48,25 @@ public class RagResource {
     }
 
     /**
-     * Streams LLM response tokens as Server-Sent Events.
-     * Format: {@code event: token} and {@code data: {"token": "..."}} per event.
+     * RAG question-answering: streams LLM tokens as SSE when {@code stream=true} (default),
+     * or returns the full answer as JSON when {@code stream=false}.
      *
      * @param request the RAG request containing the question
-     * @return reactive stream of SSE-formatted strings (non-blocking)
+     * @param stream  when true (default), response is Server-Sent Events; when false, single RagResponse JSON
+     * @return when stream=true: Multi of SSE lines ({@code event: token}, {@code data: {"token":"..."}});
+     *         when stream=false: Uni of Response with RagResponse (answer, sources, model_used)
      */
     @POST
-    @Produces(MediaType.SERVER_SENT_EVENTS)
-    public Multi<String> stream(@Valid RagRequest request) {
+    public Object rag(
+            @Valid RagRequest request,
+            @QueryParam("stream") @DefaultValue("true") boolean stream) {
         String question = request != null && request.getQuestion() != null ? request.getQuestion().trim() : "";
-        LOG.infof("RAG stream request: question length=%d", question.length());
+        LOG.infof("RAG request: stream=%s, question length=%d", stream, question.length());
+
+        if (!stream) {
+            return ragService.ask(question)
+                    .map(r -> Response.ok(r).type(MediaType.APPLICATION_JSON).build());
+        }
 
         return ragService.streamTokens(question)
                 .map(event -> toSseLine(event))

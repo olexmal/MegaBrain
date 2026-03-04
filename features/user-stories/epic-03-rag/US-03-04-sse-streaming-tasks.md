@@ -64,13 +64,13 @@
 - **Description:** Implement non-streaming response option. When `stream=false` parameter is provided, collect all tokens and return complete response in single JSON response. Maintain same response format for consistency.
 - **Estimated Hours:** 3 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T1, T2 (needs streaming working)
 - **Acceptance Criteria:**
-  - [ ] Non-streaming option supported
-  - [ ] Complete response returned
-  - [ ] Same response format as streaming (when complete)
-  - [ ] Performance acceptable
+  - [x] Non-streaming option supported
+  - [x] Complete response returned
+  - [x] Same response format as streaming (when complete)
+  - [x] Performance acceptable
 - **Technical Notes:** Add `stream` query parameter (default: true). When false, buffer tokens and return complete response. Use same RagResponse DTO for consistency.
 
 ### T6: Write integration tests for streaming

@@ -18,7 +18,7 @@
 - [x] **AC3:** Tokens sent as they're generated
 - [x] **AC4:** Stream can be cancelled mid-generation
 - [x] **AC5:** Error handling for stream interruptions
-- [ ] **AC6:** Option for non-streaming response
+- [x] **AC6:** Option for non-streaming response
 
 ---
 
@@ -59,7 +59,7 @@
 - [x] **T2:** Integrate LangChain4j streaming callback (backend)
 - [x] **T3:** Handle stream cancellation (backend)
 - [x] **T4:** Add error event for failures (backend)
-- [ ] **T5:** Add non-streaming fallback option (backend)
+- [x] **T5:** Add non-streaming fallback option (backend)
 - [ ] **T6:** Write integration tests for streaming (test)
 
 ---
