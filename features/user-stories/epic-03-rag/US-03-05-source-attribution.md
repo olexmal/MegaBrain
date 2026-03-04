@@ -15,8 +15,8 @@
 
 - [ ] **AC1:** Each answer includes list of source chunks used
 - [ ] **AC2:** Sources include: file path, entity name, line numbers
-- [ ] **AC3:** LLM instructed to reference sources in answer text
-- [ ] **AC4:** Inline citations: `[Source: path/to/file.java:42]`
+- [x] **AC3:** LLM instructed to reference sources in answer text
+- [x] **AC4:** Inline citations: `[Source: path/to/file.java:42]`
 - [ ] **AC5:** Source relevance scores included
 - [ ] **AC6:** Sources clickable/linkable in UI (data provided)
 
@@ -60,7 +60,7 @@
 
 ## Technical Tasks
 
-- [ ] **T1:** Update prompt template to require citations (backend)
+- [x] **T1:** Update prompt template to require citations (backend)
 - [ ] **T2:** Parse LLM response for citation extraction (backend)
 - [ ] **T3:** Attach source metadata to response (backend)
 - [ ] **T4:** Create source DTO with all metadata (backend)

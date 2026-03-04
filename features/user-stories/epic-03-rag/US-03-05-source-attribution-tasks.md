@@ -12,13 +12,13 @@
 - **Description:** Update prompt template to include strong instructions for LLM to cite sources in answers. Specify citation format: `[Source: path/to/file.java:42]`. Include examples of proper citations. Emphasize importance of accurate citations.
 - **Estimated Hours:** 3 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** US-03-03 (needs prompt template)
 - **Acceptance Criteria:**
-  - [ ] Prompt includes citation instructions
-  - [ ] Citation format specified
-  - [ ] Examples provided in prompt
-  - [ ] Instructions are clear and strong
+  - [x] Prompt includes citation instructions
+  - [x] Citation format specified
+  - [x] Examples provided in prompt
+  - [x] Instructions are clear and strong
 - **Technical Notes:** Add citation section to prompt template. Format: "Always cite sources using [Source: filepath:line]. Example: [Source: src/auth/AuthService.java:25]". Include in system prompt for emphasis.
 
 ### T2: Parse LLM response for citation extraction
