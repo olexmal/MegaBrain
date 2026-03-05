@@ -53,7 +53,7 @@
 
 - [x] **T1:** Create RAG endpoint in resource class (backend)
 - [x] **T2:** Implement POST with SSE response (backend)
-- [ ] **T3:** Create RAG request/response DTOs (backend)
+- [x] **T3:** Create RAG request/response DTOs (backend)
 - [ ] **T4:** Integrate with RagService (backend)
 - [ ] **T5:** Add non-streaming option (backend)
 - [ ] **T6:** Write integration tests (test)

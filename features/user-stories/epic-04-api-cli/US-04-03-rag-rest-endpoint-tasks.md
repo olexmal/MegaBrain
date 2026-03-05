@@ -38,13 +38,13 @@
 - **Description:** Create `RagRequest` DTO (question, context_limit, model) and `RagResponse` DTO (answer, sources, model_used). Use Bean Validation. Make serializable to/from JSON.
 - **Estimated Hours:** 3 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T2 (needs endpoint)
 - **Acceptance Criteria:**
-  - [ ] RagRequest DTO created
-  - [ ] RagResponse DTO created
-  - [ ] Validation annotations applied
-  - [ ] Serializable to/from JSON
+  - [x] RagRequest DTO created
+  - [x] RagResponse DTO created
+  - [x] Validation annotations applied
+  - [x] Serializable to/from JSON
 - **Technical Notes:** Use Java records or POJOs with Jackson annotations. Validate question is not empty. Include optional fields (context_limit, model).
 
 ### T4: Integrate with RagService
