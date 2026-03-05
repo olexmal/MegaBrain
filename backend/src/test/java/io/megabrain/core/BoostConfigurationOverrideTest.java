@@ -17,7 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @QuarkusTest
 @TestProfile(BoostConfigurationOverrideTest.OverrideBoostsProfile.class)
-class BoostConfigurationOverrideTest {
+public class BoostConfigurationOverrideTest {
 
     public static class OverrideBoostsProfile implements QuarkusTestProfile {
         @Override

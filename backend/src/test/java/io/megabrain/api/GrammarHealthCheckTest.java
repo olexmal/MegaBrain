@@ -5,7 +5,6 @@
 
 package io.megabrain.api;
 
-import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -13,7 +12,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.Arrays;
 import java.util.List;
 
-@QuarkusTest
 class GrammarHealthCheckTest {
 
     @Test

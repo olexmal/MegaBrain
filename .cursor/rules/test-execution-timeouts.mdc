@@ -1,0 +1,14 @@
+---
+description: Instructions for executing unit tests without aborting due to timeouts
+alwaysApply: true
+---
+
+# Test Execution Timeouts
+
+Do not abort or kill unit test executions prematurely. Unit tests in this project take a significant amount of time to run.
+
+When running tests via the Shell tool (e.g., `mvn test`, `npm test`):
+- Set `block_until_ms` to a sufficiently high value (e.g., `300000` for 5 minutes) or set it to `0` to run in the background.
+- Wait patiently for the test process to complete.
+- Do not kill the test process just because it appears to be taking a long time.
+- Use repeated polling if the process is backgrounded, allowing ample time between checks.
