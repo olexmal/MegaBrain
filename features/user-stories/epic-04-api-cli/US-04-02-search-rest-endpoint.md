@@ -18,7 +18,7 @@
 - [x] **AC3:** Response includes: chunks, metadata, scores, total count
 - [x] **AC4:** Pagination support via offset/limit
 - [x] **AC5:** Response format: JSON
-- [ ] **AC6:** Latency <500ms for 95th percentile
+- [ ] **AC6:** Latency <500ms for 95th percentile *(validated by performance test or APM; implementation is reactive/non-blocking)*
 
 ---
 
@@ -41,7 +41,29 @@
    ```bash
    curl "http://localhost:8080/api/v1/search?q=user&offset=10&limit=10"
    ```
-4. **Show Response:** Display JSON structure
+4. **Show Response:** Display JSON structure, e.g.:
+   ```json
+   {
+     "results": [
+       {
+         "content": "code snippet",
+         "entityName": "ClassName",
+         "entityType": "class",
+         "sourceFile": "path/to/File.java",
+         "language": "java",
+         "repository": "repo-name",
+         "score": 0.95,
+         "lineRange": { "startLine": 1, "endLine": 10 }
+       }
+     ],
+     "total": 42,
+     "page": 0,
+     "size": 10,
+     "query": "user",
+     "tookMs": 45,
+     "facets": {}
+   }
+   ```
 
 ### Expected Outcome
 - Search results returned as JSON
@@ -76,4 +98,14 @@
 - [x] Test scenarios defined
 - [x] Demo script approved
 - [x] No blockers
+
+---
+
+## Definition of Done
+
+- [x] All technical tasks (T1–T6) completed
+- [x] Acceptance criteria AC1–AC5 met
+- [ ] AC6 (latency) validated by performance test or production monitoring
+- [x] Unit and integration tests passing
+- [x] Demo script runnable against running API
 
