@@ -52,7 +52,7 @@
 
 ## Technical Tasks
 
-- [ ] **T1:** Create `SearchResource` JAX-RS class (backend)
+- [x] **T1:** Create `SearchResource` JAX-RS class (backend)
 - [ ] **T2:** Implement GET endpoint with query params (backend)
 - [ ] **T3:** Create search response DTO (backend)
 - [ ] **T4:** Integrate with MegaBrainOrchestrator (backend)

@@ -12,14 +12,14 @@
 - **Description:** Create `SearchResource` JAX-RS REST resource class using Quarkus RESTEasy Reactive. Define base path `/api/v1/search`. Use CDI for dependency injection. Follow RESTful conventions.
 - **Estimated Hours:** 2 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** US-02-03 (needs search service)
 - **Acceptance Criteria:**
-  - [ ] SearchResource class created
-  - [ ] Base path `/api/v1/search` defined
-  - [ ] CDI injection working
-  - [ ] Follows REST conventions
-- **Technical Notes:** Use Quarkus RESTEasy Reactive. Annotate with `@Path("/api/v1/search")`. Inject search service via CDI.
+  - [x] SearchResource class created
+  - [x] Base path `/api/v1/search` defined
+  - [x] CDI injection working
+  - [x] Follows REST conventions
+- **Technical Notes:** Use Quarkus RESTEasy Reactive. Annotate with `@Path("/api/v1/search")`. Inject search service via CDI. **Implementation note:** SearchResource already existed at `backend/src/main/java/io/megabrain/api/SearchResource.java` with `@Path("/search")`; effective path is `/api/v1/search` via `MegaBrainApplication@ApplicationPath("/api/v1")`. CDI constructor injection of `SearchOrchestrator` in place. Verified with `mvn compile` and `SearchResourceTest`.
 
 ### T2: Implement GET endpoint with query params
 - **Description:** Implement GET endpoint with query parameters: `q` (query), `language`, `repository`, `entity_type`, `limit`, `offset`, `mode` (hybrid/keyword/vector). Parse and validate parameters. Handle optional parameters.
