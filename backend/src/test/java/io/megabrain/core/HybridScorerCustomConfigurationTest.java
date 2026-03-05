@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @QuarkusTest
 @TestProfile(HybridScorerCustomConfigurationTest.CustomWeightsProfile.class)
-class HybridScorerCustomConfigurationTest {
+public class HybridScorerCustomConfigurationTest {
 
     @Inject
     HybridScorer hybridScorer;
@@ -66,7 +66,11 @@ class HybridScorerCustomConfigurationTest {
         public java.util.Map<String, String> getConfigOverrides() {
             return java.util.Map.of(
                     "megabrain.search.hybrid.keyword-weight", "0.7",
-                    "megabrain.search.hybrid.vector-weight", "0.3"
+                    "megabrain.search.hybrid.vector-weight", "0.3",
+                    "megabrain.llm.openai.api-key", "test-key",
+                    "megabrain.llm.openai.base-url", "https://api.openai.com/v1",
+                    "megabrain.llm.anthropic.api-key", "test-key",
+                    "megabrain.llm.anthropic.base-url", "https://api.anthropic.com/v1"
             );
         }
     }
