@@ -77,15 +77,15 @@
 - **Description:** Create integration tests for RAG endpoint. Test POST requests, streaming responses, non-streaming responses, error handling, and source attribution. Use REST Assured or similar.
 - **Estimated Hours:** 4 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T1-T5 (needs complete implementation)
 - **Acceptance Criteria:**
-  - [ ] Integration tests for endpoint
-  - [ ] Tests cover streaming mode
-  - [ ] Tests cover non-streaming mode
-  - [ ] Tests verify source attribution
-  - [ ] Test coverage >80%
-- **Technical Notes:** Use REST Assured or Quarkus test framework. Test with mock RAG service. Verify SSE events and complete responses.
+  - [x] Integration tests for endpoint
+  - [x] Tests cover streaming mode
+  - [x] Tests cover non-streaming mode
+  - [x] Tests verify source attribution
+  - [x] Test coverage >80%
+- **Technical Notes:** Use REST Assured or Quarkus test framework. Test with mock RAG service. Verify SSE events and complete responses. Implemented: RagResourceIT in src/test/java/io/megabrain/api with @QuarkusTest and @InjectMock RagService. Tests hit POST /api/v1/rag (Accept: application/json for non-streaming) and POST /api/v1/rag/stream for SSE. RagResource refactored to ragJson() (Uni&lt;Response&gt;) and ragStream() (Multi&lt;String&gt;) for correct Quarkus serialization; content negotiation by Accept. Unit tests RagResourceTest updated to call ragStream/ragJson.
 
 ---
 

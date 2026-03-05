@@ -54,7 +54,8 @@ class RagResourceTest {
         );
 
         // When
-        Multi<String> sseStream = (Multi<String>) ragResource.rag(request, true);
+        @SuppressWarnings("unchecked")
+        Multi<String> sseStream = ragResource.ragStream(request);
         List<String> lines = sseStream.collect().asList().await().indefinitely();
 
         // Then
@@ -73,7 +74,8 @@ class RagResourceTest {
         when(ragService.streamTokens(anyString())).thenReturn(Multi.createFrom().empty());
 
         // When
-        ((Multi<String>) ragResource.rag(request, true)).collect().asList().await().indefinitely();
+        Multi<String> sseStream = ragResource.ragStream(request);
+        sseStream.collect().asList().await().indefinitely();
 
         // Then
         verify(ragService).streamTokens("hello");
@@ -92,7 +94,8 @@ class RagResourceTest {
         );
 
         // When
-        Multi<String> sseStream = (Multi<String>) ragResource.rag(request, true);
+        @SuppressWarnings("unchecked")
+        Multi<String> sseStream = ragResource.ragStream(request);
         List<String> lines = sseStream.collect().asList().await().indefinitely();
 
         // Then
@@ -112,7 +115,8 @@ class RagResourceTest {
                 )
         );
 
-        Multi<String> sseStream = (Multi<String>) ragResource.rag(request, true);
+        @SuppressWarnings("unchecked")
+        Multi<String> sseStream = ragResource.ragStream(request);
         List<String> lines = sseStream.collect().asList().await().indefinitely();
 
         assertThat(lines).hasSize(1);
@@ -130,7 +134,7 @@ class RagResourceTest {
                 Multi.createFrom().failure(new RuntimeException("Backend error"))
         );
 
-        Multi<String> sseStream = (Multi<String>) ragResource.rag(request, true);
+        Multi<String> sseStream = ragResource.ragStream(request);
         List<String> lines = sseStream.collect().asList().await().indefinitely();
 
         assertThat(lines).hasSize(1);
@@ -146,8 +150,8 @@ class RagResourceTest {
         RagResponse response = RagResponse.of("Authentication is the process of verifying identity.");
         when(ragService.ask(anyString())).thenReturn(Uni.createFrom().item(response));
 
-        Object result = ragResource.rag(request, false);
-        Response res = ((Uni<Response>) result).await().indefinitely();
+        Uni<Response> result = ragResource.ragJson(request);
+        Response res = result.await().indefinitely();
 
         assertThat(res.getStatus()).isEqualTo(200);
         assertThat(res.getEntity()).isInstanceOf(RagResponse.class);
@@ -163,8 +167,8 @@ class RagResourceTest {
         RagRequest request = new RagRequest("  hello  ");
         when(ragService.ask(anyString())).thenReturn(Uni.createFrom().item(RagResponse.of("Hi")));
 
-        Object result = ragResource.rag(request, false);
-        ((Uni<?>) result).await().indefinitely();
+        Uni<Response> result = ragResource.ragJson(request);
+        result.await().indefinitely();
 
         verify(ragService).ask("hello");
     }
@@ -175,8 +179,8 @@ class RagResourceTest {
         RagRequest request = new RagRequest("Type check");
         when(ragService.ask(anyString())).thenReturn(Uni.createFrom().item(RagResponse.of("JSON response")));
 
-        Object result = ragResource.rag(request, false);
-        Response res = ((Uni<Response>) result).await().indefinitely();
+        Uni<Response> result = ragResource.ragJson(request);
+        Response res = result.await().indefinitely();
 
         assertThat(res.getStatus()).isEqualTo(200);
         assertThat(res.getMediaType()).isNotNull();
@@ -190,8 +194,8 @@ class RagResourceTest {
         when(ragService.ask(anyString())).thenReturn(
                 Uni.createFrom().failure(new RuntimeException("LLM unavailable")));
 
-        Object result = ragResource.rag(request, false);
-        Response res = ((Uni<Response>) result).await().indefinitely();
+        Uni<Response> result = ragResource.ragJson(request);
+        Response res = result.await().indefinitely();
 
         assertThat(res.getStatus()).isEqualTo(503);
         assertThat(res.getEntity()).isNotNull();
