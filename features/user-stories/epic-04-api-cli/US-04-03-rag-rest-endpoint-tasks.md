@@ -12,14 +12,14 @@
 - **Description:** Create RAG endpoint in existing resource class or new `RagResource` class. Define path `/api/v1/rag`. Use Quarkus RESTEasy Reactive. Support both streaming and non-streaming responses.
 - **Estimated Hours:** 2 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** US-03-04 (needs RAG service)
 - **Acceptance Criteria:**
-  - [ ] RAG endpoint created
-  - [ ] Path `/api/v1/rag` defined
-  - [ ] Supports streaming and non-streaming
-  - [ ] CDI injection working
-- **Technical Notes:** Use Quarkus RESTEasy Reactive. Create `RagResource` class or add to existing resource. Annotate with `@Path("/api/v1/rag")`.
+  - [x] RAG endpoint created
+  - [x] Path `/api/v1/rag` defined
+  - [x] Supports streaming and non-streaming
+  - [x] CDI injection working
+- **Technical Notes:** Use Quarkus RESTEasy Reactive. Create `RagResource` class or add to existing resource. Annotate with `@Path("/api/v1/rag")`. Implemented: `RagResource` exists at `@Path("/rag")` with `MegaBrainApplication` `@ApplicationPath("/api/v1")`, so effective path is `/api/v1/rag`. POST supports `stream=true` (Multi SSE) and `stream=false` (Uni&lt;Response&gt;). CDI constructor injection for RagService.
 
 ### T2: Implement POST with SSE response
 - **Description:** Implement POST endpoint that accepts question in request body and returns SSE stream of tokens. Handle `stream` query parameter (default: true). Format tokens as SSE events.

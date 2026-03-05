@@ -51,7 +51,7 @@
 
 ## Technical Tasks
 
-- [ ] **T1:** Create RAG endpoint in resource class (backend)
+- [x] **T1:** Create RAG endpoint in resource class (backend)
 - [ ] **T2:** Implement POST with SSE response (backend)
 - [ ] **T3:** Create RAG request/response DTOs (backend)
 - [ ] **T4:** Integrate with RagService (backend)
