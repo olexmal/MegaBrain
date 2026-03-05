@@ -77,15 +77,15 @@
 - **Description:** Create integration tests for search endpoint. Test GET requests, query parameters, filters, pagination, error handling, and response format. Use REST Assured or similar.
 - **Estimated Hours:** 3 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T1-T5 (needs complete implementation)
 - **Acceptance Criteria:**
-  - [ ] Integration tests for endpoint
-  - [ ] Tests cover all query parameters
-  - [ ] Tests verify pagination
-  - [ ] Tests cover error scenarios
-  - [ ] Test coverage >80%
-- **Technical Notes:** Use REST Assured or Quarkus test framework. Test with mock search service. Verify response structure and pagination.
+  - [x] Integration tests for endpoint
+  - [x] Tests cover all query parameters
+  - [x] Tests verify pagination
+  - [x] Tests cover error scenarios
+  - [x] Test coverage >80%
+- **Technical Notes:** Use REST Assured or Quarkus test framework. Test with mock search service. Verify response structure and pagination. **Implementation note:** Added SearchResourceIntegrationTest (QuarkusTest + REST Assured, @InjectMock SearchOrchestrator). Tests cover GET /api/v1/search with query params, pagination, error scenarios (missing q, invalid depth), modes, facets, and service failure. Combined with SearchResourceTest for >80% coverage.
 
 ---
 

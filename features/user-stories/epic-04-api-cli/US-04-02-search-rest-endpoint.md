@@ -57,7 +57,7 @@
 - [x] **T3:** Create search response DTO (backend)
 - [x] **T4:** Integrate with MegaBrainOrchestrator (backend)
 - [x] **T5:** Add pagination logic (backend)
-- [ ] **T6:** Write integration tests (test)
+- [x] **T6:** Write integration tests (test)
 
 ---
 
