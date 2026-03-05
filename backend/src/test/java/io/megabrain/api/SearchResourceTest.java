@@ -231,7 +231,7 @@ class SearchResourceTest {
 
     @Test
     void search_withPagination_shouldApplyOffsetAndLimit() {
-        // Given
+        // Given: 10 results from service, request limit=5, offset=3
         String query = "test";
         List<ResultMerger.MergedResult> mockResults = createMockMergedResults(10);
         when(searchOrchestrator.orchestrate(any(SearchRequest.class), any(SearchMode.class), anyInt(), anyInt()))
@@ -241,14 +241,14 @@ class SearchResourceTest {
         Uni<Response> responseUni = searchResource.search(
                 query, null, null, null, null, 5, 3, null, null, null, null);
 
-        // Then
+        // Then: pagination applied — slice [3, 8), total=10, page=0, size=5
         Response response = responseUni.await().indefinitely();
         assertThat(response.getStatus()).isEqualTo(200);
         SearchResponse searchResponse = (SearchResponse) response.getEntity();
-        // Should return results from index 3 to 8 (5 results)
-        assertThat(searchResponse.getResults().size()).isLessThanOrEqualTo(5);
+        assertThat(searchResponse.getResults()).hasSize(5);
+        assertThat(searchResponse.getTotal()).isEqualTo(10);
+        assertThat(searchResponse.getPage()).isEqualTo(0);
         assertThat(searchResponse.getSize()).isEqualTo(5);
-        assertThat(searchResponse.getPage()).isGreaterThanOrEqualTo(0);
     }
 
     @Test

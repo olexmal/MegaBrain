@@ -16,7 +16,7 @@
 - [x] **AC1:** `GET /api/v1/search` accepts query parameters
 - [x] **AC2:** Parameters: `q`, `language`, `repository`, `entity_type`, `limit`, `offset`
 - [x] **AC3:** Response includes: chunks, metadata, scores, total count
-- [ ] **AC4:** Pagination support via offset/limit
+- [x] **AC4:** Pagination support via offset/limit
 - [x] **AC5:** Response format: JSON
 - [ ] **AC6:** Latency <500ms for 95th percentile
 
@@ -56,7 +56,7 @@
 - [x] **T2:** Implement GET endpoint with query params (backend)
 - [x] **T3:** Create search response DTO (backend)
 - [x] **T4:** Integrate with MegaBrainOrchestrator (backend)
-- [ ] **T5:** Add pagination logic (backend)
+- [x] **T5:** Add pagination logic (backend)
 - [ ] **T6:** Write integration tests (test)
 
 ---

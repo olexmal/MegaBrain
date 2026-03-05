@@ -64,14 +64,14 @@
 - **Description:** Implement pagination logic using offset and limit parameters. Calculate total count, page number, and page size. Apply pagination to search results before returning.
 - **Estimated Hours:** 3 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T4 (needs service integration)
 - **Acceptance Criteria:**
-  - [ ] Pagination implemented
-  - [ ] Offset and limit applied correctly
-  - [ ] Total count calculated
-  - [ ] Page metadata included in response
-- **Technical Notes:** Apply limit and offset to search results. Calculate total count from search service. Include pagination metadata in response (total, page, size, hasMore).
+  - [x] Pagination implemented
+  - [x] Offset and limit applied correctly
+  - [x] Total count calculated
+  - [x] Page metadata included in response
+- **Technical Notes:** Apply limit and offset to search results. Calculate total count from search service. Include pagination metadata in response (total, page, size, hasMore). **Implementation note:** SearchResource applies pagination: uses offset/limit from SearchRequest, computes page = offset/limit, applies subList(fromIndex, toIndex) to results, builds SearchResponse with total (from results.size()), page, and size. SearchResponse includes total, page, size and helpers hasNextPage(), hasPreviousPage(), getTotalPages(). Verified with mvn compile and SearchResourceTest (including search_withPagination_shouldApplyOffsetAndLimit).
 
 ### T6: Write integration tests
 - **Description:** Create integration tests for search endpoint. Test GET requests, query parameters, filters, pagination, error handling, and response format. Use REST Assured or similar.
