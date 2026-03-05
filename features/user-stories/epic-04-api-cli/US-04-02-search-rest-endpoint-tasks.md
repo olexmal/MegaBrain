@@ -25,14 +25,14 @@
 - **Description:** Implement GET endpoint with query parameters: `q` (query), `language`, `repository`, `entity_type`, `limit`, `offset`, `mode` (hybrid/keyword/vector). Parse and validate parameters. Handle optional parameters.
 - **Estimated Hours:** 4 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T1 (needs resource class)
 - **Acceptance Criteria:**
-  - [ ] GET endpoint with query parameters implemented
-  - [ ] All parameters parsed correctly
-  - [ ] Optional parameters handled
-  - [ ] Parameter validation applied
-- **Technical Notes:** Use `@GET` with `@QueryParam` annotations. Validate query string is not empty. Set default values for limit (10) and offset (0).
+  - [x] GET endpoint with query parameters implemented
+  - [x] All parameters parsed correctly
+  - [x] Optional parameters handled
+  - [x] Parameter validation applied
+- **Technical Notes:** Use `@GET` with `@QueryParam` annotations. Validate query string is not empty. Set default values for limit (10) and offset (0). **Implementation note:** SearchResource already had GET `search()` with `@QueryParam` for q, language, repository, file_path, entity_type, limit, offset, mode; query validated (required, non-blank); limit/offset default to 10 and 0; optional filters and mode (hybrid/keyword/vector) with default HYBRID; SearchRequest.validate() and depth validation for transitive. Verified with mvn compile and SearchResourceTest.
 
 ### T3: Create search response DTO
 - **Description:** Create `SearchResponse` DTO class for response. Include fields: results (List<SearchResult>), total (long), page (int), size (int), facets (Map<String, List<FacetValue>>). Make it serializable to JSON.

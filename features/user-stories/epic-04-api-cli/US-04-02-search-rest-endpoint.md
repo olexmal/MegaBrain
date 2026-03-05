@@ -13,8 +13,8 @@
 
 ## Acceptance Criteria
 
-- [ ] **AC1:** `GET /api/v1/search` accepts query parameters
-- [ ] **AC2:** Parameters: `q`, `language`, `repository`, `entity_type`, `limit`, `offset`
+- [x] **AC1:** `GET /api/v1/search` accepts query parameters
+- [x] **AC2:** Parameters: `q`, `language`, `repository`, `entity_type`, `limit`, `offset`
 - [ ] **AC3:** Response includes: chunks, metadata, scores, total count
 - [ ] **AC4:** Pagination support via offset/limit
 - [ ] **AC5:** Response format: JSON
@@ -53,7 +53,7 @@
 ## Technical Tasks
 
 - [x] **T1:** Create `SearchResource` JAX-RS class (backend)
-- [ ] **T2:** Implement GET endpoint with query params (backend)
+- [x] **T2:** Implement GET endpoint with query params (backend)
 - [ ] **T3:** Create search response DTO (backend)
 - [ ] **T4:** Integrate with MegaBrainOrchestrator (backend)
 - [ ] **T5:** Add pagination logic (backend)
