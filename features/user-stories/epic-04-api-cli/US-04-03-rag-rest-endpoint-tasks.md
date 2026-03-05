@@ -51,14 +51,14 @@
 - **Description:** Integrate endpoint with RagService. Call RAG service with question and parameters. Handle streaming and non-streaming modes. Convert service responses to DTOs.
 - **Estimated Hours:** 4 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T2, T3 (needs endpoint and DTOs), US-03-04 (needs RAG service)
 - **Acceptance Criteria:**
-  - [ ] Endpoint calls RAG service
-  - [ ] Streaming mode integrated
-  - [ ] Non-streaming mode integrated
-  - [ ] Errors handled gracefully
-- **Technical Notes:** Inject RagService. Call `ask()` method with question. Handle streaming via Multi, non-streaming via completion. Map responses to DTOs.
+  - [x] Endpoint calls RAG service
+  - [x] Streaming mode integrated
+  - [x] Non-streaming mode integrated
+  - [x] Errors handled gracefully
+- **Technical Notes:** Inject RagService. Call `ask()` method with question. Handle streaming via Multi, non-streaming via completion. Map responses to DTOs. Implemented: RagResource calls ragService.ask(question) for non-streaming and ragService.streamTokens(question) for streaming; streaming uses onFailure.recoverWithItem to emit error SSE event; non-streaming uses onFailure.recoverWithItem to return 503 with safe JSON body. context_limit and model from RagRequest documented as deferred (not yet passed to RagService).
 
 ### T5: Add non-streaming option
 - **Description:** Implement non-streaming response option when `stream=false`. Collect all tokens and return complete response in single JSON response. Maintain same response format.

@@ -167,4 +167,20 @@ class RagResourceTest {
 
         verify(ragService).ask("hello");
     }
+
+    @Test
+    @DisplayName("rag with stream=false recovers from service failure with 503 and safe error body")
+    void rag_streamFalse_whenAskFails_returns503WithErrorBody() {
+        RagRequest request = new RagRequest("Fail");
+        when(ragService.ask(anyString())).thenReturn(
+                Uni.createFrom().failure(new RuntimeException("LLM unavailable")));
+
+        Object result = ragResource.rag(request, false);
+        Response res = ((Uni<Response>) result).await().indefinitely();
+
+        assertThat(res.getStatus()).isEqualTo(503);
+        assertThat(res.getEntity()).isNotNull();
+        assertThat(res.getEntity().toString()).contains("RAG request failed");
+        verify(ragService).ask("Fail");
+    }
 }

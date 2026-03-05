@@ -16,6 +16,8 @@ import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
+import java.util.Map;
+
 import org.jboss.logging.Logger;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -31,6 +33,9 @@ import io.smallrye.mutiny.Uni;
 /**
  * REST API resource for RAG question-answering with optional SSE token streaming (US-03-04).
  * Use {@code stream=true} (default) for Server-Sent Events; {@code stream=false} for a single JSON response.
+ * T4: Integrates with RagService (ask for non-streaming, streamTokens for streaming). Request fields
+ * {@code context_limit} and {@code model} are accepted in RagRequest but not yet passed to RagService (deferred
+ * until search/RAG pipeline provides context chunks and model selection).
  */
 @Path("/rag")
 @Produces({ MediaType.APPLICATION_JSON, MediaType.SERVER_SENT_EVENTS })
@@ -65,7 +70,14 @@ public class RagResource {
 
         if (!stream) {
             return ragService.ask(question)
-                    .map(r -> Response.ok(r).type(MediaType.APPLICATION_JSON).build());
+                    .map(r -> Response.ok(r).type(MediaType.APPLICATION_JSON).build())
+                    .onFailure().recoverWithItem(throwable -> {
+                        LOG.error("RAG non-streaming request failed", throwable);
+                        return Response.status(Response.Status.SERVICE_UNAVAILABLE)
+                                .type(MediaType.APPLICATION_JSON)
+                                .entity(Map.of("error", "RAG request failed"))
+                                .build();
+                    });
         }
         return streamRag(question);
     }
