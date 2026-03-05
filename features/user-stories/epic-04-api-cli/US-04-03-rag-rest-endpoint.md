@@ -13,11 +13,11 @@
 
 ## Acceptance Criteria
 
-- [ ] **AC1:** `POST /api/v1/rag` accepts question in request body
+- [x] **AC1:** `POST /api/v1/rag` accepts question in request body
 - [ ] **AC2:** Request body: `{"question": "...", "context_limit": N}`
-- [ ] **AC3:** Response is SSE stream of tokens
+- [x] **AC3:** Response is SSE stream of tokens
 - [ ] **AC4:** Final response includes source attributions
-- [ ] **AC5:** Option for non-streaming response (`stream=false`)
+- [x] **AC5:** Option for non-streaming response (`stream=false`)
 - [ ] **AC6:** First token within 2s
 
 ---
@@ -52,7 +52,7 @@
 ## Technical Tasks
 
 - [x] **T1:** Create RAG endpoint in resource class (backend)
-- [ ] **T2:** Implement POST with SSE response (backend)
+- [x] **T2:** Implement POST with SSE response (backend)
 - [ ] **T3:** Create RAG request/response DTOs (backend)
 - [ ] **T4:** Integrate with RagService (backend)
 - [ ] **T5:** Add non-streaming option (backend)

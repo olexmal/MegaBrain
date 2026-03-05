@@ -25,14 +25,14 @@
 - **Description:** Implement POST endpoint that accepts question in request body and returns SSE stream of tokens. Handle `stream` query parameter (default: true). Format tokens as SSE events.
 - **Estimated Hours:** 4 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T1 (needs endpoint), US-03-04 (needs streaming)
 - **Acceptance Criteria:**
-  - [ ] POST endpoint accepts question
-  - [ ] Returns SSE stream when stream=true
-  - [ ] Tokens formatted as SSE events
-  - [ ] Stream parameter handled
-- **Technical Notes:** Use `@POST` with `@Produces(MediaType.SERVER_SENT_EVENTS)`. Return `Multi<StreamEvent>`. Format: `event: token\ndata: {"token": "..."}\n\n`.
+  - [x] POST endpoint accepts question
+  - [x] Returns SSE stream when stream=true
+  - [x] Tokens formatted as SSE events
+  - [x] Stream parameter handled
+- **Technical Notes:** Use `@POST` with `@Produces(MediaType.SERVER_SENT_EVENTS)`. Return `Multi<StreamEvent>`. Format: `event: token\ndata: {"token": "..."}\n\n`. Implemented: main POST returns Multi&lt;String&gt; of SSE lines when stream=true (class-level @Produces includes SERVER_SENT_EVENTS). TokenStreamEvent serialized as event: token + data JSON. stream query param @DefaultValue("true"). Unit tests in RagResourceTest cover streaming, stream=false, and error recovery.
 
 ### T3: Create RAG request/response DTOs
 - **Description:** Create `RagRequest` DTO (question, context_limit, model) and `RagResponse` DTO (answer, sources, model_used). Use Bean Validation. Make serializable to/from JSON.
