@@ -15,7 +15,7 @@
 
 - [x] **AC1:** `GET /api/v1/search` accepts query parameters
 - [x] **AC2:** Parameters: `q`, `language`, `repository`, `entity_type`, `limit`, `offset`
-- [ ] **AC3:** Response includes: chunks, metadata, scores, total count
+- [x] **AC3:** Response includes: chunks, metadata, scores, total count
 - [ ] **AC4:** Pagination support via offset/limit
 - [x] **AC5:** Response format: JSON
 - [ ] **AC6:** Latency <500ms for 95th percentile
@@ -55,7 +55,7 @@
 - [x] **T1:** Create `SearchResource` JAX-RS class (backend)
 - [x] **T2:** Implement GET endpoint with query params (backend)
 - [x] **T3:** Create search response DTO (backend)
-- [ ] **T4:** Integrate with MegaBrainOrchestrator (backend)
+- [x] **T4:** Integrate with MegaBrainOrchestrator (backend)
 - [ ] **T5:** Add pagination logic (backend)
 - [ ] **T6:** Write integration tests (test)
 

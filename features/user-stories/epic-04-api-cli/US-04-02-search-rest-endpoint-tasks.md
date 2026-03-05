@@ -51,14 +51,14 @@
 - **Description:** Integrate endpoint with search orchestrator/service. Call search service with query parameters. Convert search results to DTOs. Handle errors and return appropriate HTTP status codes.
 - **Estimated Hours:** 4 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T2, T3 (needs endpoint and DTO), US-02-03 (needs search service)
 - **Acceptance Criteria:**
-  - [ ] Endpoint calls search service
-  - [ ] Query parameters passed correctly
-  - [ ] Results converted to DTOs
-  - [ ] Errors handled gracefully
-- **Technical Notes:** Inject search service. Call search method with parameters. Map results to SearchResult DTOs. Handle exceptions and return 500 for server errors.
+  - [x] Endpoint calls search service
+  - [x] Query parameters passed correctly
+  - [x] Results converted to DTOs
+  - [x] Errors handled gracefully
+- **Technical Notes:** Inject search service. Call search method with parameters. Map results to SearchResult DTOs. Handle exceptions and return 500 for server errors. **Implementation note:** SearchResource injects SearchOrchestrator, calls orchestrate(searchRequest, searchMode, facetLimit, effectiveDepth), maps MergedResult to SearchResult via convertToSearchResult(), and uses onFailure().recoverWithItem() to return 500 with ErrorResponse. Verified with mvn compile and SearchResourceTest.
 
 ### T5: Add pagination logic
 - **Description:** Implement pagination logic using offset and limit parameters. Calculate total count, page number, and page size. Apply pagination to search results before returning.
