@@ -64,14 +64,14 @@
 - **Description:** Implement non-streaming response option when `stream=false`. Collect all tokens and return complete response in single JSON response. Maintain same response format.
 - **Estimated Hours:** 3 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T4 (needs service integration)
 - **Acceptance Criteria:**
-  - [ ] Non-streaming option supported
-  - [ ] Complete response returned
-  - [ ] Same response format as streaming (when complete)
-  - [ ] Performance acceptable
-- **Technical Notes:** When stream=false, buffer tokens and return complete RagResponse. Use `@Produces(MediaType.APPLICATION_JSON)` for non-streaming.
+  - [x] Non-streaming option supported
+  - [x] Complete response returned
+  - [x] Same response format as streaming (when complete)
+  - [x] Performance acceptable
+- **Technical Notes:** When stream=false, buffer tokens and return complete RagResponse. Use `@Produces(MediaType.APPLICATION_JSON)` for non-streaming. Implemented: RagResource branches on stream=false and returns ragService.ask(question).map(r -> Response.ok(r).type(MediaType.APPLICATION_JSON).build()). RagService.ask() buffers tokens via streamTokens().collect().asList() and returns RagResponse (answer, sources, source_metadata, model_used). Unit test added for Content-Type application/json.
 
 ### T6: Write integration tests
 - **Description:** Create integration tests for RAG endpoint. Test POST requests, streaming responses, non-streaming responses, error handling, and source attribution. Use REST Assured or similar.

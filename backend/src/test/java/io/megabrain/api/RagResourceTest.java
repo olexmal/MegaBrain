@@ -13,6 +13,7 @@ import io.megabrain.api.SseStreamEvent;
 import io.megabrain.api.TokenStreamEvent;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
+import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -166,6 +167,20 @@ class RagResourceTest {
         ((Uni<?>) result).await().indefinitely();
 
         verify(ragService).ask("hello");
+    }
+
+    @Test
+    @DisplayName("rag with stream=false returns Content-Type application/json")
+    void rag_streamFalse_returnsApplicationJsonContentType() {
+        RagRequest request = new RagRequest("Type check");
+        when(ragService.ask(anyString())).thenReturn(Uni.createFrom().item(RagResponse.of("JSON response")));
+
+        Object result = ragResource.rag(request, false);
+        Response res = ((Uni<Response>) result).await().indefinitely();
+
+        assertThat(res.getStatus()).isEqualTo(200);
+        assertThat(res.getMediaType()).isNotNull();
+        assertThat(res.getMediaType().toString()).isEqualTo(MediaType.APPLICATION_JSON);
     }
 
     @Test
