@@ -2,7 +2,7 @@
 
 This document describes all features that have been implemented, organized by epic. Each section covers the key classes, configuration, and testing status.
 
-**Status:** 11 of 52 user stories fully completed, 1 partially completed (98 of 211 story points).
+**Status:** 12 of 52 user stories fully completed (98 of 211 story points).
 
 ---
 
@@ -358,3 +358,76 @@ megabrain.llm.ollama.model-availability-cache-seconds=60
 **Tests:** Unit tests for OllamaLLMClient, LLMClient interface, OllamaConfiguration.
 
 **RAG REST (US-04-03):** AC6 (first token within 2s) is validated by an integration test (`RagStreamingIntegrationTestIT.rag_streamFirstToken_within2Seconds`, tagged `performance`) with a mocked RAG service; production compliance is validated by demo or APM.
+
+---
+
+## EPIC-04: REST API & CLI
+
+### US-04-04: CLI Ingest Command (Done)
+
+CLI command structure and options for ingesting repositories from the command line.
+
+**Key Classes:**
+- `MegaBrainCommand` - Top-level CLI entry point (Quarkus Picocli `@TopCommand`) with subcommands
+- `IngestCommand` - `ingest` subcommand with `--source`, `--repo`, `--branch`, `--token`, `--incremental` options; CDI bean with constructor-injected `IngestionService`
+
+**Completed (T1):**
+- Picocli integration in package `io.megabrain.cli`
+- Command name `ingest`; `megabrain ingest --help` shows usage
+- Unit tests for command name, help output, and minimal parse (no mocks)
+
+**Completed (T2):**
+- All five options added: `--source` (required), `--repo` (required), `--branch` (default: main), `--token` (optional), `--incremental` (default: false)
+- Validation via `IngestionResource.SourceType.fromString()`; invalid source or blank repo throw `ParameterException` with clear messages; token never logged
+- Unit tests for help output, defaults, valid sources, invalid source, token parsing, run() after valid parse
+
+**Completed (T3):**
+- Progress display: subscribes to `IngestionService.ingestRepository(repo)` / `ingestRepositoryIncrementally(repo)`; single-line updates on TTY, line-by-line when not TTY; message length capped; failure logs short message (no token) and exits non-zero
+- Unit tests for full ingest progress output, incremental progress output, full vs incremental method calls, stream failure
+
+**Completed (T4):**
+- Exit codes: 0 = success, 1 = execution/ingestion failure, 2 = invalid arguments; documented in CLI reference and Javadoc; no `System.exit()`; Picocli `exitCodeOnInvalidInput` / `exitCodeOnExecutionException` on `IngestCommand`; tests assert codes via `CommandLine.execute()` on `IngestCommand`
+
+**Completed (T5):**
+- `--verbose` option: when set, enables DEBUG for `io.megabrain` logger (via JBoss LogManager), fuller progress (no message truncation), and on ingestion failure logs full stack trace with `LOG.error("Ingestion failed", err)`; otherwise message-only; single source is the `verbose` field
+
+**Completed (T6):**
+- **Tests:** Unit tests for option parsing, validation, progress display, exit codes, and help text using Picocli `CommandLine.execute()` and mocked `IngestionService`. Coverage includes: token never in output, repo trim, Picocli exit-code contract (invalid 2, execution 1), branch default in help, non-verbose truncation, null progress message, missing `--repo` exit 2, MegaBrainCommand help. Package `io.megabrain.cli` line and branch coverage >80% (JaCoCo).
+
+### US-04-05: CLI Search Command (Done)
+
+CLI command to search the MegaBrain index from the command line.
+
+**Key Classes:**
+- `SearchCommand` – Picocli `search` subcommand with required query parameter; integrated in `MegaBrainCommand.subcommands`
+
+**Completed (T1):**
+- `SearchCommand` class in package `io.megabrain.cli` with `@Command(name = "search")`, `@Parameters(index = "0")` for query, `mixinStandardHelpOptions = true`, exit codes 2 (invalid input) and 1 (execution exception)
+- Validation: non-blank query required; throws `ParameterException` otherwise
+- Minimal run() behavior: writes to stdout that query was received (stub for T1; no SearchOrchestrator injection yet)
+- Help text: `megabrain search --help` shows description and usage
+- Unit tests: `SearchCommandTest` (plain JUnit 5) for command name, `--help` output, execute with one query arg, blank query exit 2
+
+**Completed (T2):**
+- Filter and output options: `--language`, `--repo`, `--type` (entity_type), `--limit` (default 10), `--json` (default false), `--quiet` (default false). All options in help with clear descriptions.
+- Validation in `run()`: after query check, each `--language` validated against supported set (java, python, javascript, typescript, go, rust, kotlin, ruby, scala, swift, php, c, cpp); each `--type` against (class, method, function, field, interface, enum, module); `--limit` 1–100. Invalid values throw `ParameterException(spec.commandLine(), "message")` with allowed values in message.
+- `SearchRequest` built in `run()` from validated options: `setQuery`, `addLanguage`/`addRepository`/`addEntityType` for each list, `setLimit`. `--json` and `--quiet` kept as fields for T3/T5. No new DTOs.
+- Unit tests: option parsing, defaults when only query, multi-value `--language`/`--repo`/`--type`, valid language/type exit 0, invalid `--language`/`--type` exit 2 with stderr message, `--help` contains all option names, `--limit` 1 and 100 valid, `--limit` 0 or out of range exit 2, missing query exit 2. Aim >80% on SearchCommand.
+
+**Completed (T3):**
+- **Terminal formatting:** `SearchResultFormatter` interface in `io.megabrain.cli` with `format(SearchResponse)` and `format(SearchResponse, boolean quiet)`. `HumanReadableSearchResultFormatter`: per result shows File, Entity, Score, snippet, separator `---`; truncation by line count (max 15 lines) and line length (max 120 chars); null-safe placeholders; empty results → "No results."; optional header (query, total, tookMs). Quiet mode: one line per result (path + entity).
+- **SearchCommand integration:** Injects `SearchOrchestrator`, `SearchResultFormatter`, and config (facetLimit, transitiveDefaultDepth, transitiveMaxDepth). In `run()`: builds `SearchRequest`, calls `orchestrate(..., SearchMode.HYBRID, ...).await().indefinitely()`, converts `OrchestratorResult` to `SearchResponse` via `SearchResultMapper.toSearchResult()` (shared helper in `io.megabrain.api`, used by REST and CLI). If !json prints formatter output and flushes; handles Uni failure with user-facing `ExecutionException`.
+- **SearchResultMapper:** In `io.megabrain.api`; maps `MergedResult` to `SearchResult` DTO; used by `SearchResource` and CLI.
+- **Tests:** `SearchResultFormatterTest` (empty → "No results.", single/multiple layout, long snippet truncated, null/blank no NPE, quiet format); `SearchCommandTest` (mock orchestrator, stdout contains formatted result when not --json, empty results "No results.").
+
+**Completed (T4):**
+- **Syntax highlighting:** `SyntaxHighlighter` interface and `CliSyntaxHighlighter` implementation (keyword/pattern-based) using Jansi for ANSI codes. Supports Java, Python, JavaScript, TypeScript; other languages fall back to plain. `HumanReadableSearchResultFormatter` injects highlighter and uses it in `format(response, quiet, useColor)`; on highlighter failure logs debug and appends plain snippet.
+- **Color control:** `--no-color` option (default false). useColor resolved as: false if `--no-color`, else false if env `NO_COLOR` set, else false if output not TTY (`System.console() == null`), else true. Formatter receives useColor and highlights snippets only when true.
+- **Tests:** `CliSyntaxHighlighterTest` (color on → ANSI, color off → no ANSI, multiple languages, unknown/null/blank language no exception, empty snippet); `SearchResultFormatterTest` (useColor true → snippet contains ANSI, useColor false → no ANSI); `SearchCommandTest` (`--no-color` parsed and useColor false passed to formatter, output with `--no-color` has no ANSI).
+
+**Completed (T5):**
+- **JSON output:** When `--json` is set, output is written as JSON (no formatter). Injected `ObjectMapper` (Quarkus-provided) serializes `SearchResponse`: full JSON includes `results`, `total`, `page`, `size`, `query`, `took_ms`, `facets`; with `--quiet` only `response.getResults()` is serialized (results array). Pretty-printing uses `writerWithDefaultPrettyPrinter()` when TTY and not quiet and not `--no-color`; compact when piped or `--no-color`. Written to `spec.commandLine().getOut()` and flushed. No new DTOs; `SearchResponse`/`SearchResult` are Jackson-friendly.
+- **Tests:** `SearchCommandTest`: with `--json` parse stdout as JSON object, assert root has `results`, `total`, `page`, `size`, `query`, `took_ms`, `facets` and one result has `source_file`, `entity_name`, `score`; with `--json --quiet` parse as JSON array, assert length and element fields; empty results: full JSON has `results=[]`, `total=0`, quiet is `[]`. Use `ObjectMapper.readValue(stdout.trim(), ...)`; no exact string assertions.
+
+**Completed (T6):**
+- **Tests:** Unit tests for SearchCommand covering option parsing, validation, output formatting, JSON mode, and help text using Picocli `CommandLine.execute()` and mocked `SearchOrchestrator`. Council-recommended tests: orchestrator failure (exit 1, stderr "Search failed"), JSON with null ObjectMapper (exit 1), JSON serialization failure (mocked IOException), NO_COLOR env (useColor false via SystemStubs), blank/uppercase filter normalization (--language "  " skipped, JAVA → java), --quiet human-readable (formatter quiet true, one line per result), JSON with non-empty facets. Additional: SearchResultFormatterTest, CliSyntaxHighlighterTest. Package `io.megabrain.cli` line and instruction coverage >80% (JaCoCo); SearchCommand 94% instructions, 75% branches.

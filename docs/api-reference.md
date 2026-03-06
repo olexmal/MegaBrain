@@ -183,23 +183,27 @@ Content-Type: application/json
 | `provider` | string | Yes | Source control provider: `github`, `gitlab`, `bitbucket` |
 
 **Response (200 OK):**
-Streams progress events via Server-Sent Events (SSE) with stage, message, and percentage fields.
+Streams progress events via Server-Sent Events (SSE) with stage, message, and percentage fields. The CLI `ingest` command consumes the same progress stream and displays it in the terminal.
 
 ---
 
 ## CLI
 
-Run via Quarkus CLI or packaged JAR:
+The MegaBrain CLI is available when running the application in CLI mode (e.g. `java -jar megabrain-runner.jar` or the `megabrain` native executable). The **ingest** command supports `--source`, `--repo`, `--branch`, `--token`, and `--incremental`. Run `megabrain ingest --help` to see full usage and options.
 
 ```bash
-# Ingest a repository
-megabrain ingest --url https://github.com/user/repo --branch main
-
-# Search code
-megabrain search --query "dependency graph builder" --limit 5
-
-# Get help
+# Show top-level help
 megabrain --help
+
+# Show ingest command usage and options
+megabrain ingest --help
+
+# Ingest a repository (required: --source, --repo)
+megabrain ingest --source github --repo olexmal/MegaBrain
+megabrain ingest --source github --repo owner/repo --branch develop --token YOUR_TOKEN --incremental
+
+# Search code (when implemented)
+megabrain search --query "dependency graph builder" --limit 5
 ```
 
 ---

@@ -184,6 +184,7 @@ class SearchServiceTest {
 - Use `@QuarkusTest` for Quarkus-specific integration tests
 - Mock external dependencies (GitHub API, Ollama, database) with Mockito
 - Use Testcontainers for database and service testing
+- CLI commands are covered by `*CommandTest` classes using Picocli `CommandLine.execute()` and mocked services (e.g. `IngestCommandTest`).
 
 ### Frontend Testing (Jest)
 

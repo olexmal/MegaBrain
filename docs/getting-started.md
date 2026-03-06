@@ -115,7 +115,17 @@ Expected response:
 **Frontend:**
 Open `http://localhost:4200` in your browser. You should see the MegaBrain dashboard.
 
-### 5. Local LLM (Ollama) – offline operation
+### 5. CLI (optional)
+
+When the backend is built for CLI mode, you can run the MegaBrain CLI. The **ingest** and **search** commands are available; use `megabrain ingest --help` or `megabrain search --help` to see usage and options. The search command supports filter options (`--language`, `--repo`, `--type`, `--limit`) and output options (`--json`, `--quiet`, `--no-color`); see [CLI Reference](cli-reference.md#megabrain-search) for details. Use `--json` for scripting (e.g. `megabrain search "query" --json` or `--json --quiet` for the results array only). When you run an ingest (e.g. `megabrain ingest --source github --repo owner/repo`), progress is streamed in the terminal. Use `--verbose` for detailed progress and stack traces on errors.
+
+```bash
+cd backend
+mvn package
+java -jar target/quarkus-app/quarkus-run.jar ingest --help
+```
+
+### 6. Local LLM (Ollama) – offline operation
 
 To use the local LLM **without internet connectivity** (AC3):
 

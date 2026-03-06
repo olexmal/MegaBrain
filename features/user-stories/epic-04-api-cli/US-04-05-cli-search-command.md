@@ -13,12 +13,12 @@
 
 ## Acceptance Criteria
 
-- [ ] **AC1:** Command: `megabrain search "query string"`
-- [ ] **AC2:** Supports: `--language`, `--repo`, `--type`, `--limit`
-- [ ] **AC3:** Results: file path, entity name, code snippet
-- [ ] **AC4:** Syntax highlighting for snippets
-- [ ] **AC5:** Output formats: human-readable (default), JSON (`--json`)
-- [ ] **AC6:** Pipe-friendly with `--quiet`
+- [x] **AC1:** Command: `megabrain search "query string"`
+- [x] **AC2:** Supports: `--language`, `--repo`, `--type`, `--limit`
+- [x] **AC3:** Results: file path, entity name, code snippet
+- [x] **AC4:** Syntax highlighting for snippets
+- [x] **AC5:** Output formats: human-readable (default), JSON (`--json`)
+- [x] **AC6:** Pipe-friendly with `--quiet`
 
 ---
 
@@ -51,12 +51,12 @@
 
 ## Technical Tasks
 
-- [ ] **T1:** Create `SearchCommand` Picocli class (backend)
-- [ ] **T2:** Add filter options (backend)
-- [ ] **T3:** Implement result formatting (backend)
-- [ ] **T4:** Add syntax highlighting (backend)
-- [ ] **T5:** Add JSON output mode (backend)
-- [ ] **T6:** Write command tests (test)
+- [x] **T1:** Create `SearchCommand` Picocli class (backend)
+- [x] **T2:** Add filter options (backend)
+- [x] **T3:** Implement result formatting (backend)
+- [x] **T4:** Add syntax highlighting (backend)
+- [x] **T5:** Add JSON output mode (backend)
+- [x] **T6:** Write command tests (test)
 
 ---
 
