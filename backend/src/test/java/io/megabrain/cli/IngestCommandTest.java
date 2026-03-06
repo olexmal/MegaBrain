@@ -26,7 +26,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * Unit tests for IngestCommand (US-04-04 T1, T2, T3).
+ * Unit tests for IngestCommand (US-04-04 T1–T4).
  */
 class IngestCommandTest {
 
@@ -37,6 +37,10 @@ class IngestCommandTest {
         when(service.ingestRepositoryIncrementally(anyString())).thenReturn(
             Multi.createFrom().items(ProgressEvent.of("Incremental done", 100.0)));
         return service;
+    }
+
+    private static CommandLine createCommandLineForExitCodeTests(IngestionService ingestionService) {
+        return new CommandLine(new IngestCommand(ingestionService));
     }
 
     @Test
@@ -135,10 +139,9 @@ class IngestCommandTest {
     }
 
     @Test
-    @DisplayName("invalid source fails with clear message")
+    @DisplayName("invalid source returns exit code 2")
     void execute_invalidSource_failsWithClearMessage() {
-        IngestCommand command = new IngestCommand(mockIngestionServiceCompleting());
-        CommandLine cmd = new CommandLine(command);
+        CommandLine cmd = createCommandLineForExitCodeTests(mockIngestionServiceCompleting());
         ByteArrayOutputStream outBa = new ByteArrayOutputStream();
         ByteArrayOutputStream errBa = new ByteArrayOutputStream();
         PrintWriter out = new PrintWriter(new java.io.OutputStreamWriter(outBa, StandardCharsets.UTF_8));
@@ -150,7 +153,7 @@ class IngestCommandTest {
 
         out.flush();
         err.flush();
-        assertThat(exitCode).isNotEqualTo(0);
+        assertThat(exitCode).isEqualTo(2);
         String errOutput = new String(errBa.toByteArray(), StandardCharsets.UTF_8);
         assertThat(errOutput).contains("Invalid source");
         assertThat(errOutput).containsIgnoringCase("allowed");
@@ -176,13 +179,13 @@ class IngestCommandTest {
     }
 
     @Test
-    @DisplayName("run does not throw after valid parse")
-    void execute_validParse_runDoesNotThrow() {
-        IngestCommand command = new IngestCommand(mockIngestionServiceCompleting());
-        CommandLine cmd = new CommandLine(command);
+    @DisplayName("exit code 0 on success")
+    void execute_success_returnsExitCodeZero() {
+        CommandLine cmd = createCommandLineForExitCodeTests(mockIngestionServiceCompleting());
         ByteArrayOutputStream outBa = new ByteArrayOutputStream();
+        ByteArrayOutputStream errBa = new ByteArrayOutputStream();
         cmd.setOut(new PrintWriter(new java.io.OutputStreamWriter(outBa, StandardCharsets.UTF_8)));
-        cmd.setErr(new PrintWriter(new java.io.OutputStreamWriter(new ByteArrayOutputStream(), StandardCharsets.UTF_8)));
+        cmd.setErr(new PrintWriter(new java.io.OutputStreamWriter(errBa, StandardCharsets.UTF_8)));
 
         int exitCode = cmd.execute("--source", "github", "--repo", "owner/repo");
 
@@ -296,15 +299,14 @@ class IngestCommandTest {
     }
 
     @Test
-    @DisplayName("stream failure logs error and exits non-zero")
+    @DisplayName("ingestion failure returns exit code 1")
     void execute_streamFailure_exitsNonZeroAndShowsError() {
         IngestionService mockService = mock(IngestionService.class);
         when(mockService.ingestRepository(anyString())).thenReturn(
             Multi.createFrom().failure(new RuntimeException("Clone failed")));
         when(mockService.ingestRepositoryIncrementally(anyString())).thenReturn(Multi.createFrom().empty());
 
-        IngestCommand command = new IngestCommand(mockService);
-        CommandLine cmd = new CommandLine(command);
+        CommandLine cmd = createCommandLineForExitCodeTests(mockService);
         ByteArrayOutputStream outBa = new ByteArrayOutputStream();
         ByteArrayOutputStream errBa = new ByteArrayOutputStream();
         PrintWriter out = new PrintWriter(new java.io.OutputStreamWriter(outBa, StandardCharsets.UTF_8));
@@ -315,8 +317,8 @@ class IngestCommandTest {
         int exitCode = cmd.execute("--source", "github", "--repo", "owner/repo");
 
         err.flush();
+        assertThat(exitCode).isEqualTo(1);
         String errOutput = new String(errBa.toByteArray(), StandardCharsets.UTF_8);
-        assertThat(exitCode).isNotEqualTo(0);
         assertThat(errOutput).contains("Ingestion failed");
     }
 }

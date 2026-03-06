@@ -21,13 +21,16 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * CLI command to ingest a repository into the MegaBrain index.
+ * Exit codes: 0 = success, 1 = execution/ingestion failure, 2 = invalid arguments.
  * Use {@code megabrain ingest --help} for usage.
  */
 @ApplicationScoped
 @CommandLine.Command(
     name = "ingest",
     description = "Ingest a repository (GitHub, GitLab, Bitbucket, or local path) into the MegaBrain index.",
-    mixinStandardHelpOptions = true
+    mixinStandardHelpOptions = true,
+    exitCodeOnInvalidInput = 2,
+    exitCodeOnExecutionException = 1
 )
 public class IngestCommand implements Runnable {
 

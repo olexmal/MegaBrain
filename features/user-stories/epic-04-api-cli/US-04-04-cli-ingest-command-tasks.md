@@ -51,14 +51,14 @@
 - **Description:** Implement proper exit code handling. Return exit code 0 on success, non-zero on failure. Map different error types to appropriate exit codes. Ensure exit codes are set correctly.
 - **Estimated Hours:** 2 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T1-T3 (needs command working)
 - **Acceptance Criteria:**
-  - [ ] Exit code 0 on success
-  - [ ] Non-zero exit codes on failure
-  - [ ] Appropriate exit codes for different errors
-  - [ ] Exit codes documented
-- **Technical Notes:** Use `System.exit(code)` or Picocli's exit code handling. Map exceptions to exit codes (1: general error, 2: invalid arguments, etc.).
+  - [x] Exit code 0 on success
+  - [x] Non-zero exit codes on failure
+  - [x] Appropriate exit codes for different errors
+  - [x] Exit codes documented
+- **Technical Notes:** Use Picocli's `exitCodeOnInvalidInput = 2`, `exitCodeOnExecutionException = 1` on IngestCommand; no System.exit(); throw ExecutionException on ingestion failure; ParameterException for invalid --source/--repo. Tests use CommandLine.execute() with MegaBrainCommand hierarchy; docs in cli-reference.md and Javadoc.
 
 ### T5: Add verbose logging option
 - **Description:** Add `--verbose` option for detailed logging. When enabled, show detailed progress information, debug messages, and stack traces on errors. Control log level based on verbose flag.

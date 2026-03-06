@@ -363,7 +363,7 @@ megabrain.llm.ollama.model-availability-cache-seconds=60
 
 ## EPIC-04: REST API & CLI
 
-### US-04-04: CLI Ingest Command (Partial – T3 of 6)
+### US-04-04: CLI Ingest Command (Partial – T4 of 6)
 
 CLI command structure and options for ingesting repositories from the command line.
 
@@ -385,7 +385,9 @@ CLI command structure and options for ingesting repositories from the command li
 - Progress display: subscribes to `IngestionService.ingestRepository(repo)` / `ingestRepositoryIncrementally(repo)`; single-line updates on TTY, line-by-line when not TTY; message length capped; failure logs short message (no token) and exits non-zero
 - Unit tests for full ingest progress output, incremental progress output, full vs incremental method calls, stream failure
 
+**Completed (T4):**
+- Exit codes: 0 = success, 1 = execution/ingestion failure, 2 = invalid arguments; documented in CLI reference and Javadoc; no `System.exit()`; Picocli `exitCodeOnInvalidInput` / `exitCodeOnExecutionException` on `IngestCommand`; tests assert codes via `CommandLine.execute()` on `IngestCommand`
+
 **Not Yet Implemented:**
-- Exit code handling (T4)
 - Verbose option (T5)
 - Extended command tests (T6)
