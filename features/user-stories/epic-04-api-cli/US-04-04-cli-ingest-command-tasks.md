@@ -25,13 +25,13 @@
 - **Description:** Add command options: `--source` (github/gitlab/bitbucket/local), `--repo` (repository URL/identifier), `--branch` (optional, default: main/master), `--token` (optional, for private repos), `--incremental` (boolean flag).
 - **Estimated Hours:** 3 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T1 (needs command class)
 - **Acceptance Criteria:**
-  - [ ] All options added
-  - [ ] Options validated
-  - [ ] Default values set/
-  - [ ] Help text includes all options
+  - [x] All options added
+  - [x] Options validated
+  - [x] Default values set/
+  - [x] Help text includes all options
 - **Technical Notes:** Use `@Option` annotations. Validate source enum. Make branch optional with default. Use `@Option(names = "--incremental", defaultValue = "false")`.
 
 ### T3: Implement progress display

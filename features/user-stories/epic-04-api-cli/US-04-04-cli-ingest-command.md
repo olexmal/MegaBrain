@@ -14,7 +14,7 @@
 ## Acceptance Criteria
 
 - [ ] **AC1:** Command: `megabrain ingest --source github --repo olexmal/MegaBrain`
-- [ ] **AC2:** Supports: `--branch`, `--token`, `--incremental`
+- [x] **AC2:** Supports: `--branch`, `--token`, `--incremental`
 - [ ] **AC3:** Progress displayed in terminal (progress bar)
 - [ ] **AC4:** Exit code: 0 (success), non-zero (failure)
 - [ ] **AC5:** Verbose mode with `--verbose`
@@ -54,7 +54,7 @@
 ## Technical Tasks
 
 - [x] **T1:** Create `IngestCommand` Picocli class (backend)
-- [ ] **T2:** Add source, repo, branch options (backend)
+- [x] **T2:** Add source, repo, branch options (backend)
 - [ ] **T3:** Implement progress display (backend)
 - [ ] **T4:** Handle exit codes (backend)
 - [ ] **T5:** Add verbose logging option (backend)

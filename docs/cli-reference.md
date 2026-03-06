@@ -29,13 +29,35 @@ Or with the native binary (after building with `-Dquarkus.native.enabled=true`):
 
 Ingest a repository (GitHub, GitLab, Bitbucket, or local path) into the MegaBrain index.
 
-**Usage:**
+**Options:**
+
+| Option | Required | Default | Description |
+|:-------|:---------|:--------|:-------------|
+| `--source` | Yes | - | Source type: `github`, `gitlab`, `bitbucket`, or `local`. |
+| `--repo` | Yes | - | Repository URL or identifier (e.g. `owner/repo` or file path for local). |
+| `--branch` | No | `main` | Branch to ingest. |
+| `--token` | No | - | Authentication token for private repositories (never logged). |
+| `--incremental` | No | `false` | Perform incremental ingestion. |
+| `--help` | No | - | Show usage and options. |
+
+**Examples:**
 
 ```bash
+# Show usage and all options
 megabrain ingest --help
-```
 
-Options (e.g. `--source`, `--repo`, `--branch`) are added in later tasks. See [API Reference](api-reference.md#cli) and [Implemented Features](implemented-features.md#us-04-04-cli-ingest-command-partial--t1-of-6) for current status.
+# Ingest a GitHub repository (default branch: main)
+megabrain ingest --source github --repo olexmal/MegaBrain
+
+# Ingest a specific branch with optional token
+megabrain ingest --source github --repo owner/private-repo --branch develop --token YOUR_TOKEN
+
+# Incremental ingestion
+megabrain ingest --source github --repo olexmal/MegaBrain --incremental
+
+# Local path
+megabrain ingest --source local --repo /path/to/repo --branch main
+```
 
 ### Top-level help
 
