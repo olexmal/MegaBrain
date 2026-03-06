@@ -46,6 +46,7 @@ MegaBrain creates a private, intelligent knowledge base of your codebase that en
 | [Technology Stack](technology-stack.md) | Backend and frontend technologies with versions |
 | [Implemented Features](implemented-features.md) | Detailed documentation for all completed features |
 | [API Reference](api-reference.md) | REST API endpoints, parameters, and response formats |
+| [CLI Reference](cli-reference.md) | Command-line interface usage and commands |
 | [Configuration Reference](configuration-reference.md) | All configuration properties with defaults |
 | [Development Guide](development-guide.md) | Coding standards, testing, git workflow, contributing |
 | [Deployment & Operations](deployment.md) | Production build, system requirements, troubleshooting |

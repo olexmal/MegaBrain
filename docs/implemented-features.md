@@ -358,3 +358,27 @@ megabrain.llm.ollama.model-availability-cache-seconds=60
 **Tests:** Unit tests for OllamaLLMClient, LLMClient interface, OllamaConfiguration.
 
 **RAG REST (US-04-03):** AC6 (first token within 2s) is validated by an integration test (`RagStreamingIntegrationTestIT.rag_streamFirstToken_within2Seconds`, tagged `performance`) with a mocked RAG service; production compliance is validated by demo or APM.
+
+---
+
+## EPIC-04: REST API & CLI
+
+### US-04-04: CLI Ingest Command (Partial – T1 of 6)
+
+CLI command structure for ingesting repositories from the command line.
+
+**Key Classes:**
+- `MegaBrainCommand` - Top-level CLI entry point (Quarkus Picocli `@TopCommand`) with subcommands
+- `IngestCommand` - `ingest` subcommand; structure and help only in T1
+
+**Completed (T1):**
+- Picocli integration in package `io.megabrain.cli`
+- Command name `ingest`; `megabrain ingest --help` shows usage
+- Unit tests for command name, help output, and minimal parse (no mocks)
+
+**Not Yet Implemented:**
+- Source, repo, branch, token, incremental options (T2)
+- Progress display (T3)
+- Exit code handling (T4)
+- Verbose option (T5)
+- Extended command tests (T6)

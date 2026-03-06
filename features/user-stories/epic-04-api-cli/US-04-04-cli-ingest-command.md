@@ -18,7 +18,7 @@
 - [ ] **AC3:** Progress displayed in terminal (progress bar)
 - [ ] **AC4:** Exit code: 0 (success), non-zero (failure)
 - [ ] **AC5:** Verbose mode with `--verbose`
-- [ ] **AC6:** Help text with `--help`
+- [x] **AC6:** Help text with `--help`
 
 ---
 
@@ -53,7 +53,7 @@
 
 ## Technical Tasks
 
-- [ ] **T1:** Create `IngestCommand` Picocli class (backend)
+- [x] **T1:** Create `IngestCommand` Picocli class (backend)
 - [ ] **T2:** Add source, repo, branch options (backend)
 - [ ] **T3:** Implement progress display (backend)
 - [ ] **T4:** Handle exit codes (backend)

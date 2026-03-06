@@ -12,13 +12,13 @@
 - **Description:** Create `IngestCommand` class using Picocli framework. Define command name `ingest`. Set up command structure with options and parameters. Integrate with Quarkus CLI or standalone CLI.
 - **Estimated Hours:** 3 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** US-01-01 (needs ingestion service)
 - **Acceptance Criteria:**
-  - [ ] IngestCommand class created
-  - [ ] Command name `ingest` defined
-  - [ ] Picocli integration working
-  - [ ] Help text generated
+  - [x] IngestCommand class created
+  - [x] Command name `ingest` defined
+  - [x] Picocli integration working
+  - [x] Help text generated
 - **Technical Notes:** Use Picocli for CLI framework. Annotate class with `@Command(name = "ingest")`. Add `@Option` and `@Parameters` annotations. Generate help with `--help`.
 
 ### T2: Add source, repo, branch options
@@ -30,7 +30,7 @@
 - **Acceptance Criteria:**
   - [ ] All options added
   - [ ] Options validated
-  - [ ] Default values set
+  - [ ] Default values set/
   - [ ] Help text includes all options
 - **Technical Notes:** Use `@Option` annotations. Validate source enum. Make branch optional with default. Use `@Option(names = "--incremental", defaultValue = "false")`.
 

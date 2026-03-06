@@ -189,17 +189,20 @@ Streams progress events via Server-Sent Events (SSE) with stage, message, and pe
 
 ## CLI
 
-Run via Quarkus CLI or packaged JAR:
+The MegaBrain CLI is available when running the application in CLI mode (e.g. `java -jar megabrain-runner.jar` or the `megabrain` native executable). The **ingest** command is available; run `megabrain ingest --help` to see usage and options.
 
 ```bash
-# Ingest a repository
+# Show top-level help
+megabrain --help
+
+# Show ingest command usage and options
+megabrain ingest --help
+
+# Ingest a repository (options added in later tasks)
 megabrain ingest --url https://github.com/user/repo --branch main
 
-# Search code
+# Search code (when implemented)
 megabrain search --query "dependency graph builder" --limit 5
-
-# Get help
-megabrain --help
 ```
 
 ---
