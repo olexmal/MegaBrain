@@ -393,3 +393,19 @@ CLI command structure and options for ingesting repositories from the command li
 
 **Completed (T6):**
 - **Tests:** Unit tests for option parsing, validation, progress display, exit codes, and help text using Picocli `CommandLine.execute()` and mocked `IngestionService`. Coverage includes: token never in output, repo trim, Picocli exit-code contract (invalid 2, execution 1), branch default in help, non-verbose truncation, null progress message, missing `--repo` exit 2, MegaBrainCommand help. Package `io.megabrain.cli` line and branch coverage >80% (JaCoCo).
+
+### US-04-05: CLI Search Command (In Progress)
+
+CLI command to search the MegaBrain index from the command line.
+
+**Key Classes:**
+- `SearchCommand` – Picocli `search` subcommand with required query parameter; integrated in `MegaBrainCommand.subcommands`
+
+**Completed (T1):**
+- `SearchCommand` class in package `io.megabrain.cli` with `@Command(name = "search")`, `@Parameters(index = "0")` for query, `mixinStandardHelpOptions = true`, exit codes 2 (invalid input) and 1 (execution exception)
+- Validation: non-blank query required; throws `ParameterException` otherwise
+- Minimal run() behavior: writes to stdout that query was received (stub for T1; no SearchOrchestrator injection yet)
+- Help text: `megabrain search --help` shows description and usage
+- Unit tests: `SearchCommandTest` (plain JUnit 5) for command name, `--help` output, execute with one query arg, blank query exit 2
+
+**Not Yet Implemented:** T2 (filter options), T3 (result formatting), T4 (syntax highlighting), T5 (JSON output), T6 (extended command tests).

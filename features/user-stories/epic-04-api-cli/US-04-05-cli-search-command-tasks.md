@@ -12,13 +12,13 @@
 - **Description:** Create `SearchCommand` class using Picocli framework. Define command name `search`. Set up command structure with query parameter and filter options. Integrate with CLI framework.
 - **Estimated Hours:** 2 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** US-04-02 (needs search API)
 - **Acceptance Criteria:**
-  - [ ] SearchCommand class created
-  - [ ] Command name `search` defined
-  - [ ] Picocli integration working
-  - [ ] Help text generated
+  - [x] SearchCommand class created
+  - [x] Command name `search` defined
+  - [x] Picocli integration working
+  - [x] Help text generated
 - **Technical Notes:** Use Picocli for CLI framework. Annotate with `@Command(name = "search")`. Add query as `@Parameters`.
 
 ### T2: Add filter options

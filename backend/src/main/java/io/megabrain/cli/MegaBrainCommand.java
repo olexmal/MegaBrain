@@ -9,14 +9,14 @@ import io.quarkus.picocli.runtime.annotations.TopCommand;
 import picocli.CommandLine;
 
 /**
- * Top-level CLI command for MegaBrain. Dispatches to subcommands such as {@code ingest}.
+ * Top-level CLI command for MegaBrain. Dispatches to subcommands such as {@code ingest} and {@code search}.
  */
 @TopCommand
 @CommandLine.Command(
     name = "megabrain",
     description = "MegaBrain CLI: ingest repositories and search code.",
     mixinStandardHelpOptions = true,
-    subcommands = { IngestCommand.class }
+    subcommands = { IngestCommand.class, SearchCommand.class }
 )
 public class MegaBrainCommand implements Runnable {
 

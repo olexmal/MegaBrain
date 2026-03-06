@@ -5,7 +5,7 @@ Licensed under the MIT License - see LICENSE file for details.
 
 # CLI Reference
 
-The MegaBrain CLI provides commands to ingest repositories and (when implemented) search code from the command line.
+The MegaBrain CLI provides commands to ingest repositories and search code from the command line.
 
 ## Running the CLI
 
@@ -70,6 +70,10 @@ megabrain ingest --source local --repo /path/to/repo --branch main
 
 Use these in scripts or CI to detect success or failure (e.g. `megabrain ingest ...; exit $?`).
 
+### megabrain search
+
+Search the MegaBrain index from the command line. Provide a query string as the first argument. Usage: `megabrain search <query>` or `megabrain search --help`. The query parameter is required (non-blank). Exit codes: 0 = success, 1 = execution failure, 2 = invalid arguments (e.g. missing or blank query).
+
 ### Verbose / debugging
 
 Use `--verbose` to enable detailed progress (no message truncation), debug logging for the `io.megabrain` logger, and full stack traces on ingestion failure. Example: `megabrain ingest --source github --repo owner/repo --verbose`.
@@ -84,4 +88,4 @@ Progress is shown in real time during ingestion. Typical stages include **clonin
 megabrain --help
 ```
 
-Shows available subcommands (e.g. `ingest`).
+Shows available subcommands (e.g. `ingest`, `search`).

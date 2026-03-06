@@ -51,7 +51,7 @@
 
 ## Technical Tasks
 
-- [ ] **T1:** Create `SearchCommand` Picocli class (backend)
+- [x] **T1:** Create `SearchCommand` Picocli class (backend)
 - [ ] **T2:** Add filter options (backend)
 - [ ] **T3:** Implement result formatting (backend)
 - [ ] **T4:** Add syntax highlighting (backend)
