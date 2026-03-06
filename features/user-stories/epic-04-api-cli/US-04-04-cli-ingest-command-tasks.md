@@ -77,14 +77,14 @@
 - **Description:** Create unit tests for IngestCommand. Test option parsing, validation, progress display, exit codes, and help text. Use Picocli's testing utilities.
 - **Estimated Hours:** 3 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T1-T5 (needs complete implementation)
 - **Acceptance Criteria:**
-  - [ ] Unit tests for command
-  - [ ] Tests cover option parsing
-  - [ ] Tests cover validation
-  - [ ] Tests verify exit codes
-  - [ ] Test coverage >80%
+  - [x] Unit tests for command
+  - [x] Tests cover option parsing
+  - [x] Tests cover validation
+  - [x] Tests verify exit codes
+  - [x] Test coverage >80%
 - **Technical Notes:** Use Picocli's `CommandLine.execute()` for testing. Mock ingestion service. Verify command behavior and output.
 
 ---

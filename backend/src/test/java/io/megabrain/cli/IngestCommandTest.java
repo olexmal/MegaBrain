@@ -359,4 +359,181 @@ class IngestCommandTest {
         assertThat(exitCode).isEqualTo(0);
         assertThat(output).contains("x".repeat(300));
     }
+
+    // --- Council-recommended tests (T6) ---
+
+    @Test
+    @DisplayName("token never appears in stdout or stderr")
+    void execute_withToken_secretNeverInOutput() {
+        IngestionService mockService = mockIngestionServiceCompleting();
+        IngestCommand command = new IngestCommand(mockService);
+        CommandLine cmd = new CommandLine(command);
+        ByteArrayOutputStream outBa = new ByteArrayOutputStream();
+        ByteArrayOutputStream errBa = new ByteArrayOutputStream();
+        PrintWriter out = new PrintWriter(new java.io.OutputStreamWriter(outBa, StandardCharsets.UTF_8));
+        PrintWriter err = new PrintWriter(new java.io.OutputStreamWriter(errBa, StandardCharsets.UTF_8));
+        cmd.setOut(out);
+        cmd.setErr(err);
+
+        cmd.execute("--source", "github", "--repo", "owner/repo", "--token", "secret");
+
+        out.flush();
+        err.flush();
+        String stdout = new String(outBa.toByteArray(), StandardCharsets.UTF_8);
+        String stderr = new String(errBa.toByteArray(), StandardCharsets.UTF_8);
+        assertThat(stdout).doesNotContain("secret");
+        assertThat(stderr).doesNotContain("secret");
+    }
+
+    @Test
+    @DisplayName("--repo value is trimmed before calling ingestion service")
+    void execute_repoWithSpaces_trimmedWhenCallingService() {
+        IngestionService mockService = mock(IngestionService.class);
+        when(mockService.ingestRepository(anyString())).thenReturn(
+            Multi.createFrom().items(ProgressEvent.of("Done", 100.0)));
+        when(mockService.ingestRepositoryIncrementally(anyString())).thenReturn(Multi.createFrom().empty());
+
+        IngestCommand command = new IngestCommand(mockService);
+        CommandLine cmd = new CommandLine(command);
+        ByteArrayOutputStream outBa = new ByteArrayOutputStream();
+        cmd.setOut(new PrintWriter(new java.io.OutputStreamWriter(outBa, StandardCharsets.UTF_8)));
+        cmd.setErr(new PrintWriter(new java.io.OutputStreamWriter(new ByteArrayOutputStream(), StandardCharsets.UTF_8)));
+
+        cmd.execute("--source", "github", "--repo", "  owner/repo  ");
+
+        verify(mockService).ingestRepository("owner/repo");
+        verify(mockService, never()).ingestRepositoryIncrementally(anyString());
+    }
+
+    @Test
+    @DisplayName("incremental with trimmed repo calls ingestRepositoryIncrementally with trimmed value")
+    void execute_incremental_repoTrimmed() {
+        IngestionService mockService = mock(IngestionService.class);
+        when(mockService.ingestRepository(anyString())).thenReturn(Multi.createFrom().empty());
+        when(mockService.ingestRepositoryIncrementally(anyString())).thenReturn(
+            Multi.createFrom().items(ProgressEvent.of("Done", 100.0)));
+
+        IngestCommand command = new IngestCommand(mockService);
+        CommandLine cmd = new CommandLine(command);
+        ByteArrayOutputStream outBa = new ByteArrayOutputStream();
+        cmd.setOut(new PrintWriter(new java.io.OutputStreamWriter(outBa, StandardCharsets.UTF_8)));
+        cmd.setErr(new PrintWriter(new java.io.OutputStreamWriter(new ByteArrayOutputStream(), StandardCharsets.UTF_8)));
+
+        cmd.execute("--source", "github", "--repo", "  owner/repo  ", "--incremental");
+
+        verify(mockService, never()).ingestRepository(anyString());
+        verify(mockService).ingestRepositoryIncrementally("owner/repo");
+    }
+
+    @Test
+    @DisplayName("Picocli exit-code contract: invalid input 2, execution exception 1")
+    void commandSpec_exitCodeContract() {
+        IngestCommand command = new IngestCommand(mockIngestionServiceCompleting());
+        new CommandLine(command);
+        assertThat(command.spec.exitCodeOnInvalidInput()).isEqualTo(2);
+        assertThat(command.spec.exitCodeOnExecutionException()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("help contains branch default (main)")
+    void execute_help_containsBranchDefault() {
+        IngestCommand command = new IngestCommand(mockIngestionServiceCompleting());
+        CommandLine cmd = new CommandLine(command);
+        ByteArrayOutputStream outBa = new ByteArrayOutputStream();
+        cmd.setOut(new PrintWriter(new java.io.OutputStreamWriter(outBa, StandardCharsets.UTF_8)));
+        cmd.setErr(new PrintWriter(new java.io.OutputStreamWriter(new ByteArrayOutputStream(), StandardCharsets.UTF_8)));
+
+        cmd.execute("--help");
+        cmd.getOut().flush();
+
+        String output = new String(outBa.toByteArray(), StandardCharsets.UTF_8);
+        assertThat(output).containsIgnoringCase("default");
+        assertThat(output).contains("main");
+    }
+
+    @Test
+    @DisplayName("non-verbose long message is truncated with ellipsis and percentage")
+    void execute_nonVerbose_longMessage_truncatedWithPercent() {
+        String longMessage = "A".repeat(250);
+        IngestionService mockService = mock(IngestionService.class);
+        when(mockService.ingestRepository(anyString())).thenReturn(
+            Multi.createFrom().items(ProgressEvent.of(longMessage, 75.5)));
+        when(mockService.ingestRepositoryIncrementally(anyString())).thenReturn(Multi.createFrom().empty());
+
+        IngestCommand command = new IngestCommand(mockService);
+        CommandLine cmd = new CommandLine(command);
+        ByteArrayOutputStream outBa = new ByteArrayOutputStream();
+        cmd.setOut(new PrintWriter(new java.io.OutputStreamWriter(outBa, StandardCharsets.UTF_8)));
+        cmd.setErr(new PrintWriter(new java.io.OutputStreamWriter(new ByteArrayOutputStream(), StandardCharsets.UTF_8)));
+
+        int exitCode = cmd.execute("--source", "github", "--repo", "owner/repo");
+
+        cmd.getOut().flush();
+        String output = new String(outBa.toByteArray(), StandardCharsets.UTF_8);
+        assertThat(exitCode).isEqualTo(0);
+        assertThat(output).contains("A".repeat(200) + "...");
+        assertThat(output).contains("75.5");
+    }
+
+    @Test
+    @DisplayName("null progress message does not NPE and shows percentage")
+    void execute_nullProgressMessage_noNPE_andShowsProgress() {
+        IngestionService mockService = mock(IngestionService.class);
+        when(mockService.ingestRepository(anyString())).thenReturn(
+            Multi.createFrom().items(ProgressEvent.of(null, 50.0)));
+        when(mockService.ingestRepositoryIncrementally(anyString())).thenReturn(Multi.createFrom().empty());
+
+        IngestCommand command = new IngestCommand(mockService);
+        CommandLine cmd = new CommandLine(command);
+        ByteArrayOutputStream outBa = new ByteArrayOutputStream();
+        cmd.setOut(new PrintWriter(new java.io.OutputStreamWriter(outBa, StandardCharsets.UTF_8)));
+        cmd.setErr(new PrintWriter(new java.io.OutputStreamWriter(new ByteArrayOutputStream(), StandardCharsets.UTF_8)));
+
+        int exitCode = cmd.execute("--source", "github", "--repo", "owner/repo");
+
+        cmd.getOut().flush();
+        String output = new String(outBa.toByteArray(), StandardCharsets.UTF_8);
+        assertThat(exitCode).isEqualTo(0);
+        assertThat(output).contains("50.0");
+    }
+
+    @Test
+    @DisplayName("missing --repo with --source github returns exit code 2")
+    void execute_missingRepo_onlySource_returnsExitCode2() {
+        CommandLine cmd = createCommandLineForExitCodeTests(mockIngestionServiceCompleting());
+        ByteArrayOutputStream errBa = new ByteArrayOutputStream();
+        cmd.setOut(new PrintWriter(new ByteArrayOutputStream()));
+        cmd.setErr(new PrintWriter(new java.io.OutputStreamWriter(errBa, StandardCharsets.UTF_8)));
+
+        int exitCode = cmd.execute("--source", "github");
+
+        cmd.getErr().flush();
+        assertThat(exitCode).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("MegaBrainCommand --help contains megabrain and ingest")
+    void megaBrainCommand_help_containsMegabrainAndIngest() {
+        CommandLine.IFactory factory = new CommandLine.IFactory() {
+            @Override
+            @SuppressWarnings("unchecked")
+            public <K> K create(Class<K> cls) throws Exception {
+                if (cls == IngestCommand.class) {
+                    return (K) new IngestCommand(mockIngestionServiceCompleting());
+                }
+                return cls.getDeclaredConstructor().newInstance();
+            }
+        };
+        CommandLine cmd = new CommandLine(new MegaBrainCommand(), factory);
+        ByteArrayOutputStream outBa = new ByteArrayOutputStream();
+        cmd.setOut(new PrintWriter(new java.io.OutputStreamWriter(outBa, StandardCharsets.UTF_8)));
+        cmd.setErr(new PrintWriter(new java.io.OutputStreamWriter(new ByteArrayOutputStream(), StandardCharsets.UTF_8)));
+
+        cmd.execute("--help");
+        cmd.getOut().flush();
+
+        String output = new String(outBa.toByteArray(), StandardCharsets.UTF_8);
+        assertThat(output).containsIgnoringCase("megabrain");
+        assertThat(output).containsIgnoringCase("ingest");
+    }
 }

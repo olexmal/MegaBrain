@@ -13,7 +13,7 @@
 
 ## Acceptance Criteria
 
-- [ ] **AC1:** Command: `megabrain ingest --source github --repo olexmal/MegaBrain`
+- [x] **AC1:** Command: `megabrain ingest --source github --repo olexmal/MegaBrain`
 - [x] **AC2:** Supports: `--branch`, `--token`, `--incremental`
 - [x] **AC3:** Progress displayed in terminal (progress bar)
 - [x] **AC4:** Exit code: 0 (success), non-zero (failure)
@@ -58,7 +58,7 @@
 - [x] **T3:** Implement progress display (backend)
 - [x] **T4:** Handle exit codes (backend)
 - [x] **T5:** Add verbose logging option (backend)
-- [ ] **T6:** Write command tests (test)
+- [x] **T6:** Write command tests (test)
 
 ---
 

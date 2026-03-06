@@ -2,7 +2,7 @@
 
 This document describes all features that have been implemented, organized by epic. Each section covers the key classes, configuration, and testing status.
 
-**Status:** 11 of 52 user stories fully completed, 1 partially completed (98 of 211 story points).
+**Status:** 12 of 52 user stories fully completed (98 of 211 story points).
 
 ---
 
@@ -363,7 +363,7 @@ megabrain.llm.ollama.model-availability-cache-seconds=60
 
 ## EPIC-04: REST API & CLI
 
-### US-04-04: CLI Ingest Command (Partial – T5 of 6)
+### US-04-04: CLI Ingest Command (Done)
 
 CLI command structure and options for ingesting repositories from the command line.
 
@@ -391,5 +391,5 @@ CLI command structure and options for ingesting repositories from the command li
 **Completed (T5):**
 - `--verbose` option: when set, enables DEBUG for `io.megabrain` logger (via JBoss LogManager), fuller progress (no message truncation), and on ingestion failure logs full stack trace with `LOG.error("Ingestion failed", err)`; otherwise message-only; single source is the `verbose` field
 
-**Not Yet Implemented:**
-- Extended command tests (T6)
+**Completed (T6):**
+- **Tests:** Unit tests for option parsing, validation, progress display, exit codes, and help text using Picocli `CommandLine.execute()` and mocked `IngestionService`. Coverage includes: token never in output, repo trim, Picocli exit-code contract (invalid 2, execution 1), branch default in help, non-verbose truncation, null progress message, missing `--repo` exit 2, MegaBrainCommand help. Package `io.megabrain.cli` line and branch coverage >80% (JaCoCo).
