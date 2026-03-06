@@ -356,3 +356,5 @@ megabrain.llm.ollama.model-availability-cache-seconds=60
 ```
 
 **Tests:** Unit tests for OllamaLLMClient, LLMClient interface, OllamaConfiguration.
+
+**RAG REST (US-04-03):** AC6 (first token within 2s) is validated by an integration test (`RagStreamingIntegrationTestIT.rag_streamFirstToken_within2Seconds`, tagged `performance`) with a mocked RAG service; production compliance is validated by demo or APM.

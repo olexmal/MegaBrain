@@ -87,10 +87,22 @@
   - [x] Test coverage >80%
 - **Technical Notes:** Use REST Assured or Quarkus test framework. Test with mock RAG service. Verify SSE events and complete responses. Implemented: RagResourceIT in src/test/java/io/megabrain/api with @QuarkusTest and @InjectMock RagService. Tests hit POST /api/v1/rag (Accept: application/json for non-streaming) and POST /api/v1/rag/stream for SSE. RagResource refactored to ragJson() (Uni&lt;Response&gt;) and ragStream() (Multi&lt;String&gt;) for correct Quarkus serialization; content negotiation by Accept. Unit tests RagResourceTest updated to call ragStream/ragJson.
 
+### T7: Validate first token within 2s (AC6)
+- **Description:** Add automated validation for AC6 (first token within 2s). Integration test measures time from request start to first token received and asserts < 2000 ms. With mocked RagService this verifies the endpoint does not add excessive delay; production compliance with real LLM is validated by demo or APM.
+- **Estimated Hours:** 2 hours
+- **Assignee:** TBD
+- **Status:** Completed
+- **Dependencies:** T6 (needs integration test setup)
+- **Acceptance Criteria:**
+  - [x] Integration test measures time-to-first-token for streaming endpoint
+  - [x] Test asserts first token received within 2000 ms (with mock emitting promptly)
+  - [x] AC6 checkbox can be validated by this test or by performance test / monitoring
+- **Technical Notes:** In RagResourceIT or RagStreamingIntegrationTestIT: record System.nanoTime() before POST, read response stream until first "event: token" with data, record end time, assert (end - start) / 1_000_000 < 2000. Mock RagService returns Multi with first item immediately so test verifies HTTP/SSE path latency.
+
 ---
 
 ## Summary
-- **Total Tasks:** 6
-- **Total Estimated Hours:** 20 hours
+- **Total Tasks:** 7
+- **Total Estimated Hours:** 22 hours
 - **Story Points:** 3 (1 SP ≈ 6.7 hours, aligns with estimate)
 

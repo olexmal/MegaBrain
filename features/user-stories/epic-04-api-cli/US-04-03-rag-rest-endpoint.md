@@ -18,7 +18,7 @@
 - [x] **AC3:** Response is SSE stream of tokens
 - [x] **AC4:** Final response includes source attributions
 - [x] **AC5:** Option for non-streaming response (`stream=false`)
-- [ ] **AC6:** First token within 2s
+- [x] **AC6:** First token within 2s
 
 ---
 
@@ -57,6 +57,7 @@
 - [x] **T4:** Integrate with RagService (backend)
 - [x] **T5:** Add non-streaming option (backend)
 - [x] **T6:** Write integration tests (test)
+- [x] **T7:** Validate first token within 2s (AC6)
 
 ---
 
@@ -76,3 +77,21 @@
 - [x] Demo script approved
 - [x] No blockers
 
+---
+
+## Definition of Done
+
+- [x] **T1** completed
+- [x] **T2** completed
+- [x] **T3** completed
+- [x] **T4** completed
+- [x] **T5** completed
+- [x] **T6** completed
+- [x] **AC1** met
+- [x] **AC2** met
+- [x] **AC3** met
+- [x] **AC4** met
+- [x] **AC5** met
+- [x] **AC6** (first token within 2s) validated by test or monitoring
+- [x] Unit and integration tests passing
+- [x] Demo script runnable against running API

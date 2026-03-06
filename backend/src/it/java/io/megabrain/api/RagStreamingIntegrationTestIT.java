@@ -15,8 +15,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Tag;
 
+import java.io.BufferedReader;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URL;
 import java.net.http.HttpClient;
@@ -46,6 +49,8 @@ class RagStreamingIntegrationTestIT {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(30);
+    /** AC6 (US-04-03): first token must appear within 2 seconds. */
+    private static final long FIRST_TOKEN_DEADLINE_MS = 2000;
     private static final String RAG_PATH = "/api/v1/rag";
     private static final String RAG_STREAM_PATH = "/api/v1/rag/stream";
 
@@ -215,6 +220,46 @@ class RagStreamingIntegrationTestIT {
         assertThat(body).isNotBlank();
         assertThat(body).contains("event: token");
         assertThat(body).contains("Default");
+    }
+
+    @Test
+    @Tag("performance")
+    @DisplayName("AC6: first token received within 2 seconds (time-to-first-token)")
+    void rag_streamFirstToken_within2Seconds() throws Exception {
+        when(ragService.streamTokens(anyString())).thenReturn(Multi.createFrom().items(
+                new TokenStreamEvent("First"),
+                new TokenStreamEvent(" token.")
+        ));
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(baseUri.replace(RAG_PATH, RAG_STREAM_PATH)))
+                .header("Content-Type", "application/json")
+                .header("Accept", "text/event-stream")
+                .timeout(REQUEST_TIMEOUT)
+                .POST(HttpRequest.BodyPublishers.ofString("{\"question\":\"AC6 latency\"}"))
+                .build();
+
+        long startNs = System.nanoTime();
+        HttpResponse<InputStream> response = httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
+        assertThat(response.statusCode()).isEqualTo(200);
+
+        long firstTokenMs = -1;
+        try (InputStream is = response.body();
+             BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
+            String line;
+            String currentEvent = null;
+            while ((line = reader.readLine()) != null) {
+                if (line.startsWith("event: ")) {
+                    currentEvent = line.substring(7).trim();
+                } else if (line.startsWith("data: ") && "token".equals(currentEvent)) {
+                    firstTokenMs = (System.nanoTime() - startNs) / 1_000_000;
+                    break;
+                }
+            }
+        }
+
+        assertThat(firstTokenMs).as("Time to first token (AC6)").isGreaterThanOrEqualTo(0);
+        assertThat(firstTokenMs).as("First token must be within 2s (AC6 US-04-03)").isLessThan(FIRST_TOKEN_DEADLINE_MS);
     }
 
     private static List<SseEvent> parseSseEventsFromString(String body) {

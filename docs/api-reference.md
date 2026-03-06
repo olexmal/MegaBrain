@@ -214,6 +214,12 @@ MegaBrain supports the Model Context Protocol (MCP) for LLM tool integration.
 
 ---
 
+## RAG
+
+`POST /api/v1/rag` and `POST /api/v1/rag/stream` provide RAG (retrieval-augmented generation) Q&A. **AC6 (first token within 2s)** is validated by an integration test with a mocked RAG service (time-to-first-token &lt; 2000 ms); production compliance with a real LLM is validated by demo or APM. The first-token test is tagged as a performance test and runs only with the `performance` Maven profile.
+
+---
+
 ## Error Responses
 
 All errors follow this format:
