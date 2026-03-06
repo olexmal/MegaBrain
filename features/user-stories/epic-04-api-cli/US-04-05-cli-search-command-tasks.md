@@ -64,13 +64,13 @@
 - **Description:** Implement JSON output mode when `--json` flag is set. Output search results as JSON matching API response format. Ensure JSON is valid and properly formatted. Support `--quiet` for minimal JSON.
 - **Estimated Hours:** 3 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T1, T2 (needs command and options)
 - **Acceptance Criteria:**
-  - [ ] JSON output mode implemented
-  - [ ] JSON matches API format
-  - [ ] Valid JSON output
-  - [ ] Quiet mode for minimal JSON
+  - [x] JSON output mode implemented
+  - [x] JSON matches API format
+  - [x] Valid JSON output
+  - [x] Quiet mode for minimal JSON
 - **Technical Notes:** Use Jackson for JSON serialization. Output same format as SearchResponse DTO. Support `--quiet` for just results array. Pretty print or compact based on flag.
 
 ### T6: Write command tests

@@ -17,8 +17,8 @@
 - [x] **AC2:** Supports: `--language`, `--repo`, `--type`, `--limit`
 - [x] **AC3:** Results: file path, entity name, code snippet
 - [x] **AC4:** Syntax highlighting for snippets
-- [ ] **AC5:** Output formats: human-readable (default), JSON (`--json`)
-- [ ] **AC6:** Pipe-friendly with `--quiet`
+- [x] **AC5:** Output formats: human-readable (default), JSON (`--json`)
+- [x] **AC6:** Pipe-friendly with `--quiet`
 
 ---
 
@@ -55,7 +55,7 @@
 - [x] **T2:** Add filter options (backend)
 - [x] **T3:** Implement result formatting (backend)
 - [x] **T4:** Add syntax highlighting (backend)
-- [ ] **T5:** Add JSON output mode (backend)
+- [x] **T5:** Add JSON output mode (backend)
 - [ ] **T6:** Write command tests (test)
 
 ---

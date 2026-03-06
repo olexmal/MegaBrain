@@ -15,6 +15,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.megabrain.core.ResultMerger;
 import io.megabrain.core.SearchOrchestrator;
 import io.smallrye.mutiny.Uni;
@@ -35,6 +37,7 @@ import static org.mockito.Mockito.when;
 class SearchCommandTest {
 
     private static final java.nio.charset.Charset UTF8 = StandardCharsets.UTF_8;
+    private static final ObjectMapper JSON = new ObjectMapper();
 
     private static String runAndGetOut(CommandLine cmd, String... args) {
         ByteArrayOutputStream outBa = new ByteArrayOutputStream();
@@ -284,7 +287,7 @@ class SearchCommandTest {
                 .thenReturn(Uni.createFrom().item(new SearchOrchestrator.OrchestratorResult(merged, Map.of())));
 
         SearchResultFormatter formatter = new HumanReadableSearchResultFormatter();
-        SearchCommand command = new SearchCommand(mockOrchestrator, formatter, 10, 5, 10);
+        SearchCommand command = new SearchCommand(mockOrchestrator, formatter, JSON, 10, 5, 10);
         CommandLine cmd = new CommandLine(command);
         ByteArrayOutputStream outBa = new ByteArrayOutputStream();
         ByteArrayOutputStream errBa = new ByteArrayOutputStream();
@@ -311,7 +314,7 @@ class SearchCommandTest {
                 .thenReturn(Uni.createFrom().item(new SearchOrchestrator.OrchestratorResult(List.of(), Map.of())));
 
         SearchResultFormatter formatter = new HumanReadableSearchResultFormatter();
-        SearchCommand command = new SearchCommand(mockOrchestrator, formatter, 10, 5, 10);
+        SearchCommand command = new SearchCommand(mockOrchestrator, formatter, JSON, 10, 5, 10);
         CommandLine cmd = new CommandLine(command);
         ByteArrayOutputStream outBa = new ByteArrayOutputStream();
         cmd.setOut(new PrintWriter(new java.io.OutputStreamWriter(outBa, UTF8)));
@@ -326,6 +329,118 @@ class SearchCommandTest {
     }
 
     @Test
+    @DisplayName("--json full output is valid JSON with results, total, page, size, query, took_ms, facets")
+    void execute_json_fullOutput_validJsonWithApiFields() throws Exception {
+        SearchOrchestrator mockOrchestrator = mock(SearchOrchestrator.class);
+        List<ResultMerger.MergedResult> merged = createMockMergedResults(1);
+        when(mockOrchestrator.orchestrate(any(), eq(io.megabrain.core.SearchMode.HYBRID), anyInt(), anyInt()))
+                .thenReturn(Uni.createFrom().item(new SearchOrchestrator.OrchestratorResult(merged, Map.of())));
+
+        SearchResultFormatter formatter = new HumanReadableSearchResultFormatter();
+        SearchCommand command = new SearchCommand(mockOrchestrator, formatter, JSON, 10, 5, 10);
+        CommandLine cmd = new CommandLine(command);
+        ByteArrayOutputStream outBa = new ByteArrayOutputStream();
+        cmd.setOut(new PrintWriter(new java.io.OutputStreamWriter(outBa, UTF8)));
+        cmd.setErr(new PrintWriter(new ByteArrayOutputStream()));
+
+        int exitCode = cmd.execute("foo", "--json");
+
+        cmd.getOut().flush();
+        assertThat(exitCode).isZero();
+        String stdout = new String(outBa.toByteArray(), UTF8).trim();
+        JsonNode root = JSON.readTree(stdout);
+        assertThat(root.has("results")).isTrue();
+        assertThat(root.has("total")).isTrue();
+        assertThat(root.has("page")).isTrue();
+        assertThat(root.has("size")).isTrue();
+        assertThat(root.has("query")).isTrue();
+        assertThat(root.has("took_ms")).isTrue();
+        assertThat(root.has("facets")).isTrue();
+        assertThat(root.get("results").isArray()).isTrue();
+        assertThat(root.get("results").size()).isEqualTo(1);
+        JsonNode first = root.get("results").get(0);
+        assertThat(first.has("source_file")).isTrue();
+        assertThat(first.has("entity_name")).isTrue();
+        assertThat(first.has("score")).isTrue();
+    }
+
+    @Test
+    @DisplayName("--json --quiet output is JSON array of results")
+    void execute_jsonQuiet_outputIsResultsArray() throws Exception {
+        SearchOrchestrator mockOrchestrator = mock(SearchOrchestrator.class);
+        List<ResultMerger.MergedResult> merged = createMockMergedResults(2);
+        when(mockOrchestrator.orchestrate(any(), eq(io.megabrain.core.SearchMode.HYBRID), anyInt(), anyInt()))
+                .thenReturn(Uni.createFrom().item(new SearchOrchestrator.OrchestratorResult(merged, Map.of())));
+
+        SearchResultFormatter formatter = new HumanReadableSearchResultFormatter();
+        SearchCommand command = new SearchCommand(mockOrchestrator, formatter, JSON, 10, 5, 10);
+        CommandLine cmd = new CommandLine(command);
+        ByteArrayOutputStream outBa = new ByteArrayOutputStream();
+        cmd.setOut(new PrintWriter(new java.io.OutputStreamWriter(outBa, UTF8)));
+        cmd.setErr(new PrintWriter(new ByteArrayOutputStream()));
+
+        int exitCode = cmd.execute("foo", "--json", "--quiet");
+
+        cmd.getOut().flush();
+        assertThat(exitCode).isZero();
+        String stdout = new String(outBa.toByteArray(), UTF8).trim();
+        JsonNode arr = JSON.readTree(stdout);
+        assertThat(arr.isArray()).isTrue();
+        assertThat(arr.size()).isEqualTo(2);
+        assertThat(arr.get(0).has("source_file")).isTrue();
+        assertThat(arr.get(0).has("entity_name")).isTrue();
+    }
+
+    @Test
+    @DisplayName("--json empty results: full JSON has results=[], total=0")
+    void execute_jsonEmptyResults_fullJsonHasEmptyResultsAndTotalZero() throws Exception {
+        SearchOrchestrator mockOrchestrator = mock(SearchOrchestrator.class);
+        when(mockOrchestrator.orchestrate(any(), eq(io.megabrain.core.SearchMode.HYBRID), anyInt(), anyInt()))
+                .thenReturn(Uni.createFrom().item(new SearchOrchestrator.OrchestratorResult(List.of(), Map.of())));
+
+        SearchResultFormatter formatter = new HumanReadableSearchResultFormatter();
+        SearchCommand command = new SearchCommand(mockOrchestrator, formatter, JSON, 10, 5, 10);
+        CommandLine cmd = new CommandLine(command);
+        ByteArrayOutputStream outBa = new ByteArrayOutputStream();
+        cmd.setOut(new PrintWriter(new java.io.OutputStreamWriter(outBa, UTF8)));
+        cmd.setErr(new PrintWriter(new ByteArrayOutputStream()));
+
+        int exitCode = cmd.execute("query", "--json");
+
+        cmd.getOut().flush();
+        assertThat(exitCode).isZero();
+        String stdout = new String(outBa.toByteArray(), UTF8).trim();
+        JsonNode root = JSON.readTree(stdout);
+        assertThat(root.get("results").isArray()).isTrue();
+        assertThat(root.get("results").size()).isZero();
+        assertThat(root.get("total").asLong()).isZero();
+    }
+
+    @Test
+    @DisplayName("--json --quiet empty results: output is empty array")
+    void execute_jsonQuietEmptyResults_outputIsEmptyArray() throws Exception {
+        SearchOrchestrator mockOrchestrator = mock(SearchOrchestrator.class);
+        when(mockOrchestrator.orchestrate(any(), eq(io.megabrain.core.SearchMode.HYBRID), anyInt(), anyInt()))
+                .thenReturn(Uni.createFrom().item(new SearchOrchestrator.OrchestratorResult(List.of(), Map.of())));
+
+        SearchResultFormatter formatter = new HumanReadableSearchResultFormatter();
+        SearchCommand command = new SearchCommand(mockOrchestrator, formatter, JSON, 10, 5, 10);
+        CommandLine cmd = new CommandLine(command);
+        ByteArrayOutputStream outBa = new ByteArrayOutputStream();
+        cmd.setOut(new PrintWriter(new java.io.OutputStreamWriter(outBa, UTF8)));
+        cmd.setErr(new PrintWriter(new ByteArrayOutputStream()));
+
+        int exitCode = cmd.execute("query", "--json", "--quiet");
+
+        cmd.getOut().flush();
+        assertThat(exitCode).isZero();
+        String stdout = new String(outBa.toByteArray(), UTF8).trim();
+        JsonNode arr = JSON.readTree(stdout);
+        assertThat(arr.isArray()).isTrue();
+        assertThat(arr.size()).isZero();
+    }
+
+    @Test
     @DisplayName("--no-color is parsed and useColor false passed to formatter")
     void execute_noColor_passesUseColorFalseToFormatter() {
         SearchOrchestrator mockOrchestrator = mock(SearchOrchestrator.class);
@@ -334,7 +449,7 @@ class SearchCommandTest {
                 .thenReturn(Uni.createFrom().item(new SearchOrchestrator.OrchestratorResult(merged, Map.of())));
 
         CaptureUseColorFormatter captureFormatter = new CaptureUseColorFormatter();
-        SearchCommand command = new SearchCommand(mockOrchestrator, captureFormatter, 10, 5, 10);
+        SearchCommand command = new SearchCommand(mockOrchestrator, captureFormatter, JSON, 10, 5, 10);
         CommandLine cmd = new CommandLine(command);
         ByteArrayOutputStream outBa = new ByteArrayOutputStream();
         cmd.setOut(new PrintWriter(new java.io.OutputStreamWriter(outBa, UTF8)));
@@ -355,7 +470,7 @@ class SearchCommandTest {
                 .thenReturn(Uni.createFrom().item(new SearchOrchestrator.OrchestratorResult(merged, Map.of())));
 
         SearchResultFormatter formatter = new HumanReadableSearchResultFormatter(new CliSyntaxHighlighter());
-        SearchCommand command = new SearchCommand(mockOrchestrator, formatter, 10, 5, 10);
+        SearchCommand command = new SearchCommand(mockOrchestrator, formatter, JSON, 10, 5, 10);
         CommandLine cmd = new CommandLine(command);
         ByteArrayOutputStream outBa = new ByteArrayOutputStream();
         cmd.setOut(new PrintWriter(new java.io.OutputStreamWriter(outBa, UTF8)));

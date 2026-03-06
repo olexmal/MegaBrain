@@ -5,6 +5,7 @@
 
 package io.megabrain.cli;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.megabrain.api.SearchRequest;
 import io.megabrain.api.SearchResponse;
 import io.megabrain.api.SearchResultMapper;
@@ -40,6 +41,7 @@ public class SearchCommand implements Runnable {
 
     private final SearchOrchestrator searchOrchestrator;
     private final SearchResultFormatter searchResultFormatter;
+    private final ObjectMapper objectMapper;
     private final int facetLimit;
     private final int transitiveDefaultDepth;
     private final int transitiveMaxDepth;
@@ -96,14 +98,14 @@ public class SearchCommand implements Runnable {
 
     @CommandLine.Option(
         names = "--json",
-        description = "Output results as JSON (for T3/T5).",
+        description = "Output results as JSON (API format: results, total, page, size, query, took_ms, facets; use --quiet for results array only).",
         defaultValue = "false"
     )
     boolean json;
 
     @CommandLine.Option(
         names = "--quiet",
-        description = "Minimal output, pipe-friendly (for T3/T5).",
+        description = "Minimal output, pipe-friendly (with --json: results array only; otherwise one line per result).",
         defaultValue = "false"
     )
     boolean quiet;
@@ -119,18 +121,20 @@ public class SearchCommand implements Runnable {
     private SearchRequest searchRequest;
 
     /**
-     * CDI constructor for production. Quarkus injects orchestrator, formatter, and config.
+     * CDI constructor for production. Quarkus injects orchestrator, formatter, ObjectMapper, and config.
      * Tests can use this constructor with mocked dependencies.
      */
     @Inject
     public SearchCommand(
             SearchOrchestrator searchOrchestrator,
             SearchResultFormatter searchResultFormatter,
+            ObjectMapper objectMapper,
             @ConfigProperty(name = "megabrain.search.facets.limit", defaultValue = "10") int facetLimit,
             @ConfigProperty(name = "megabrain.search.transitive.default-depth", defaultValue = "5") int transitiveDefaultDepth,
             @ConfigProperty(name = "megabrain.search.transitive.max-depth", defaultValue = "10") int transitiveMaxDepth) {
         this.searchOrchestrator = searchOrchestrator;
         this.searchResultFormatter = searchResultFormatter;
+        this.objectMapper = objectMapper;
         this.facetLimit = facetLimit;
         this.transitiveDefaultDepth = transitiveDefaultDepth;
         this.transitiveMaxDepth = transitiveMaxDepth;
@@ -143,6 +147,7 @@ public class SearchCommand implements Runnable {
     public SearchCommand() {
         this.searchOrchestrator = null;
         this.searchResultFormatter = null;
+        this.objectMapper = null;
         this.facetLimit = 10;
         this.transitiveDefaultDepth = 5;
         this.transitiveMaxDepth = 10;
@@ -213,7 +218,26 @@ public class SearchCommand implements Runnable {
 
             boolean useColor = resolveUseColor();
             PrintWriter out = spec.commandLine().getOut();
-            if (!json) {
+            if (json) {
+                if (objectMapper == null) {
+                    throw new CommandLine.ExecutionException(spec.commandLine(),
+                        "JSON output requires ObjectMapper (use CDI or pass ObjectMapper in constructor).", null);
+                }
+                boolean pretty = !quiet && System.console() != null && !noColor;
+                try {
+                    if (quiet) {
+                        objectMapper.writeValue(out, response.getResults());
+                    } else {
+                        if (pretty) {
+                            objectMapper.writerWithDefaultPrettyPrinter().writeValue(out, response);
+                        } else {
+                            objectMapper.writeValue(out, response);
+                        }
+                    }
+                } catch (java.io.IOException e) {
+                    throw new CommandLine.ExecutionException(spec.commandLine(), "JSON serialization failed: " + e.getMessage(), e);
+                }
+            } else {
                 out.println(searchResultFormatter.format(response, quiet, useColor));
             }
             out.flush();

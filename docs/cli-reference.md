@@ -83,10 +83,14 @@ Search the MegaBrain index from the command line. Provide a query string as the 
 | `--repo` | No | - | Filter by repository name or identifier (repeatable). |
 | `--type` | No | - | Filter by entity type (repeatable). Allowed: class, method, function, field, interface, enum, module. |
 | `--limit` | No | `10` | Maximum number of results (1–100). |
-| `--json` | No | `false` | Output results as JSON (see T5). |
-| `--quiet` | No | `false` | Minimal output, pipe-friendly (see T5). |
+| `--json` | No | `false` | Output results as JSON (see [JSON output](#json-output--json)). |
+| `--quiet` | No | `false` | Minimal output, pipe-friendly (with `--json`: results array only; otherwise one line per result). |
 | `--no-color` | No | `false` | Disable syntax highlighting and ANSI color in output. |
 | `--help` | No | - | Show usage and options. |
+
+#### JSON output (`--json`)
+
+When `--json` is set, output matches the REST API search response format: `results`, `total`, `page`, `size`, `query`, `took_ms`, `facets`. With `--quiet`, only the `results` array is printed (no wrapper object). Pretty-printing is used when output is a TTY and `--quiet` and `--no-color` are not set; otherwise output is compact (e.g. for piping or scripting).
 
 **Validation:** Query must be non-blank. Each `--language` and `--type` value must be from the allowed sets above. `--limit` must be between 1 and 100. Invalid values produce exit code 2 and an error message listing allowed values.
 
@@ -118,6 +122,10 @@ megabrain search "config" --repo olexmal/MegaBrain --limit 20
 
 # Plain output (no syntax highlighting), e.g. for piping or CI
 megabrain search "service" --no-color
+
+# JSON output for scripting (full object or results-only with --quiet)
+megabrain search "service" --json
+megabrain search "service" --json --quiet
 ```
 
 **Exit codes**

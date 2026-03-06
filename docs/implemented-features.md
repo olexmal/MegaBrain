@@ -425,4 +425,8 @@ CLI command to search the MegaBrain index from the command line.
 - **Color control:** `--no-color` option (default false). useColor resolved as: false if `--no-color`, else false if env `NO_COLOR` set, else false if output not TTY (`System.console() == null`), else true. Formatter receives useColor and highlights snippets only when true.
 - **Tests:** `CliSyntaxHighlighterTest` (color on → ANSI, color off → no ANSI, multiple languages, unknown/null/blank language no exception, empty snippet); `SearchResultFormatterTest` (useColor true → snippet contains ANSI, useColor false → no ANSI); `SearchCommandTest` (`--no-color` parsed and useColor false passed to formatter, output with `--no-color` has no ANSI).
 
-**Not Yet Implemented:** T5 (JSON output), T6 (extended command tests).
+**Completed (T5):**
+- **JSON output:** When `--json` is set, output is written as JSON (no formatter). Injected `ObjectMapper` (Quarkus-provided) serializes `SearchResponse`: full JSON includes `results`, `total`, `page`, `size`, `query`, `took_ms`, `facets`; with `--quiet` only `response.getResults()` is serialized (results array). Pretty-printing uses `writerWithDefaultPrettyPrinter()` when TTY and not quiet and not `--no-color`; compact when piped or `--no-color`. Written to `spec.commandLine().getOut()` and flushed. No new DTOs; `SearchResponse`/`SearchResult` are Jackson-friendly.
+- **Tests:** `SearchCommandTest`: with `--json` parse stdout as JSON object, assert root has `results`, `total`, `page`, `size`, `query`, `took_ms`, `facets` and one result has `source_file`, `entity_name`, `score`; with `--json --quiet` parse as JSON array, assert length and element fields; empty results: full JSON has `results=[]`, `total=0`, quiet is `[]`. Use `ObjectMapper.readValue(stdout.trim(), ...)`; no exact string assertions.
+
+**Not Yet Implemented:** T6 (extended command tests).
