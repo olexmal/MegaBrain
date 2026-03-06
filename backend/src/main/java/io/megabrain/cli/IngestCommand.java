@@ -19,6 +19,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.jboss.logmanager.Level;
+
 /**
  * CLI command to ingest a repository into the MegaBrain index.
  * Exit codes: 0 = success, 1 = execution/ingestion failure, 2 = invalid arguments.
@@ -76,6 +78,12 @@ public class IngestCommand implements Runnable {
     )
     boolean incremental;
 
+    @CommandLine.Option(
+        names = "--verbose",
+        description = "Show detailed progress, debug messages, and stack traces on errors."
+    )
+    boolean verbose;
+
     @Inject
     public IngestCommand(IngestionService ingestionService) {
         this.ingestionService = ingestionService;
@@ -83,6 +91,12 @@ public class IngestCommand implements Runnable {
 
     @Override
     public void run() {
+        if (verbose) {
+            org.jboss.logmanager.LogContext.getLogContext()
+                .getLogger("io.megabrain")
+                .setLevel(Level.DEBUG);
+        }
+
         IngestionResource.SourceType sourceType = IngestionResource.SourceType.fromString(source);
         if (sourceType == null) {
             throw new CommandLine.ParameterException(
@@ -110,7 +124,7 @@ public class IngestCommand implements Runnable {
         progressStream.subscribe().with(
             item -> {
                 String msg = item.message() != null ? item.message() : "";
-                if (msg.length() > MAX_MESSAGE_LENGTH) {
+                if (!verbose && msg.length() > MAX_MESSAGE_LENGTH) {
                     msg = msg.substring(0, MAX_MESSAGE_LENGTH) + "...";
                 }
                 String line = String.format("%s %.1f%%", msg, item.progress());
@@ -123,7 +137,11 @@ public class IngestCommand implements Runnable {
                 }
             },
             err -> {
-                LOG.errorf("Ingestion failed: %s", err.getMessage());
+                if (verbose) {
+                    LOG.error("Ingestion failed", err);
+                } else {
+                    LOG.errorf("Ingestion failed: %s", err.getMessage());
+                }
                 failed.set(true);
                 latch.countDown();
             },

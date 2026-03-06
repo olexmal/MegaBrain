@@ -76,6 +76,7 @@ class IngestCommandTest {
         assertThat(output).contains("--branch");
         assertThat(output).contains("--token");
         assertThat(output).contains("--incremental");
+        assertThat(output).contains("--verbose");
     }
 
     @Test
@@ -320,5 +321,42 @@ class IngestCommandTest {
         assertThat(exitCode).isEqualTo(1);
         String errOutput = new String(errBa.toByteArray(), StandardCharsets.UTF_8);
         assertThat(errOutput).contains("Ingestion failed");
+    }
+
+    @Test
+    @DisplayName("--verbose parses and sets verbose true")
+    void execute_withVerbose_setsVerboseTrue() {
+        IngestCommand command = new IngestCommand(mockIngestionServiceCompleting());
+        CommandLine cmd = new CommandLine(command);
+        ByteArrayOutputStream outBa = new ByteArrayOutputStream();
+        cmd.setOut(new PrintWriter(new java.io.OutputStreamWriter(outBa, StandardCharsets.UTF_8)));
+        cmd.setErr(new PrintWriter(new java.io.OutputStreamWriter(new ByteArrayOutputStream(), StandardCharsets.UTF_8)));
+
+        cmd.execute("--source", "github", "--repo", "owner/repo", "--verbose");
+
+        assertThat(command.verbose).isTrue();
+    }
+
+    @Test
+    @DisplayName("verbose mode prints full progress message (no truncation)")
+    void execute_verbose_longProgressLine_notTruncated() {
+        String longMessage = "Cloning " + "x".repeat(300) + " done";
+        IngestionService mockService = mock(IngestionService.class);
+        when(mockService.ingestRepository(anyString())).thenReturn(
+            Multi.createFrom().items(ProgressEvent.of(longMessage, 100.0)));
+        when(mockService.ingestRepositoryIncrementally(anyString())).thenReturn(Multi.createFrom().empty());
+
+        IngestCommand command = new IngestCommand(mockService);
+        CommandLine cmd = new CommandLine(command);
+        ByteArrayOutputStream outBa = new ByteArrayOutputStream();
+        cmd.setOut(new PrintWriter(new java.io.OutputStreamWriter(outBa, StandardCharsets.UTF_8)));
+        cmd.setErr(new PrintWriter(new java.io.OutputStreamWriter(new ByteArrayOutputStream(), StandardCharsets.UTF_8)));
+
+        int exitCode = cmd.execute("--source", "github", "--repo", "owner/repo", "--verbose");
+
+        cmd.getOut().flush();
+        String output = new String(outBa.toByteArray(), StandardCharsets.UTF_8);
+        assertThat(exitCode).isEqualTo(0);
+        assertThat(output).contains("x".repeat(300));
     }
 }

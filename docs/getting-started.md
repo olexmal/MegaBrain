@@ -117,7 +117,7 @@ Open `http://localhost:4200` in your browser. You should see the MegaBrain dashb
 
 ### 5. CLI (optional)
 
-When the backend is built for CLI mode, you can run the MegaBrain CLI. The **ingest** command is available; use `megabrain ingest --help` to see usage and options. When you run an ingest (e.g. `megabrain ingest --source github --repo owner/repo`), progress is streamed in the terminal.
+When the backend is built for CLI mode, you can run the MegaBrain CLI. The **ingest** command is available; use `megabrain ingest --help` to see usage and options. When you run an ingest (e.g. `megabrain ingest --source github --repo owner/repo`), progress is streamed in the terminal. Use `--verbose` for detailed progress and stack traces on errors.
 
 ```bash
 cd backend

@@ -17,7 +17,7 @@
 - [x] **AC2:** Supports: `--branch`, `--token`, `--incremental`
 - [x] **AC3:** Progress displayed in terminal (progress bar)
 - [x] **AC4:** Exit code: 0 (success), non-zero (failure)
-- [ ] **AC5:** Verbose mode with `--verbose`
+- [x] **AC5:** Verbose mode with `--verbose`
 - [x] **AC6:** Help text with `--help`
 
 ---
@@ -57,7 +57,7 @@
 - [x] **T2:** Add source, repo, branch options (backend)
 - [x] **T3:** Implement progress display (backend)
 - [x] **T4:** Handle exit codes (backend)
-- [ ] **T5:** Add verbose logging option (backend)
+- [x] **T5:** Add verbose logging option (backend)
 - [ ] **T6:** Write command tests (test)
 
 ---

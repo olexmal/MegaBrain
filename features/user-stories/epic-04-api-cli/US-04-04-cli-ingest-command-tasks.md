@@ -64,13 +64,13 @@
 - **Description:** Add `--verbose` option for detailed logging. When enabled, show detailed progress information, debug messages, and stack traces on errors. Control log level based on verbose flag.
 - **Estimated Hours:** 2 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T1 (needs command class)
 - **Acceptance Criteria:**
-  - [ ] --verbose option added
-  - [ ] Verbose mode shows detailed logs
-  - [ ] Log level controlled by flag
-  - [ ] Help text explains verbose mode
+  - [x] --verbose option added
+  - [x] Verbose mode shows detailed logs
+  - [x] Log level controlled by flag
+  - [x] Help text explains verbose mode
 - **Technical Notes:** Use `@Option(names = "--verbose")`. Set log level to DEBUG when verbose. Show additional progress details.
 
 ### T6: Write command tests

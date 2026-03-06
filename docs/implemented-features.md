@@ -363,7 +363,7 @@ megabrain.llm.ollama.model-availability-cache-seconds=60
 
 ## EPIC-04: REST API & CLI
 
-### US-04-04: CLI Ingest Command (Partial – T4 of 6)
+### US-04-04: CLI Ingest Command (Partial – T5 of 6)
 
 CLI command structure and options for ingesting repositories from the command line.
 
@@ -388,6 +388,8 @@ CLI command structure and options for ingesting repositories from the command li
 **Completed (T4):**
 - Exit codes: 0 = success, 1 = execution/ingestion failure, 2 = invalid arguments; documented in CLI reference and Javadoc; no `System.exit()`; Picocli `exitCodeOnInvalidInput` / `exitCodeOnExecutionException` on `IngestCommand`; tests assert codes via `CommandLine.execute()` on `IngestCommand`
 
+**Completed (T5):**
+- `--verbose` option: when set, enables DEBUG for `io.megabrain` logger (via JBoss LogManager), fuller progress (no message truncation), and on ingestion failure logs full stack trace with `LOG.error("Ingestion failed", err)`; otherwise message-only; single source is the `verbose` field
+
 **Not Yet Implemented:**
-- Verbose option (T5)
 - Extended command tests (T6)

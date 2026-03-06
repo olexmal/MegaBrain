@@ -38,6 +38,7 @@ Ingest a repository (GitHub, GitLab, Bitbucket, or local path) into the MegaBrai
 | `--branch` | No | `main` | Branch to ingest. |
 | `--token` | No | - | Authentication token for private repositories (never logged). |
 | `--incremental` | No | `false` | Perform incremental ingestion. |
+| `--verbose` | No | `false` | Show detailed progress, debug messages, and stack traces on errors. |
 | `--help` | No | - | Show usage and options. |
 
 **Examples:**
@@ -68,6 +69,10 @@ megabrain ingest --source local --repo /path/to/repo --branch main
 | `2` | Invalid arguments (e.g. invalid `--source`, missing or blank `--repo`) |
 
 Use these in scripts or CI to detect success or failure (e.g. `megabrain ingest ...; exit $?`).
+
+### Verbose / debugging
+
+Use `--verbose` to enable detailed progress (no message truncation), debug logging for the `io.megabrain` logger, and full stack traces on ingestion failure. Example: `megabrain ingest --source github --repo owner/repo --verbose`.
 
 ### Progress output
 
