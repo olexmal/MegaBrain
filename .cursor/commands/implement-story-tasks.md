@@ -1,6 +1,6 @@
 # Implement Story Tasks (All Tasks in Sequence)
 
-Orchestrates implementation of all tasks from a MegaBrain `*-tasks.md` file in order. For each task T1, T2, … that is not yet completed, runs the implement-task workflow via a subagent (without the full test suite per task), commits the result, then runs the next task. When all tasks are implemented, runs the full test suite once via a test-runner subagent to fix any failures.
+Orchestrates implementation of all tasks from a MegaBrain `*-tasks.md` file in order. For each task T1, T2, … that is not yet completed, runs a **task council** (three subagents in parallel) to produce an implementation brief, then runs the implement-task workflow via a subagent using that brief (without the full test suite per task), commits the result, then runs the next task. When all tasks are implemented, runs the full test suite once via a test-runner subagent to fix any failures.
 
 ## Usage
 
@@ -27,9 +27,19 @@ Example:
 2. **For each non-completed task in order (T1, then T2, …)**
    - Extract the **full task block** for that task (from the `### Tn:` heading through the end of that task section, i.e. until the next `### T...` or `---` / end of Task List).
    - Derive the **story id** from the file (e.g. from "Story: US-03-02" in the file or from the filename like `US-03-02-openai-integration-tasks.md`).
+
+   - **2a. Task council** — Before implementing, run a council of three subagents in parallel to get recommendations. Invoke **three** `mcp_task` calls **in the same turn** (parallel), so the orchestrator waits for all three results before proceeding. Use the following:
+     - **Shared context** (include in each council prompt): story id, task id, full task block, task file path, path to related user story (same directory, `-tasks.md` replaced by `.md`), and the project's `docs/` folder as the canonical place for documentation updates.
+     - **Council 1 (best practices & implementation):** `subagent_type`: `code-reviewer` (or custom `council-best-practices` if available). **Prompt:** "You are acting as a task council member. Given the task below, recommend only: (1) best practices and patterns to follow for this codebase for this task, (2) best way to implement this task (interfaces, classes, error handling). Reply with a concise, actionable list. Do not implement code. Context: [story id], [task id], [full task block], [task file path], [related user story path], docs folder: docs/."
+     - **Council 2 (unit testing):** `subagent_type`: `generalPurpose` (or custom `council-testing` if available). **Prompt:** "You are acting as a task council member. Given the task below, recommend only: best way to unit test this task (test classes, scenarios, mocks, coverage focus). Reply with a concise, actionable list. Do not implement code. Context: [story id], [task id], [full task block], [task file path], [related user story path], docs folder: docs/."
+     - **Council 3 (documentation):** `subagent_type`: `doc-generator` (or custom `council-docs` if available). **Prompt:** "You are acting as a task council member. Given the task below, recommend only: what should be added or updated in the project's `docs/` folder (e.g. configuration-reference.md, getting-started.md, new or updated pages). Reply with a concise, actionable list. Do not edit files. Context: [story id], [task id], [full task block], [task file path], [related user story path], docs folder: docs/."
+
+   - **2b. Synthesis** — From the three council replies, the **coordinator** (orchestrator) produces a short **implementation brief**: a single bullet list merging (1) best practices to follow, (2) recommended implementation approach, (3) unit-test approach, (4) docs updates for `docs/`. Keep the brief concise and actionable.
+
    - **Invoke a subagent** to implement this single task:
      - Use `mcp_task` with `subagent_type`: `generalPurpose`.
      - **Prompt** (provide full context; subagents have no prior context):
+       - **Start with the council brief:** "Use the following council recommendations when implementing this task: [paste the implementation brief from 2b]. Then follow the implement-task process below."
        - Instruct the subagent to implement **only** this task (the given task id and task block).
        - Tell the subagent to follow the **implement-task** process in `.cursor/commands/implement-task.md` for the single task: task analysis, implementation planning, code, unit test authoring, and documentation/completion updates to the **tasks file** and the **related user story** file.
        - **Important:** Tell the subagent: "You are running as part of implement-story-tasks. **Do not run the full test suite** (`mvn clean install`) at the end of this task. Run only `mvn compile` and, if needed, specific tests (e.g. `mvn test -Dtest=ClassName`) to catch obvious errors. Skip the 'MANDATORY (Final Validation): mvn clean install' and the Documentation & Completion gate that requires build success. Still update the task status to Completed and update the tasks file and related user story. The orchestrator will run the full test suite once at the end of the story."
@@ -56,6 +66,17 @@ Example:
 
 - **Tasks file:** e.g. `US-03-02-openai-integration-tasks.md` – contains `### T1:`, `### T2:`, etc., each with `- **Status:** ...`.
 - **Related user story:** Same directory, same base name with `-tasks.md` replaced by `.md` (e.g. `US-03-02-openai-integration.md`). The subagent must update both: task status and checkboxes in the tasks file, and Technical Tasks / Acceptance Criteria in the user story file.
+- **Documentation:** The project's `docs/` folder is the canonical place for council-recommended documentation updates (e.g. configuration-reference.md, getting-started.md, new or updated pages).
+
+## Task council
+
+Before each task is implemented, a **council** of three subagents runs in parallel to produce recommendations. The **coordinator** (orchestrator) synthesizes their outputs into an **implementation brief** and passes it to the implement-task subagent.
+
+- **Council 1 – Best practices & implementation:** Recommends patterns, architecture, and the best way to implement the task. Use `code-reviewer` or a custom agent such as `.cursor/agents/council-best-practices.md`.
+- **Council 2 – Unit testing:** Recommends how to unit test the task (scenarios, mocks, coverage). Use `generalPurpose` with a testing-strategy prompt or a custom agent such as `.cursor/agents/council-testing.md`.
+- **Council 3 – Documentation:** Recommends what to add or update in `docs/`. Use `doc-generator` or a custom agent such as `.cursor/agents/council-docs.md`.
+
+Custom council agents under `.cursor/agents/` can set different `model` values (e.g. `inherit` for one, `fast` for others) for model diversity; the orchestrator invokes them by the agent name when available.
 
 ## Summary
 
@@ -63,7 +84,8 @@ Example:
 |------|--------|
 | 1 | Parse task file → ordered list of non-completed tasks (T1, T2, …). |
 | 2 | If list empty → "All tasks already completed." → stop. |
-| 3 | For each task in list: run **generalPurpose** subagent (implement-task for that task only; **skip full mvn clean install**; use mvn compile / targeted tests only) → on "all done :)", commit → next task. |
+| 2a–2b | For each task: run **task council** (3 subagents in parallel: code-reviewer / council-best-practices, generalPurpose / council-testing, doc-generator / council-docs) → coordinator **synthesizes implementation brief** → pass brief to implement-task subagent. |
+| 3 | For each task in list: run **generalPurpose** subagent (implement-task for that task only, **with council brief** in prompt; **skip full mvn clean install**; use mvn compile / targeted tests only) → on "all done :)", commit → next task. |
 | 4 | When all tasks Completed → run **test-runner** subagent: `mvn clean install`, fix failures → optionally commit → report done. |
 
 Reference: [implement-task](.cursor/commands/implement-task.md) for the per-task process and subagent usage (explore, test-runner, verifier, etc.). The subagent should follow that command for the single task it is given.

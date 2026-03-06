@@ -1,0 +1,40 @@
+---
+description: During planning, search the web for latest information before deciding or recommending
+alwaysApply: true
+---
+
+# Planning: Mandatory Web Search for Latest Information
+
+When **planning** (design, architecture, technology choices, dependencies, or multi-step implementation), you **must** use the **Web Search** tool to verify current information before committing to recommendations or decisions.
+
+## When to Search
+
+- **Technology or library choices** — versions, deprecations, breaking changes, ecosystem status
+- **API or framework usage** — current docs, best practices, known issues
+- **Security or compliance** — advisories, CVEs, recommended configurations
+- **Performance or scaling** — benchmarks, recent optimizations
+- **Dependency versions** — compatibility, release notes, upgrade paths
+- **Standards or protocols** — spec updates, implementation notes
+
+## How to Apply
+
+**Current date (mandatory):** You **must** establish the current calendar date before planning. Use the date from conversation context if provided; otherwise run (date only, no jq):
+
+```bash
+curl -s 'https://timeapi.io/api/Time/current/zone?timeZone=UTC' | grep -oP '"dateTime":"\K[^"]+' | cut -d'T' -f1
+```
+
+Use that date (and year) in all search queries and when citing recency. Do not assume or guess the year.
+
+1. **Establish the current date** (mandatory): from context or via the command above before any planning or search.
+2. **Before recommending** a library, version, or approach: run a web search with specific terms (e.g., library name, version, "best practices" with the current year from the date above).
+3. **Before writing a plan** that depends on external APIs, docs, or ecosystem: confirm current behavior or constraints via search.
+4. **Cite or summarize** what you found (and when) so the user can see the basis for the plan.
+
+## Examples
+
+- Planning a new REST client → search for "[library] latest version" and "[library] migration" or "breaking changes".
+- Choosing between two approaches → search for "[approach A] vs [approach B]" and recent discussions or benchmarks.
+- Defining tasks that touch external services → search for "[service] API changes" or "[service] deprecation".
+
+Do **not** rely only on training data for planning; use web search to ensure recommendations reflect the **latest** information.
