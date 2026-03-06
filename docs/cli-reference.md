@@ -72,7 +72,46 @@ Use these in scripts or CI to detect success or failure (e.g. `megabrain ingest 
 
 ### megabrain search
 
-Search the MegaBrain index from the command line. Provide a query string as the first argument. Usage: `megabrain search <query>` or `megabrain search --help`. The query parameter is required (non-blank). Exit codes: 0 = success, 1 = execution failure, 2 = invalid arguments (e.g. missing or blank query).
+Search the MegaBrain index from the command line. Provide a query string as the first argument. Optional filters and output options are supported.
+
+**Options:**
+
+| Option | Required | Default | Description |
+|:-------|:---------|:--------|:-------------|
+| `<query>` | Yes | - | Search query string (first positional argument). |
+| `--language` | No | - | Filter by programming language (repeatable). Allowed: java, python, javascript, typescript, go, rust, kotlin, ruby, scala, swift, php, c, cpp. |
+| `--repo` | No | - | Filter by repository name or identifier (repeatable). |
+| `--type` | No | - | Filter by entity type (repeatable). Allowed: class, method, function, field, interface, enum, module. |
+| `--limit` | No | `10` | Maximum number of results (1–100). |
+| `--json` | No | `false` | Output results as JSON (see T5). |
+| `--quiet` | No | `false` | Minimal output, pipe-friendly (see T5). |
+| `--help` | No | - | Show usage and options. |
+
+**Validation:** Query must be non-blank. Each `--language` and `--type` value must be from the allowed sets above. `--limit` must be between 1 and 100. Invalid values produce exit code 2 and an error message listing allowed values.
+
+**Examples:**
+
+```bash
+# Show usage and all options
+megabrain search --help
+
+# Basic search
+megabrain search "authentication"
+
+# With filters and limit
+megabrain search "service" --language java --language python --type class --limit 5
+
+# Filter by repository
+megabrain search "config" --repo olexmal/MegaBrain --limit 20
+```
+
+**Exit codes**
+
+| Code | Meaning |
+|:-----|:--------|
+| `0` | Success |
+| `1` | Execution failure (e.g. search backend error) |
+| `2` | Invalid arguments (missing/blank query, invalid --language/--type/--limit) |
 
 ### Verbose / debugging
 

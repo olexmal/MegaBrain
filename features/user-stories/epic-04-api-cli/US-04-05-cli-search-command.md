@@ -13,8 +13,8 @@
 
 ## Acceptance Criteria
 
-- [ ] **AC1:** Command: `megabrain search "query string"`
-- [ ] **AC2:** Supports: `--language`, `--repo`, `--type`, `--limit`
+- [x] **AC1:** Command: `megabrain search "query string"`
+- [x] **AC2:** Supports: `--language`, `--repo`, `--type`, `--limit`
 - [ ] **AC3:** Results: file path, entity name, code snippet
 - [ ] **AC4:** Syntax highlighting for snippets
 - [ ] **AC5:** Output formats: human-readable (default), JSON (`--json`)
@@ -52,7 +52,7 @@
 ## Technical Tasks
 
 - [x] **T1:** Create `SearchCommand` Picocli class (backend)
-- [ ] **T2:** Add filter options (backend)
+- [x] **T2:** Add filter options (backend)
 - [ ] **T3:** Implement result formatting (backend)
 - [ ] **T4:** Add syntax highlighting (backend)
 - [ ] **T5:** Add JSON output mode (backend)

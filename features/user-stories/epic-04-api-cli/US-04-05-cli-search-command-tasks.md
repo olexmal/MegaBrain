@@ -25,13 +25,13 @@
 - **Description:** Add command options: `--language`, `--repo`, `--type` (entity_type), `--limit`, `--json` (output format), `--quiet` (minimal output). Parse and validate options.
 - **Estimated Hours:** 3 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T1 (needs command class)
 - **Acceptance Criteria:**
-  - [ ] All filter options added
-  - [ ] Options validated
-  - [ ] Default values set
-  - [ ] Help text includes all options
+  - [x] All filter options added
+  - [x] Options validated
+  - [x] Default values set
+  - [x] Help text includes all options
 - **Technical Notes:** Use `@Option` annotations. Validate language and entity_type enums. Set default limit to 10. Support multiple values for filters if needed.
 
 ### T3: Implement result formatting

@@ -408,4 +408,10 @@ CLI command to search the MegaBrain index from the command line.
 - Help text: `megabrain search --help` shows description and usage
 - Unit tests: `SearchCommandTest` (plain JUnit 5) for command name, `--help` output, execute with one query arg, blank query exit 2
 
-**Not Yet Implemented:** T2 (filter options), T3 (result formatting), T4 (syntax highlighting), T5 (JSON output), T6 (extended command tests).
+**Completed (T2):**
+- Filter and output options: `--language`, `--repo`, `--type` (entity_type), `--limit` (default 10), `--json` (default false), `--quiet` (default false). All options in help with clear descriptions.
+- Validation in `run()`: after query check, each `--language` validated against supported set (java, python, javascript, typescript, go, rust, kotlin, ruby, scala, swift, php, c, cpp); each `--type` against (class, method, function, field, interface, enum, module); `--limit` 1–100. Invalid values throw `ParameterException(spec.commandLine(), "message")` with allowed values in message.
+- `SearchRequest` built in `run()` from validated options: `setQuery`, `addLanguage`/`addRepository`/`addEntityType` for each list, `setLimit`. `--json` and `--quiet` kept as fields for T3/T5. No new DTOs.
+- Unit tests: option parsing, defaults when only query, multi-value `--language`/`--repo`/`--type`, valid language/type exit 0, invalid `--language`/`--type` exit 2 with stderr message, `--help` contains all option names, `--limit` 1 and 100 valid, `--limit` 0 or out of range exit 2, missing query exit 2. Aim >80% on SearchCommand.
+
+**Not Yet Implemented:** T3 (result formatting), T4 (syntax highlighting), T5 (JSON output), T6 (extended command tests).
