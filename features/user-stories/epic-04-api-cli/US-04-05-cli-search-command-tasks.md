@@ -38,13 +38,13 @@
 - **Description:** Implement human-readable result formatting for terminal output. Format search results with file path, entity name, code snippet, and relevance score. Use clear, readable layout.
 - **Estimated Hours:** 4 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T1, T2 (needs command and options), US-04-02 (needs search API)
 - **Acceptance Criteria:**
-  - [ ] Results formatted for terminal
-  - [ ] Clear, readable layout
-  - [ ] Includes file path, entity, snippet
-  - [ ] Handles long lines gracefully
+  - [x] Results formatted for terminal
+  - [x] Clear, readable layout
+  - [x] Includes file path, entity, snippet
+  - [x] Handles long lines gracefully
 - **Technical Notes:** Format: `File: path/to/file.java\nEntity: EntityName.method()\nScore: 0.95\n\n<code snippet>\n\n---\n`. Truncate long snippets. Use proper spacing.
 
 ### T4: Add syntax highlighting

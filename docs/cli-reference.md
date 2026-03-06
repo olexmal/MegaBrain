@@ -89,6 +89,15 @@ Search the MegaBrain index from the command line. Provide a query string as the 
 
 **Validation:** Query must be non-blank. Each `--language` and `--type` value must be from the allowed sets above. `--limit` must be between 1 and 100. Invalid values produce exit code 2 and an error message listing allowed values.
 
+**Default output (human-readable):** When `--json` is not set, results are printed in a readable layout. Each result shows:
+
+- **File:** Source file path
+- **Entity:** Code entity name (e.g. class or method)
+- **Score:** Relevance score
+- A code snippet (content)
+
+Results are separated by `---`. Optional header shows query, total count, and time taken (ms). Long snippets are truncated: at most 15 lines and 120 characters per line; excess is replaced with “… (truncated)” or “…” at line end. Null or blank path/entity are shown as “(no path)” and “(no entity)”. If there are no results, the output is “No results.” With `--quiet`, output is minimal: one line per result with path and entity separated by tab, suitable for piping.
+
 **Examples:**
 
 ```bash

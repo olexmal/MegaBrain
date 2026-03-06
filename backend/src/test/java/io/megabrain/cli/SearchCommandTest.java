@@ -12,8 +12,22 @@ import picocli.CommandLine;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
+
+import io.megabrain.core.ResultMerger;
+import io.megabrain.core.SearchOrchestrator;
+import io.smallrye.mutiny.Uni;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StringField;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for SearchCommand (US-04-05 T1, T2).
@@ -256,5 +270,75 @@ class SearchCommandTest {
         cmd.getErr().flush();
         assertThat(exit).isEqualTo(2);
         assertThat(new String(errBa.toByteArray(), UTF8)).containsIgnoringCase("query").containsIgnoringCase("required");
+    }
+
+    // ---------- T3: result formatting, orchestrator integration ----------
+
+    @Test
+    @DisplayName("when not --json stdout contains formatted result")
+    void execute_withQueryAndMockOrchestrator_stdoutContainsFormattedResult() {
+        SearchOrchestrator mockOrchestrator = mock(SearchOrchestrator.class);
+        List<ResultMerger.MergedResult> merged = createMockMergedResults(1);
+        when(mockOrchestrator.orchestrate(any(), eq(io.megabrain.core.SearchMode.HYBRID), anyInt(), anyInt()))
+                .thenReturn(Uni.createFrom().item(new SearchOrchestrator.OrchestratorResult(merged, Map.of())));
+
+        SearchResultFormatter formatter = new HumanReadableSearchResultFormatter();
+        SearchCommand command = new SearchCommand(mockOrchestrator, formatter, 10, 5, 10);
+        CommandLine cmd = new CommandLine(command);
+        ByteArrayOutputStream outBa = new ByteArrayOutputStream();
+        ByteArrayOutputStream errBa = new ByteArrayOutputStream();
+        cmd.setOut(new PrintWriter(new java.io.OutputStreamWriter(outBa, UTF8)));
+        cmd.setErr(new PrintWriter(new java.io.OutputStreamWriter(errBa, UTF8)));
+
+        int exitCode = cmd.execute("foo");
+
+        cmd.getOut().flush();
+        assertThat(exitCode).isZero();
+        String stdout = new String(outBa.toByteArray(), UTF8);
+        assertThat(stdout).contains("File: Test0.java");
+        assertThat(stdout).contains("Entity: TestEntity0");
+        assertThat(stdout).contains("Score:");
+        assertThat(stdout).contains("Test content 0");
+        assertThat(stdout).contains("---");
+    }
+
+    @Test
+    @DisplayName("empty results print No results.")
+    void execute_emptyResults_printsNoResults() {
+        SearchOrchestrator mockOrchestrator = mock(SearchOrchestrator.class);
+        when(mockOrchestrator.orchestrate(any(), eq(io.megabrain.core.SearchMode.HYBRID), anyInt(), anyInt()))
+                .thenReturn(Uni.createFrom().item(new SearchOrchestrator.OrchestratorResult(List.of(), Map.of())));
+
+        SearchResultFormatter formatter = new HumanReadableSearchResultFormatter();
+        SearchCommand command = new SearchCommand(mockOrchestrator, formatter, 10, 5, 10);
+        CommandLine cmd = new CommandLine(command);
+        ByteArrayOutputStream outBa = new ByteArrayOutputStream();
+        cmd.setOut(new PrintWriter(new java.io.OutputStreamWriter(outBa, UTF8)));
+        cmd.setErr(new PrintWriter(new ByteArrayOutputStream()));
+
+        int exitCode = cmd.execute("query");
+
+        cmd.getOut().flush();
+        assertThat(exitCode).isZero();
+        String stdout = new String(outBa.toByteArray(), UTF8);
+        assertThat(stdout).contains("No results.");
+    }
+
+    private static List<ResultMerger.MergedResult> createMockMergedResults(int count) {
+        List<ResultMerger.MergedResult> results = new java.util.ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            Document doc = new Document();
+            doc.add(new StringField("content", "Test content " + i, Field.Store.YES));
+            doc.add(new StringField("entity_name", "TestEntity" + i, Field.Store.YES));
+            doc.add(new StringField("entity_type", "class", Field.Store.YES));
+            doc.add(new StringField("source_file", "Test" + i + ".java", Field.Store.YES));
+            doc.add(new StringField("language", "java", Field.Store.YES));
+            doc.add(new StringField("repository", "test-repo", Field.Store.YES));
+            doc.add(new StringField("start_line", "1", Field.Store.YES));
+            doc.add(new StringField("end_line", "10", Field.Store.YES));
+            String chunkId = "Test" + i + ".java:TestEntity" + i;
+            results.add(ResultMerger.MergedResult.fromLucene(chunkId, doc, 0.8));
+        }
+        return results;
     }
 }

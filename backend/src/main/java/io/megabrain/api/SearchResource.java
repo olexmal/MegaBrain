@@ -23,8 +23,6 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.jboss.logging.Logger;
 
-import org.apache.lucene.document.Document;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -189,7 +187,7 @@ public class SearchResource {
 
                         // Convert merged results to SearchResult DTOs
                         List<SearchResult> results = mergedResults.stream()
-                                .map(this::convertToSearchResult)
+                                .map(SearchResultMapper::toSearchResult)
                                 .collect(Collectors.toList());
 
                         // Calculate pagination
@@ -232,89 +230,6 @@ public class SearchResource {
             return Uni.createFrom().item(Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                     .entity(new ErrorResponse("Unexpected error: " + e.getMessage()))
                     .build());
-        }
-    }
-
-    /**
-     * Converts a MergedResult to a SearchResult DTO.
-     *
-     * @param mergedResult the merged result from hybrid search
-     * @return SearchResult DTO
-     */
-    private SearchResult convertToSearchResult(ResultMerger.MergedResult mergedResult) {
-        // Determine which result source to use (prefer Lucene if available)
-        String content;
-        String entityName;
-        String entityType;
-        String sourceFile;
-        String language;
-        String repository;
-        float score;
-        LineRange lineRange;
-
-        if (mergedResult.luceneDocument() != null) {
-            var luceneDoc = mergedResult.luceneDocument();
-            content = luceneDoc.get("content");
-            entityName = luceneDoc.get("entity_name");
-            entityType = luceneDoc.get("entity_type");
-            sourceFile = luceneDoc.get("source_file");
-            language = luceneDoc.get("language");
-            repository = luceneDoc.get("repository");
-            score = (float) mergedResult.combinedScore();
-            int startLine = getIntField(luceneDoc, "start_line", 1);
-            int endLine = getIntField(luceneDoc, "end_line", 1);
-            lineRange = new LineRange(startLine, endLine);
-        } else if (mergedResult.vectorResult() != null) {
-            var vectorMeta = mergedResult.vectorResult().metadata();
-            content = vectorMeta.content();
-            entityName = vectorMeta.entityName();
-            entityType = vectorMeta.entityType();
-            sourceFile = vectorMeta.sourceFile();
-            language = vectorMeta.language();
-            repository = ""; // Vector results don't have repository yet
-            score = (float) mergedResult.combinedScore();
-            lineRange = new LineRange(vectorMeta.startLine(), vectorMeta.endLine());
-        } else {
-            // Fallback (should not happen)
-            content = "";
-            entityName = "";
-            entityType = "";
-            sourceFile = "";
-            language = "";
-            repository = "";
-            score = 0.0f;
-            lineRange = new LineRange(1, 1);
-        }
-
-        FieldMatchInfo apiFieldMatch = mergedResult.fieldMatch() != null
-                ? new FieldMatchInfo(mergedResult.fieldMatch().matchedFields(), mergedResult.fieldMatch().scores())
-                : null;
-        // Transitive metadata (US-02-06, T6): mark results from graph traversal and include relationship path
-        boolean isTransitive = mergedResult.transitivePath() != null;
-        List<String> relationshipPath = mergedResult.transitivePath() != null && !mergedResult.transitivePath().isEmpty()
-                ? mergedResult.transitivePath()
-                : null;
-        return new SearchResult(content, entityName, entityType, sourceFile,
-                language, repository, score, lineRange, null, apiFieldMatch, isTransitive, relationshipPath);
-    }
-
-    /**
-     * Gets an integer field from a Lucene document, with a default value.
-     *
-     * @param doc the Lucene document
-     * @param fieldName the field name
-     * @param defaultValue the default value if field is missing or invalid
-     * @return the integer value
-     */
-    private int getIntField(Document doc, String fieldName, int defaultValue) {
-        String value = doc.get(fieldName);
-        if (value == null || value.isBlank()) {
-            return defaultValue;
-        }
-        try {
-            return Integer.parseInt(value);
-        } catch (NumberFormatException e) {
-            return defaultValue;
         }
     }
 

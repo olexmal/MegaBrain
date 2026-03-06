@@ -6,10 +6,17 @@
 package io.megabrain.cli;
 
 import io.megabrain.api.SearchRequest;
+import io.megabrain.api.SearchResponse;
+import io.megabrain.api.SearchResultMapper;
+import io.megabrain.core.SearchMode;
+import io.megabrain.core.SearchOrchestrator;
 import jakarta.enterprise.context.ApplicationScoped;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
 import picocli.CommandLine;
 
+import jakarta.inject.Inject;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -30,6 +37,12 @@ import java.util.Set;
 public class SearchCommand implements Runnable {
 
     private static final Logger LOG = Logger.getLogger(SearchCommand.class);
+
+    private final SearchOrchestrator searchOrchestrator;
+    private final SearchResultFormatter searchResultFormatter;
+    private final int facetLimit;
+    private final int transitiveDefaultDepth;
+    private final int transitiveMaxDepth;
 
     /** Supported languages (aligned with Tree-sitter/grammar). */
     private static final Set<String> SUPPORTED_LANGUAGES = Set.of(
@@ -99,6 +112,36 @@ public class SearchCommand implements Runnable {
     private SearchRequest searchRequest;
 
     /**
+     * CDI constructor for production. Quarkus injects orchestrator, formatter, and config.
+     * Tests can use this constructor with mocked dependencies.
+     */
+    @Inject
+    public SearchCommand(
+            SearchOrchestrator searchOrchestrator,
+            SearchResultFormatter searchResultFormatter,
+            @ConfigProperty(name = "megabrain.search.facets.limit", defaultValue = "10") int facetLimit,
+            @ConfigProperty(name = "megabrain.search.transitive.default-depth", defaultValue = "5") int transitiveDefaultDepth,
+            @ConfigProperty(name = "megabrain.search.transitive.max-depth", defaultValue = "10") int transitiveMaxDepth) {
+        this.searchOrchestrator = searchOrchestrator;
+        this.searchResultFormatter = searchResultFormatter;
+        this.facetLimit = facetLimit;
+        this.transitiveDefaultDepth = transitiveDefaultDepth;
+        this.transitiveMaxDepth = transitiveMaxDepth;
+    }
+
+    /**
+     * No-arg constructor for Picocli when command is created without CDI (e.g. some tests).
+     * Dependencies will be null; run() will validate and print "Query received" then return.
+     */
+    public SearchCommand() {
+        this.searchOrchestrator = null;
+        this.searchResultFormatter = null;
+        this.facetLimit = 10;
+        this.transitiveDefaultDepth = 5;
+        this.transitiveMaxDepth = 10;
+    }
+
+    /**
      * Returns the validated search request built in run(). Null until run() has been called successfully.
      *
      * @return the SearchRequest with query and filters set, or null
@@ -129,8 +172,48 @@ public class SearchCommand implements Runnable {
 
         LOG.debugf("Search command received query: %s, filters: language=%s, repo=%s, type=%s, limit=%d, json=%s, quiet=%s",
             trimmedQuery, languages, repos, types, limit, json, quiet);
-        spec.commandLine().getOut().println("Query received: " + trimmedQuery);
-        spec.commandLine().getOut().flush();
+
+        if (searchOrchestrator == null || searchResultFormatter == null) {
+            // Standalone test run without CDI: only validate and build request
+            spec.commandLine().getOut().println("Query received: " + trimmedQuery);
+            spec.commandLine().getOut().flush();
+            return;
+        }
+
+        long startTime = System.currentTimeMillis();
+        int effectiveDepth = searchRequest.getDepth() != null
+                ? Math.max(1, Math.min(searchRequest.getDepth(), transitiveMaxDepth))
+                : transitiveDefaultDepth;
+
+        try {
+            SearchOrchestrator.OrchestratorResult orcResult = searchOrchestrator
+                    .orchestrate(searchRequest, SearchMode.HYBRID, facetLimit, effectiveDepth)
+                    .await().indefinitely();
+
+            long tookMs = System.currentTimeMillis() - startTime;
+            List<io.megabrain.api.SearchResult> results = orcResult.mergedResults().stream()
+                    .map(SearchResultMapper::toSearchResult)
+                    .toList();
+            SearchResponse response = new SearchResponse(
+                    results,
+                    results.size(),
+                    0,
+                    searchRequest.getLimit(),
+                    searchRequest.getQuery(),
+                    tookMs,
+                    orcResult.facets()
+            );
+
+            PrintWriter out = spec.commandLine().getOut();
+            if (!json) {
+                out.println(searchResultFormatter.format(response, quiet));
+            }
+            out.flush();
+        } catch (Exception e) {
+            Throwable cause = e.getCause() != null ? e.getCause() : e;
+            String message = cause.getMessage() != null ? cause.getMessage() : cause.getClass().getSimpleName();
+            throw new CommandLine.ExecutionException(spec.commandLine(), "Search failed: " + message, e);
+        }
     }
 
     private void validateLanguages(List<String> languages) {

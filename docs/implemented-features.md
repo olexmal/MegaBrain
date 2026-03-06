@@ -414,4 +414,10 @@ CLI command to search the MegaBrain index from the command line.
 - `SearchRequest` built in `run()` from validated options: `setQuery`, `addLanguage`/`addRepository`/`addEntityType` for each list, `setLimit`. `--json` and `--quiet` kept as fields for T3/T5. No new DTOs.
 - Unit tests: option parsing, defaults when only query, multi-value `--language`/`--repo`/`--type`, valid language/type exit 0, invalid `--language`/`--type` exit 2 with stderr message, `--help` contains all option names, `--limit` 1 and 100 valid, `--limit` 0 or out of range exit 2, missing query exit 2. Aim >80% on SearchCommand.
 
-**Not Yet Implemented:** T3 (result formatting), T4 (syntax highlighting), T5 (JSON output), T6 (extended command tests).
+**Completed (T3):**
+- **Terminal formatting:** `SearchResultFormatter` interface in `io.megabrain.cli` with `format(SearchResponse)` and `format(SearchResponse, boolean quiet)`. `HumanReadableSearchResultFormatter`: per result shows File, Entity, Score, snippet, separator `---`; truncation by line count (max 15 lines) and line length (max 120 chars); null-safe placeholders; empty results → "No results."; optional header (query, total, tookMs). Quiet mode: one line per result (path + entity).
+- **SearchCommand integration:** Injects `SearchOrchestrator`, `SearchResultFormatter`, and config (facetLimit, transitiveDefaultDepth, transitiveMaxDepth). In `run()`: builds `SearchRequest`, calls `orchestrate(..., SearchMode.HYBRID, ...).await().indefinitely()`, converts `OrchestratorResult` to `SearchResponse` via `SearchResultMapper.toSearchResult()` (shared helper in `io.megabrain.api`, used by REST and CLI). If !json prints formatter output and flushes; handles Uni failure with user-facing `ExecutionException`.
+- **SearchResultMapper:** In `io.megabrain.api`; maps `MergedResult` to `SearchResult` DTO; used by `SearchResource` and CLI.
+- **Tests:** `SearchResultFormatterTest` (empty → "No results.", single/multiple layout, long snippet truncated, null/blank no NPE, quiet format); `SearchCommandTest` (mock orchestrator, stdout contains formatted result when not --json, empty results "No results.").
+
+**Not Yet Implemented:** T4 (syntax highlighting), T5 (JSON output), T6 (extended command tests).
