@@ -1,0 +1,1694 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://olexmal.github.io/MegaBrain/implemented-features/">
+      
+      
+        <link rel="prev" href="../configuration-reference/">
+      
+      
+        <link rel="next" href="../development-guide/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.4">
+    
+    
+      
+        <title>Implemented Features - MegaBrain Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#implemented-features" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="MegaBrain Documentation" class="md-header__button md-logo" aria-label="MegaBrain Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            MegaBrain Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Implemented Features
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/olexmal/MegaBrain" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    olexmal/MegaBrain
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../getting-started/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Getting Started
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../architecture/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Architecture
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../technology-stack/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Technology Stack
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../api-reference/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  API Reference
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../configuration-reference/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Configuration
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    <li class="md-tabs__item md-tabs__item--active">
+      <a href="./" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Implemented Features
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../development-guide/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Development Guide
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../deployment/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Deployment
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="MegaBrain Documentation" class="md-nav__button md-logo" aria-label="MegaBrain Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    MegaBrain Documentation
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/olexmal/MegaBrain" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    olexmal/MegaBrain
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../technology-stack/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Technology Stack
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configuration-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implemented Features
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implemented Features
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#epic-00-project-infrastructure-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EPIC-00: Project Infrastructure Setup
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="EPIC-00: Project Infrastructure Setup">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#us-00-01-maven-project-setup-done" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        US-00-01: Maven Project Setup (Done)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#epic-01-code-ingestion-indexing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EPIC-01: Code Ingestion &amp; Indexing
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="EPIC-01: Code Ingestion &amp; Indexing">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#us-01-01-github-repository-ingestion-done" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        US-01-01: GitHub Repository Ingestion (Done)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#us-01-04-java-parsing-with-javaparser-done" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        US-01-04: Java Parsing with JavaParser (Done)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#us-01-05-tree-sitter-multi-language-parsing-done" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        US-01-05: Tree-sitter Multi-Language Parsing (Done)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#us-01-08-dynamic-grammar-management-done" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        US-01-08: Dynamic Grammar Management (Done)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#epic-02-hybrid-search-retrieval-all-6-stories-complete" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EPIC-02: Hybrid Search &amp; Retrieval (ALL 6 stories complete)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="EPIC-02: Hybrid Search &amp; Retrieval (ALL 6 stories complete)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#us-02-01-lucene-keyword-search-done" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        US-02-01: Lucene Keyword Search (Done)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#us-02-02-vector-similarity-search-done" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        US-02-02: Vector Similarity Search (Done)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#us-02-03-hybrid-ranking-algorithm-done" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        US-02-03: Hybrid Ranking Algorithm (Done)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#us-02-04-metadata-facet-filtering-done" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        US-02-04: Metadata Facet Filtering (Done)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#us-02-05-relevance-tuning-configuration-done" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        US-02-05: Relevance Tuning Configuration (Done)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#us-02-06-transitive-search-integration-done" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        US-02-06: Transitive Search Integration (Done)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#epic-03-rag-answer-generation-partial" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EPIC-03: RAG Answer Generation (partial)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="EPIC-03: RAG Answer Generation (partial)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#us-03-01-ollama-local-llm-integration-partial-t1-t3-of-6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        US-03-01: Ollama Local LLM Integration (Partial - T1-T3 of 6)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#epic-04-rest-api-cli" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EPIC-04: REST API &amp; CLI
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="EPIC-04: REST API &amp; CLI">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#us-04-04-cli-ingest-command-done" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        US-04-04: CLI Ingest Command (Done)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#us-04-05-cli-search-command-done" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        US-04-05: CLI Search Command (Done)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../development-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../deployment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deployment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#epic-00-project-infrastructure-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EPIC-00: Project Infrastructure Setup
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="EPIC-00: Project Infrastructure Setup">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#us-00-01-maven-project-setup-done" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        US-00-01: Maven Project Setup (Done)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#epic-01-code-ingestion-indexing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EPIC-01: Code Ingestion &amp; Indexing
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="EPIC-01: Code Ingestion &amp; Indexing">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#us-01-01-github-repository-ingestion-done" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        US-01-01: GitHub Repository Ingestion (Done)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#us-01-04-java-parsing-with-javaparser-done" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        US-01-04: Java Parsing with JavaParser (Done)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#us-01-05-tree-sitter-multi-language-parsing-done" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        US-01-05: Tree-sitter Multi-Language Parsing (Done)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#us-01-08-dynamic-grammar-management-done" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        US-01-08: Dynamic Grammar Management (Done)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#epic-02-hybrid-search-retrieval-all-6-stories-complete" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EPIC-02: Hybrid Search &amp; Retrieval (ALL 6 stories complete)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="EPIC-02: Hybrid Search &amp; Retrieval (ALL 6 stories complete)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#us-02-01-lucene-keyword-search-done" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        US-02-01: Lucene Keyword Search (Done)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#us-02-02-vector-similarity-search-done" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        US-02-02: Vector Similarity Search (Done)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#us-02-03-hybrid-ranking-algorithm-done" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        US-02-03: Hybrid Ranking Algorithm (Done)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#us-02-04-metadata-facet-filtering-done" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        US-02-04: Metadata Facet Filtering (Done)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#us-02-05-relevance-tuning-configuration-done" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        US-02-05: Relevance Tuning Configuration (Done)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#us-02-06-transitive-search-integration-done" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        US-02-06: Transitive Search Integration (Done)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#epic-03-rag-answer-generation-partial" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EPIC-03: RAG Answer Generation (partial)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="EPIC-03: RAG Answer Generation (partial)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#us-03-01-ollama-local-llm-integration-partial-t1-t3-of-6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        US-03-01: Ollama Local LLM Integration (Partial - T1-T3 of 6)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#epic-04-rest-api-cli" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EPIC-04: REST API &amp; CLI
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="EPIC-04: REST API &amp; CLI">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#us-04-04-cli-ingest-command-done" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        US-04-04: CLI Ingest Command (Done)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#us-04-05-cli-search-command-done" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        US-04-05: CLI Search Command (Done)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="implemented-features">Implemented Features<a class="headerlink" href="#implemented-features" title="Permanent link">&para;</a></h1>
+<p>This document describes all features that have been implemented, organized by epic. Each section covers the key classes, configuration, and testing status.</p>
+<p><strong>Status:</strong> 12 of 52 user stories fully completed (98 of 211 story points).</p>
+<hr />
+<h2 id="epic-00-project-infrastructure-setup">EPIC-00: Project Infrastructure Setup<a class="headerlink" href="#epic-00-project-infrastructure-setup" title="Permanent link">&para;</a></h2>
+<h3 id="us-00-01-maven-project-setup-done">US-00-01: Maven Project Setup (Done)<a class="headerlink" href="#us-00-01-maven-project-setup-done" title="Permanent link">&para;</a></h3>
+<p>The project foundation with all core dependencies and build configuration.</p>
+<ul>
+<li><strong>Backend:</strong> Single-module Maven project with Quarkus 3.30.2, Java 22</li>
+<li><strong>Frontend:</strong> Angular 20.3.0 with standalone components, Jest for testing</li>
+<li><strong>Dependencies:</strong> Quarkus BOM, LangChain4j BOM (1.9.1), Lucene 10.3.2, Neo4j 6.0.2, JGit 7.4.0, JavaParser 3.27.1, java-tree-sitter 0.25.6</li>
+<li><strong>Build Profiles:</strong> Standard JAR, native (GraalVM), JMH benchmarks</li>
+<li><strong>CI/CD:</strong> JaCoCo for coverage, Codecov integration</li>
+<li><strong>Tasks completed:</strong> 16 of 16</li>
+</ul>
+<hr />
+<h2 id="epic-01-code-ingestion-indexing">EPIC-01: Code Ingestion &amp; Indexing<a class="headerlink" href="#epic-01-code-ingestion-indexing" title="Permanent link">&para;</a></h2>
+<h3 id="us-01-01-github-repository-ingestion-done">US-01-01: GitHub Repository Ingestion (Done)<a class="headerlink" href="#us-01-01-github-repository-ingestion-done" title="Permanent link">&para;</a></h3>
+<p>Fetches and indexes source code from GitHub repositories.</p>
+<p><strong>Key Classes:</strong>
+- <code>GitHubSourceControlClient</code> - Implements <code>SourceControlClient</code> interface for GitHub
+- <code>GitHubApiClient</code> - REST client for GitHub API v3 (metadata, rate limiting)
+- <code>GitHubTokenProvider</code> - Secure token management for PAT and GitHub App tokens
+- <code>CompositeSourceControlClient</code> - Routes to correct provider based on URL</p>
+<p><strong>Capabilities:</strong>
+- Clones repositories via JGit with branch specification
+- Supports public and private repositories via token auth
+- Extracts files with metadata (path, size, modification time)
+- Filters binary files and respects <code>.gitignore</code> patterns
+- Emits progress events via Mutiny <code>Multi</code> at key milestones
+- Handles rate limiting with exponential backoff</p>
+<p><strong>Configuration:</strong>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="na">github-api/mp-rest/url</span><span class="o">=</span><span class="s">https://api.github.com</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="na">megabrain.github.token</span><span class="o">=</span><span class="s">${GITHUB_TOKEN}</span>
+</code></pre></div></p>
+<p><strong>Tests:</strong> 10 unit tests + 1 integration test (real GitHub API), &gt;80% coverage</p>
+<hr />
+<h3 id="us-01-04-java-parsing-with-javaparser-done">US-01-04: Java Parsing with JavaParser (Done)<a class="headerlink" href="#us-01-04-java-parsing-with-javaparser-done" title="Permanent link">&para;</a></h3>
+<p>Parses Java source files into structured code entities using AST analysis.</p>
+<p><strong>Key Classes:</strong>
+- <code>JavaParserService</code> - Implements <code>CodeParser</code> interface using JavaParser 3.27.1
+- <code>JavaAstVisitor</code> - Custom AST visitor extracting classes, methods, and fields</p>
+<p><strong>Capabilities:</strong>
+- Extracts classes with fully qualified names, modifiers, and package declarations
+- Extracts methods with signatures, parameters (with types), and return types
+- Extracts fields with types, modifiers, and initialization expressions
+- Handles inner classes, static nested classes, and anonymous classes with parent-child relationships
+- Creates <code>TextChunk</code> objects with metadata: language, entity_type, entity_name, source_file, line_range
+- Robust error handling for malformed Java files with partial parsing recovery
+- Performance: &gt;10,000 LOC per minute</p>
+<p><strong>Tests:</strong> Unit tests covering all entity types, inner classes, interfaces, enums, edge cases. &gt;80% coverage. JMH benchmark.</p>
+<hr />
+<h3 id="us-01-05-tree-sitter-multi-language-parsing-done">US-01-05: Tree-sitter Multi-Language Parsing (Done)<a class="headerlink" href="#us-01-05-tree-sitter-multi-language-parsing-done" title="Permanent link">&para;</a></h3>
+<p>Provides code parsing for 14+ programming languages via Tree-sitter.</p>
+<p><strong>Key Classes:</strong>
+- <code>TreeSitterParser</code> - Abstract base class implementing <code>CodeParser</code>
+- Language-specific parsers for: C, C++, Python, JavaScript, TypeScript, Go, Rust, Kotlin, Ruby, Scala, Swift, PHP, C#, Java</p>
+<p><strong>Capabilities:</strong>
+- Extracts functions, classes, methods from each language's AST
+- Handles language-specific constructs (decorators, async functions, type hints, generics)
+- File extension routing via <code>ParserRegistry</code>
+- Dynamic grammar loading from cached binaries
+- Consistent <code>TextChunk</code> metadata across all languages
+- Performance benchmarked per language</p>
+<p><strong>Supported Languages (16 total):</strong></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Language</th>
+<th style="text-align: left;">Extensions</th>
+<th style="text-align: left;">Key Constructs</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Java</td>
+<td style="text-align: left;"><code>.java</code></td>
+<td style="text-align: left;">classes, methods, fields, interfaces, enums</td>
+</tr>
+<tr>
+<td style="text-align: left;">Python</td>
+<td style="text-align: left;"><code>.py</code></td>
+<td style="text-align: left;">functions, classes, async functions, decorators</td>
+</tr>
+<tr>
+<td style="text-align: left;">JavaScript</td>
+<td style="text-align: left;"><code>.js</code>, <code>.jsx</code></td>
+<td style="text-align: left;">functions, classes, arrow functions, exports</td>
+</tr>
+<tr>
+<td style="text-align: left;">TypeScript</td>
+<td style="text-align: left;"><code>.ts</code>, <code>.tsx</code></td>
+<td style="text-align: left;">interfaces, type aliases, decorators, generics</td>
+</tr>
+<tr>
+<td style="text-align: left;">C</td>
+<td style="text-align: left;"><code>.c</code>, <code>.h</code></td>
+<td style="text-align: left;">functions, structs, typedefs, macros</td>
+</tr>
+<tr>
+<td style="text-align: left;">C++</td>
+<td style="text-align: left;"><code>.cpp</code>, <code>.hpp</code>, <code>.cc</code></td>
+<td style="text-align: left;">classes, templates, namespaces</td>
+</tr>
+<tr>
+<td style="text-align: left;">Go</td>
+<td style="text-align: left;"><code>.go</code></td>
+<td style="text-align: left;">functions, structs, interfaces, methods</td>
+</tr>
+<tr>
+<td style="text-align: left;">Rust</td>
+<td style="text-align: left;"><code>.rs</code></td>
+<td style="text-align: left;">functions, structs, traits, impl blocks</td>
+</tr>
+<tr>
+<td style="text-align: left;">Kotlin</td>
+<td style="text-align: left;"><code>.kt</code></td>
+<td style="text-align: left;">classes, functions, data classes, objects</td>
+</tr>
+<tr>
+<td style="text-align: left;">Ruby</td>
+<td style="text-align: left;"><code>.rb</code></td>
+<td style="text-align: left;">classes, modules, methods</td>
+</tr>
+<tr>
+<td style="text-align: left;">Scala</td>
+<td style="text-align: left;"><code>.scala</code></td>
+<td style="text-align: left;">classes, traits, objects, case classes</td>
+</tr>
+<tr>
+<td style="text-align: left;">Swift</td>
+<td style="text-align: left;"><code>.swift</code></td>
+<td style="text-align: left;">classes, structs, protocols, functions</td>
+</tr>
+<tr>
+<td style="text-align: left;">PHP</td>
+<td style="text-align: left;"><code>.php</code></td>
+<td style="text-align: left;">classes, functions, interfaces, traits</td>
+</tr>
+<tr>
+<td style="text-align: left;">C#</td>
+<td style="text-align: left;"><code>.cs</code></td>
+<td style="text-align: left;">classes, interfaces, structs, methods</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Tests:</strong> Unit tests per language, performance benchmark. &gt;80% coverage.</p>
+<hr />
+<h3 id="us-01-08-dynamic-grammar-management-done">US-01-08: Dynamic Grammar Management (Done)<a class="headerlink" href="#us-01-08-dynamic-grammar-management-done" title="Permanent link">&para;</a></h3>
+<p>Manages Tree-sitter grammar lifecycle: downloading, caching, versioning, and health checks.</p>
+<p><strong>Key Classes:</strong>
+- <code>ParserRegistry</code> - Central registry mapping file extensions to parser instances
+- <code>GrammarManager</code> - Grammar download, caching, and version management
+- <code>GrammarConfig</code> - Grammar configuration (cache directory, version pins)
+- <code>GrammarSpec</code> - Grammar specification (name, version, platform binary)
+- <code>GrammarHealthCheck</code> - Quarkus readiness probe for grammar status</p>
+<p><strong>Capabilities:</strong>
+- Downloads grammar binaries from GitHub releases on demand
+- Caches grammars locally with version tracking
+- Supports version pinning via configuration
+- Rollback/downgrade to previous grammar versions
+- Health check verifies all configured grammars are loaded
+- Fast parser lookup (&lt;10ms) via extension-to-parser mapping
+- Supports dynamic registration of new parsers at runtime
+- Cold start &lt;500ms requirement met</p>
+<p><strong>Configuration:</strong>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="na">megabrain.grammar.cache.directory</span><span class="o">=</span><span class="s">~/.megabrain/grammars</span>
+</code></pre></div></p>
+<p><strong>Tests:</strong> 240+ tests across all grammar management components, &gt;80% coverage.</p>
+<hr />
+<h2 id="epic-02-hybrid-search-retrieval-all-6-stories-complete">EPIC-02: Hybrid Search &amp; Retrieval (ALL 6 stories complete)<a class="headerlink" href="#epic-02-hybrid-search-retrieval-all-6-stories-complete" title="Permanent link">&para;</a></h2>
+<h3 id="us-02-01-lucene-keyword-search-done">US-02-01: Lucene Keyword Search (Done)<a class="headerlink" href="#us-02-01-lucene-keyword-search-done" title="Permanent link">&para;</a></h3>
+<p>Full-text code search powered by Apache Lucene 10.3.2.</p>
+<p><strong>Key Classes:</strong>
+- <code>LuceneIndexService</code> - Index management (create, write, search, close)
+- <code>CodeAwareAnalyzer</code> - Custom analyzer: StandardTokenizer + WordDelimiterGraphFilter + CodeSplittingFilter + LowerCaseFilter + StopFilter
+- <code>QueryParserService</code> - Multi-field query parser with full Lucene syntax
+- <code>DocumentMapper</code> - Converts <code>TextChunk</code> to Lucene <code>Document</code> with facet fields
+- <code>LuceneSchema</code> - Field definitions (entity_name, content, doc_summary, language, repository, entity_type, file_path)</p>
+<p><strong>Capabilities:</strong>
+- Code-aware tokenization: splits <code>getUserName</code> into [get, user, name] and <code>get_user_name</code> into [get, user, name]
+- Full Lucene query syntax: AND/OR/NOT, "phrase queries", wildcards (*, ?), field:value
+- Batch indexing with configurable batch size (default 1000)
+- Document updates via <code>updateDocument()</code> and deletions by ID
+- Graceful error handling for malformed queries with multiple fallback strategies
+- Configurable field boosts applied at query time</p>
+<p><strong>Configuration:</strong>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="na">megabrain.index.directory</span><span class="o">=</span><span class="s">./data/index</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="na">megabrain.index.batch.size</span><span class="o">=</span><span class="s">1000</span>
+</code></pre></div></p>
+<p><strong>Performance:</strong> &lt;500ms search latency at 95th percentile with 100K chunks (verified via JMH benchmark).</p>
+<p><strong>Tests:</strong> 25+ unit tests, JMH benchmark. &gt;80% coverage.</p>
+<hr />
+<h3 id="us-02-02-vector-similarity-search-done">US-02-02: Vector Similarity Search (Done)<a class="headerlink" href="#us-02-02-vector-similarity-search-done" title="Permanent link">&para;</a></h3>
+<p>Semantic search using vector embeddings stored in PostgreSQL with pgvector.</p>
+<p><strong>Key Classes:</strong>
+- <code>VectorStore</code> - Backend-agnostic vector storage interface
+- <code>PgVectorStore</code> - pgvector implementation with cosine similarity
+- <code>EmbeddingService</code> - Embedding generation for code chunks
+- <code>EmbeddingModelService</code> - Model loading and management</p>
+<p><strong>Capabilities:</strong>
+- pgvector extension setup via Flyway migrations (V1-V3)
+- Embedding generation for code chunks (single and batch)
+- Cosine similarity search using pgvector <code>&lt;=&gt;</code> operator
+- HNSW index for fast approximate nearest neighbor search (M=16, ef_construction=64)
+- Batch embedding during indexing with graceful degradation
+- Vector dimension validation</p>
+<p><strong>Database Migrations:</strong>
+- <code>V1.0.0__enable_pgvector_extension.sql</code>
+- <code>V2.0.0__create_vector_storage_schema.sql</code>
+- <code>V3.0.0__add_vector_indexes.sql</code></p>
+<p><strong>Configuration:</strong>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="na">quarkus.datasource.db-kind</span><span class="o">=</span><span class="s">postgresql</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="na">quarkus.datasource.jdbc.url</span><span class="o">=</span><span class="s">jdbc:postgresql://localhost:5432/megabrain_db</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="na">megabrain.vector.ef-search</span><span class="o">=</span><span class="s">40</span>
+</code></pre></div></p>
+<p><strong>Performance:</strong> &lt;500ms search latency at 95th percentile with 100K vectors.</p>
+<p><strong>Tests:</strong> Unit tests for embedding, storage, search. JMH benchmark. &gt;80% coverage.</p>
+<hr />
+<h3 id="us-02-03-hybrid-ranking-algorithm-done">US-02-03: Hybrid Ranking Algorithm (Done)<a class="headerlink" href="#us-02-03-hybrid-ranking-algorithm-done" title="Permanent link">&para;</a></h3>
+<p>Combines keyword and vector search results with configurable weights.</p>
+<p><strong>Key Classes:</strong>
+- <code>HybridScorer</code> - Weighted score combination (default: 0.6 keyword, 0.4 vector)
+- <code>VectorScoreNormalizer</code> - Min-max normalization to 0-1 range
+- <code>ResultMerger</code> - Merges and deduplicates results from both search modes
+- <code>ABTestHarness</code> - Framework for comparing ranking approaches (precision@k, recall)
+- <code>SearchMode</code> - Enum: HYBRID, KEYWORD, VECTOR
+- <code>HybridIndexService</code> - Coordinates Lucene and vector search execution</p>
+<p><strong>Capabilities:</strong>
+- Min-max score normalization for fair cross-system comparison
+- Weighted combination: <code>final_score = (kw_weight * lucene) + (vec_weight * vector)</code>
+- Deduplication by chunk ID (document_id or file_path + entity_name)
+- Per-request weight override supported
+- Three search modes: HYBRID (both), KEYWORD (Lucene only), VECTOR (pgvector only)
+- A/B test harness computes precision@5, precision@10, recall across modes</p>
+<p><strong>Configuration:</strong>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="na">megabrain.search.hybrid.keyword-weight</span><span class="o">=</span><span class="s">0.6</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="na">megabrain.search.hybrid.vector-weight</span><span class="o">=</span><span class="s">0.4</span>
+</code></pre></div></p>
+<p><strong>Tests:</strong> 23+ tests for HybridScorer, 14 for ResultMerger, 12 for VectorScoreNormalizer, 22 for ABTestHarness, 11 for search modes. &gt;80% coverage.</p>
+<hr />
+<h3 id="us-02-04-metadata-facet-filtering-done">US-02-04: Metadata Facet Filtering (Done)<a class="headerlink" href="#us-02-04-metadata-facet-filtering-done" title="Permanent link">&para;</a></h3>
+<p>Filter search results by language, repository, file path, and entity type with facet aggregation.</p>
+<p><strong>Key Classes:</strong>
+- <code>SearchFilters</code> - Filter data record (language, repository, file_path, entity_type)
+- <code>LuceneFilterQueryBuilder</code> - Builds Lucene filter queries (TermQuery for exact, PrefixQuery for paths; OR within dimension, AND across)
+- <code>FacetValue</code> - DTO for facet value and count
+- <code>SortedSetDocValuesFacetCounts</code> - Lucene facet aggregation</p>
+<p><strong>Capabilities:</strong>
+- Four filter dimensions: language, repository, file_path (prefix match), entity_type
+- Multiple values per filter (OR logic within dimension)
+- Combined filters (AND logic across dimensions)
+- Filters applied as <code>BooleanClause.Occur.FILTER</code> (before scoring for efficiency)
+- Filter query caching via <code>ConcurrentHashMap</code> (&lt;1ms for cached filters vs ~150ms first build)
+- Facet aggregation returns available values with counts for matching documents
+- Always returns consistent map structure with all facet keys</p>
+<p><strong>Performance:</strong> &lt;50ms filter overhead (verified via unit tests).</p>
+<p><strong>Tests:</strong> 17 tests for filter building, multiple integration tests, API-level tests. &gt;80% coverage.</p>
+<hr />
+<h3 id="us-02-05-relevance-tuning-configuration-done">US-02-05: Relevance Tuning Configuration (Done)<a class="headerlink" href="#us-02-05-relevance-tuning-configuration-done" title="Permanent link">&para;</a></h3>
+<p>Configurable field boosts and field match explanation.</p>
+<p><strong>Key Classes:</strong>
+- <code>BoostConfiguration</code> - Holds boost values loaded from <code>application.properties</code>
+- <code>FieldMatchInfo</code> - Per-field match scores from Lucene Explanation API</p>
+<p><strong>Capabilities:</strong>
+- Configurable boost values: entity_name (3.0x), doc_summary (2.0x), content (1.0x)
+- Boosts applied at query time via <code>BoostQuery</code> wrapping (no reindexing needed)
+- Recursive boost application to BooleanQuery, TermQuery, PhraseQuery, WildcardQuery
+- Optional field match explanation: shows which fields matched with per-field scores
+- Enabled via <code>include_field_match=true</code> query parameter</p>
+<p><strong>Configuration:</strong>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="na">megabrain.search.boost.entity-name</span><span class="o">=</span><span class="s">3.0</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="na">megabrain.search.boost.doc-summary</span><span class="o">=</span><span class="s">2.0</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="na">megabrain.search.boost.content</span><span class="o">=</span><span class="s">1.0</span>
+</code></pre></div></p>
+<p><strong>Tests:</strong> Configuration loading, boost application, ranking verification with inverted boosts. &gt;80% coverage.</p>
+<hr />
+<h3 id="us-02-06-transitive-search-integration-done">US-02-06: Transitive Search Integration (Done)<a class="headerlink" href="#us-02-06-transitive-search-integration-done" title="Permanent link">&para;</a></h3>
+<p>Graph-powered transitive search for inheritance and usage relationships.</p>
+<p><strong>Key Classes:</strong>
+- <code>SearchOrchestrator</code> - Coordinates hybrid search + graph queries in parallel
+- <code>GraphQueryService</code> - Graph query interface
+- <code>GraphQueryServiceStub</code> - Implementation delegating to closure queries
+- <code>ImplementsClosureQuery</code> / <code>Neo4jImplementsClosureQuery</code> - Transitive implements traversal via Neo4j Cypher
+- <code>ExtendsClosureQuery</code> / <code>Neo4jExtendsClosureQuery</code> - Transitive extends traversal
+- <code>StructuralQueryParser</code> - Parses <code>implements:X</code>, <code>extends:X</code>, <code>usages:X</code> syntax</p>
+<p><strong>Capabilities:</strong>
+- Structural query syntax: <code>implements:InterfaceName</code>, <code>extends:ClassName</code>, <code>usages:TypeName</code>
+- Transitive closure via Neo4j Cypher: <code>MATCH (i)&lt;-[:IMPLEMENTS|EXTENDS*1..depth]-(c) RETURN DISTINCT c</code>
+- Configurable depth limit (default 5, max 10, per-request override)
+- Parallel execution: hybrid search runs alongside graph queries
+- Graph results merged with hybrid results (deduplicated, sorted by score)
+- Results annotated with <code>is_transitive</code> flag and <code>relationship_path</code> array
+- <code>usages:TypeName</code> combines both implements and extends closures for polymorphic call site coverage
+- Graceful degradation: returns empty when <code>megabrain.neo4j.uri</code> is unset</p>
+<p><strong>Configuration:</strong>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="na">megabrain.search.transitive.default-depth</span><span class="o">=</span><span class="s">5</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="na">megabrain.search.transitive.max-depth</span><span class="o">=</span><span class="s">10</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="na">megabrain.neo4j.uri</span><span class="o">=</span><span class="s">bolt://localhost:7687</span>
+</code></pre></div></p>
+<p><strong>Tests:</strong> Comprehensive tests for structural parsing, closure queries, orchestration, depth validation, result marking. &gt;80% coverage.</p>
+<hr />
+<h2 id="epic-03-rag-answer-generation-partial">EPIC-03: RAG Answer Generation (partial)<a class="headerlink" href="#epic-03-rag-answer-generation-partial" title="Permanent link">&para;</a></h2>
+<h3 id="us-03-01-ollama-local-llm-integration-partial-t1-t3-of-6">US-03-01: Ollama Local LLM Integration (Partial - T1-T3 of 6)<a class="headerlink" href="#us-03-01-ollama-local-llm-integration-partial-t1-t3-of-6" title="Permanent link">&para;</a></h3>
+<p>Foundation for local LLM integration via Ollama.</p>
+<p><strong>Key Classes:</strong>
+- <code>LLMClient</code> - Unified interface for LLM providers (generate, isAvailable, generate with model override)
+- <code>OllamaLLMClient</code> - Ollama implementation wrapping LangChain4j <code>OllamaChatModel</code>
+- <code>OllamaConfiguration</code> - Config mapping for base URL, model, timeout, model availability cache
+- <code>OllamaModelAvailabilityService</code> - Model availability check via Ollama /api/tags with caching</p>
+<p><strong>Completed:</strong>
+- LangChain4j Ollama dependency integrated (BOM 1.9.1)
+- <code>LLMClient</code> interface defined for provider abstraction
+- <code>OllamaLLMClient</code> implementation with configuration loading
+- Model selection with per-request override (T3): <code>generate(msg, modelOverride)</code>, model validation, cached availability</p>
+<p><strong>Not Yet Implemented:</strong>
+- Endpoint configuration with retry logic (T4)
+- Health check for Ollama availability (T5)
+- Integration tests with real Ollama (T6)</p>
+<p><strong>Configuration:</strong>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="na">megabrain.llm.ollama.base-url</span><span class="o">=</span><span class="s">http://localhost:11434</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="na">megabrain.llm.ollama.model</span><span class="o">=</span><span class="s">codellama</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="na">megabrain.llm.ollama.timeout-seconds</span><span class="o">=</span><span class="s">60</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="na">megabrain.llm.ollama.model-availability-cache-seconds</span><span class="o">=</span><span class="s">60</span>
+</code></pre></div></p>
+<p><strong>Tests:</strong> Unit tests for OllamaLLMClient, LLMClient interface, OllamaConfiguration.</p>
+<p><strong>RAG REST (US-04-03):</strong> AC6 (first token within 2s) is validated by an integration test (<code>RagStreamingIntegrationTestIT.rag_streamFirstToken_within2Seconds</code>, tagged <code>performance</code>) with a mocked RAG service; production compliance is validated by demo or APM.</p>
+<hr />
+<h2 id="epic-04-rest-api-cli">EPIC-04: REST API &amp; CLI<a class="headerlink" href="#epic-04-rest-api-cli" title="Permanent link">&para;</a></h2>
+<h3 id="us-04-04-cli-ingest-command-done">US-04-04: CLI Ingest Command (Done)<a class="headerlink" href="#us-04-04-cli-ingest-command-done" title="Permanent link">&para;</a></h3>
+<p>CLI command structure and options for ingesting repositories from the command line.</p>
+<p><strong>Key Classes:</strong>
+- <code>MegaBrainCommand</code> - Top-level CLI entry point (Quarkus Picocli <code>@TopCommand</code>) with subcommands
+- <code>IngestCommand</code> - <code>ingest</code> subcommand with <code>--source</code>, <code>--repo</code>, <code>--branch</code>, <code>--token</code>, <code>--incremental</code> options; CDI bean with constructor-injected <code>IngestionService</code></p>
+<p><strong>Completed (T1):</strong>
+- Picocli integration in package <code>io.megabrain.cli</code>
+- Command name <code>ingest</code>; <code>megabrain ingest --help</code> shows usage
+- Unit tests for command name, help output, and minimal parse (no mocks)</p>
+<p><strong>Completed (T2):</strong>
+- All five options added: <code>--source</code> (required), <code>--repo</code> (required), <code>--branch</code> (default: main), <code>--token</code> (optional), <code>--incremental</code> (default: false)
+- Validation via <code>IngestionResource.SourceType.fromString()</code>; invalid source or blank repo throw <code>ParameterException</code> with clear messages; token never logged
+- Unit tests for help output, defaults, valid sources, invalid source, token parsing, run() after valid parse</p>
+<p><strong>Completed (T3):</strong>
+- Progress display: subscribes to <code>IngestionService.ingestRepository(repo)</code> / <code>ingestRepositoryIncrementally(repo)</code>; single-line updates on TTY, line-by-line when not TTY; message length capped; failure logs short message (no token) and exits non-zero
+- Unit tests for full ingest progress output, incremental progress output, full vs incremental method calls, stream failure</p>
+<p><strong>Completed (T4):</strong>
+- Exit codes: 0 = success, 1 = execution/ingestion failure, 2 = invalid arguments; documented in CLI reference and Javadoc; no <code>System.exit()</code>; Picocli <code>exitCodeOnInvalidInput</code> / <code>exitCodeOnExecutionException</code> on <code>IngestCommand</code>; tests assert codes via <code>CommandLine.execute()</code> on <code>IngestCommand</code></p>
+<p><strong>Completed (T5):</strong>
+- <code>--verbose</code> option: when set, enables DEBUG for <code>io.megabrain</code> logger (via JBoss LogManager), fuller progress (no message truncation), and on ingestion failure logs full stack trace with <code>LOG.error("Ingestion failed", err)</code>; otherwise message-only; single source is the <code>verbose</code> field</p>
+<p><strong>Completed (T6):</strong>
+- <strong>Tests:</strong> Unit tests for option parsing, validation, progress display, exit codes, and help text using Picocli <code>CommandLine.execute()</code> and mocked <code>IngestionService</code>. Coverage includes: token never in output, repo trim, Picocli exit-code contract (invalid 2, execution 1), branch default in help, non-verbose truncation, null progress message, missing <code>--repo</code> exit 2, MegaBrainCommand help. Package <code>io.megabrain.cli</code> line and branch coverage &gt;80% (JaCoCo).</p>
+<h3 id="us-04-05-cli-search-command-done">US-04-05: CLI Search Command (Done)<a class="headerlink" href="#us-04-05-cli-search-command-done" title="Permanent link">&para;</a></h3>
+<p>CLI command to search the MegaBrain index from the command line.</p>
+<p><strong>Key Classes:</strong>
+- <code>SearchCommand</code> – Picocli <code>search</code> subcommand with required query parameter; integrated in <code>MegaBrainCommand.subcommands</code></p>
+<p><strong>Completed (T1):</strong>
+- <code>SearchCommand</code> class in package <code>io.megabrain.cli</code> with <code>@Command(name = "search")</code>, <code>@Parameters(index = "0")</code> for query, <code>mixinStandardHelpOptions = true</code>, exit codes 2 (invalid input) and 1 (execution exception)
+- Validation: non-blank query required; throws <code>ParameterException</code> otherwise
+- Minimal run() behavior: writes to stdout that query was received (stub for T1; no SearchOrchestrator injection yet)
+- Help text: <code>megabrain search --help</code> shows description and usage
+- Unit tests: <code>SearchCommandTest</code> (plain JUnit 5) for command name, <code>--help</code> output, execute with one query arg, blank query exit 2</p>
+<p><strong>Completed (T2):</strong>
+- Filter and output options: <code>--language</code>, <code>--repo</code>, <code>--type</code> (entity_type), <code>--limit</code> (default 10), <code>--json</code> (default false), <code>--quiet</code> (default false). All options in help with clear descriptions.
+- Validation in <code>run()</code>: after query check, each <code>--language</code> validated against supported set (java, python, javascript, typescript, go, rust, kotlin, ruby, scala, swift, php, c, cpp); each <code>--type</code> against (class, method, function, field, interface, enum, module); <code>--limit</code> 1–100. Invalid values throw <code>ParameterException(spec.commandLine(), "message")</code> with allowed values in message.
+- <code>SearchRequest</code> built in <code>run()</code> from validated options: <code>setQuery</code>, <code>addLanguage</code>/<code>addRepository</code>/<code>addEntityType</code> for each list, <code>setLimit</code>. <code>--json</code> and <code>--quiet</code> kept as fields for T3/T5. No new DTOs.
+- Unit tests: option parsing, defaults when only query, multi-value <code>--language</code>/<code>--repo</code>/<code>--type</code>, valid language/type exit 0, invalid <code>--language</code>/<code>--type</code> exit 2 with stderr message, <code>--help</code> contains all option names, <code>--limit</code> 1 and 100 valid, <code>--limit</code> 0 or out of range exit 2, missing query exit 2. Aim &gt;80% on SearchCommand.</p>
+<p><strong>Completed (T3):</strong>
+- <strong>Terminal formatting:</strong> <code>SearchResultFormatter</code> interface in <code>io.megabrain.cli</code> with <code>format(SearchResponse)</code> and <code>format(SearchResponse, boolean quiet)</code>. <code>HumanReadableSearchResultFormatter</code>: per result shows File, Entity, Score, snippet, separator <code>---</code>; truncation by line count (max 15 lines) and line length (max 120 chars); null-safe placeholders; empty results → "No results."; optional header (query, total, tookMs). Quiet mode: one line per result (path + entity).
+- <strong>SearchCommand integration:</strong> Injects <code>SearchOrchestrator</code>, <code>SearchResultFormatter</code>, and config (facetLimit, transitiveDefaultDepth, transitiveMaxDepth). In <code>run()</code>: builds <code>SearchRequest</code>, calls <code>orchestrate(..., SearchMode.HYBRID, ...).await().indefinitely()</code>, converts <code>OrchestratorResult</code> to <code>SearchResponse</code> via <code>SearchResultMapper.toSearchResult()</code> (shared helper in <code>io.megabrain.api</code>, used by REST and CLI). If !json prints formatter output and flushes; handles Uni failure with user-facing <code>ExecutionException</code>.
+- <strong>SearchResultMapper:</strong> In <code>io.megabrain.api</code>; maps <code>MergedResult</code> to <code>SearchResult</code> DTO; used by <code>SearchResource</code> and CLI.
+- <strong>Tests:</strong> <code>SearchResultFormatterTest</code> (empty → "No results.", single/multiple layout, long snippet truncated, null/blank no NPE, quiet format); <code>SearchCommandTest</code> (mock orchestrator, stdout contains formatted result when not --json, empty results "No results.").</p>
+<p><strong>Completed (T4):</strong>
+- <strong>Syntax highlighting:</strong> <code>SyntaxHighlighter</code> interface and <code>CliSyntaxHighlighter</code> implementation (keyword/pattern-based) using Jansi for ANSI codes. Supports Java, Python, JavaScript, TypeScript; other languages fall back to plain. <code>HumanReadableSearchResultFormatter</code> injects highlighter and uses it in <code>format(response, quiet, useColor)</code>; on highlighter failure logs debug and appends plain snippet.
+- <strong>Color control:</strong> <code>--no-color</code> option (default false). useColor resolved as: false if <code>--no-color</code>, else false if env <code>NO_COLOR</code> set, else false if output not TTY (<code>System.console() == null</code>), else true. Formatter receives useColor and highlights snippets only when true.
+- <strong>Tests:</strong> <code>CliSyntaxHighlighterTest</code> (color on → ANSI, color off → no ANSI, multiple languages, unknown/null/blank language no exception, empty snippet); <code>SearchResultFormatterTest</code> (useColor true → snippet contains ANSI, useColor false → no ANSI); <code>SearchCommandTest</code> (<code>--no-color</code> parsed and useColor false passed to formatter, output with <code>--no-color</code> has no ANSI).</p>
+<p><strong>Completed (T5):</strong>
+- <strong>JSON output:</strong> When <code>--json</code> is set, output is written as JSON (no formatter). Injected <code>ObjectMapper</code> (Quarkus-provided) serializes <code>SearchResponse</code>: full JSON includes <code>results</code>, <code>total</code>, <code>page</code>, <code>size</code>, <code>query</code>, <code>took_ms</code>, <code>facets</code>; with <code>--quiet</code> only <code>response.getResults()</code> is serialized (results array). Pretty-printing uses <code>writerWithDefaultPrettyPrinter()</code> when TTY and not quiet and not <code>--no-color</code>; compact when piped or <code>--no-color</code>. Written to <code>spec.commandLine().getOut()</code> and flushed. No new DTOs; <code>SearchResponse</code>/<code>SearchResult</code> are Jackson-friendly.
+- <strong>Tests:</strong> <code>SearchCommandTest</code>: with <code>--json</code> parse stdout as JSON object, assert root has <code>results</code>, <code>total</code>, <code>page</code>, <code>size</code>, <code>query</code>, <code>took_ms</code>, <code>facets</code> and one result has <code>source_file</code>, <code>entity_name</code>, <code>score</code>; with <code>--json --quiet</code> parse as JSON array, assert length and element fields; empty results: full JSON has <code>results=[]</code>, <code>total=0</code>, quiet is <code>[]</code>. Use <code>ObjectMapper.readValue(stdout.trim(), ...)</code>; no exact string assertions.</p>
+<p><strong>Completed (T6):</strong>
+- <strong>Tests:</strong> Unit tests for SearchCommand covering option parsing, validation, output formatting, JSON mode, and help text using Picocli <code>CommandLine.execute()</code> and mocked <code>SearchOrchestrator</code>. Council-recommended tests: orchestrator failure (exit 1, stderr "Search failed"), JSON with null ObjectMapper (exit 1), JSON serialization failure (mocked IOException), NO_COLOR env (useColor false via SystemStubs), blank/uppercase filter normalization (--language "  " skipped, JAVA → java), --quiet human-readable (formatter quiet true, one line per result), JSON with non-empty facets. Additional: SearchResultFormatterTest, CliSyntaxHighlighterTest. Package <code>io.megabrain.cli</code> line and instruction coverage &gt;80% (JaCoCo); SearchCommand 94% instructions, 75% branches.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "search.suggest", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
