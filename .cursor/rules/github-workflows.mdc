@@ -1,0 +1,85 @@
+---
+description: What the GitHub Actions CI and docs workflows are and what they do
+alwaysApply: true
+globs:
+  - "**/*.yml"
+  - ".github/workflows/*.yml"
+---
+
+# GitHub Actions Workflows
+
+This project uses two GitHub Actions workflows under `.github/workflows/`. They define when and how CI/CD runs on GitHub.
+
+---
+
+## `.github/workflows/ci.yml` — Main CI Pipeline
+
+**Name:** CI
+
+**Purpose:** Run tests, static analysis, and optional benchmarks on every push/PR so the main branches stay green and coverage/quality are tracked.
+
+### When it runs
+
+- **Push** to `main` or `dev`
+- **Pull request** (opened, updated, or reopened) targeting any branch
+- **Manual run** via **workflow_dispatch** (Actions → CI → Run workflow)
+
+### Jobs
+
+| Job | When | What it does |
+|-----|------|----------------|
+| **test-backend** | Every run | Checkout → JDK 22 (Temurin, Maven cache) → `docker info` → `mvn -B clean install` in `backend/` → upload backend JaCoCo to Codecov (flag: `backend`) |
+| **benchmark** | **Only** `workflow_dispatch` | Build with `-Pbenchmark`, run JMH Java parser benchmark, upload `jmh-java-parser.txt` as artifact (runs even if benchmark fails) |
+| **test-backend-performance** | **Only** `workflow_dispatch` | Same as test-backend but runs **performance** tests: `mvn -B clean install -Pperformance` (see performance-tests rule) |
+| **test-frontend** | Every run | Node 20, `npm ci` in `frontend/` → lint → Jest tests with coverage → production build → upload frontend LCOV to Codecov (flag: `frontend`) |
+| **sonar** | Every run | Full clone, JDK 22, Docker check, Sonar cache, Maven cache → `mvn verify` + Sonar scan for **backend** (projectKey: `olexmal_MegaBrain`); uses `SONAR_TOKEN` |
+| **sonar-frontend** | Every run (after test-frontend) | Full clone, Node 20, `npm ci` → Jest with coverage → SonarQube scan for **frontend** via `SonarSource/sonarqube-scan-action`; uses `SONAR_TOKEN` |
+
+### Important details
+
+- **Backend:** Default `mvn clean install` does **not** run `@Tag("performance")` tests; those run only when the workflow is triggered manually and the **test-backend-performance** job runs with `-Pperformance`.
+- **Benchmarks** run only on manual trigger and do not fail the workflow (benchmark step uses `|| true`).
+- **Codecov:** Backend and frontend coverage are uploaded with flags `backend` and `frontend` for separate reporting.
+- **Sonar:** Backend and frontend are analyzed in separate jobs; frontend job depends on **test-frontend** so coverage is available.
+
+---
+
+## `.github/workflows/docs.yml` — Documentation Deploy
+
+**Name:** Deploy Documentation
+
+**Purpose:** Build and publish the project docs (MkDocs) to GitHub Pages when docs change or on demand.
+
+### When it runs
+
+- **Push** to `main` that touches:
+  - Anything under `docs/**`
+  - Root `mkdocs.yml`
+- **Manual run** via **workflow_dispatch**
+
+### Jobs
+
+| Job | What it does |
+|-----|----------------|
+| **deploy** | Checkout → Python 3.12 → `pip install -r docs/requirements.txt` → `mkdocs gh-deploy --force` (builds and pushes the site to the `gh-pages` branch for GitHub Pages) |
+
+### Permissions
+
+- `contents: write` — required so the workflow can push the built site to the `gh-pages` branch.
+
+### Important details
+
+- Only runs on **main** (and only when listed paths change) or when manually triggered.
+- Does not run on every push; it is doc-specific.
+- Uses `--force` so each deploy overwrites the previous `gh-pages` content.
+
+---
+
+## Summary
+
+| Workflow | File | Runs on | Main purpose |
+|----------|------|---------|--------------|
+| **CI** | `ci.yml` | Push to main/dev, all PRs, manual | Tests (backend + frontend), coverage (Codecov), SonarQube; optional benchmarks and performance tests on manual run |
+| **Deploy Documentation** | `docs.yml` | Push to main (docs/mkdocs only), manual | Publish MkDocs site to GitHub Pages |
+
+When changing CI behavior (e.g. adding jobs, changing when performance tests run), update `ci.yml` and keep this rule in sync. When changing how docs are built or deployed, update `docs.yml` and this rule.

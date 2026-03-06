@@ -1,0 +1,77 @@
+---
+description: How to mark and run performance-related unit and integration tests
+alwaysApply: true
+---
+
+# Performance Tests
+
+All unit and integration tests that are **performance-related** (timing, throughput, latency assertions, benchmarks, or any test that validates performance criteria) **must** be marked as performance tests and **must not** run during a normal build.
+
+## Marking Performance Tests
+
+### Java (JUnit 5)
+
+- Tag every test class or test method that validates performance with JUnit 5’s `@Tag("performance")`.
+- Prefer tagging at **class level** if the whole test class is performance-focused; use **method level** for mixed classes.
+
+**Class-level (entire class is performance-related):**
+```java
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+
+@Tag("performance")
+@QuarkusTest
+class SearchLatencyTest {
+    @Test
+    void searchResponseUnder500ms() {
+        // assert timing
+    }
+}
+```
+
+**Method-level (only some tests are performance-related):**
+```java
+@Test
+@Tag("performance")
+void coldStartUnder500ms() {
+    // assert timing
+}
+```
+
+### TypeScript (Jasmine/Karma)
+
+- Use a Jasmine tag/category that your runner respects (e.g. `fdescribe`/`fit` only for local use; prefer a custom tag or suite name).
+- Name performance suites or specs so they can be excluded by config (e.g. `describe('performance', () => { ... })` or a custom tag if the Karma/Jasmine setup supports it). Document the exclusion rule in the frontend test config.
+
+## When Performance Tests Run
+
+- **Default:** `mvn clean install` (and normal `mvn test` / `mvn verify`) **must not** run performance-tagged tests. They are excluded by default.
+- **With profile:** Performance tests run **only** when the **`performance`** Maven profile is active.
+
+**Run all tests including performance:**
+```bash
+mvn clean install -Pperformance
+```
+
+**Run only performance tests (e.g. for a quick performance check):**
+```bash
+mvn test -Pperformance
+# or for integration tests as well:
+mvn verify -Pperformance
+```
+
+## Maven Configuration
+
+- The default Surefire/Failsafe configuration **excludes** the `performance` tag so that `mvn clean install` does not run them.
+- The `performance` profile **removes** that exclusion (or includes only `performance` if desired) so that when `-Pperformance` is used, performance tests are executed.
+
+Do not add new performance-related assertions or timing checks to the default test suite without tagging them and ensuring they are excluded by default.
+
+## Summary
+
+| Build command              | Performance tests run? |
+|---------------------------|------------------------|
+| `mvn clean install`       | No                     |
+| `mvn test` / `mvn verify` | No                     |
+| `mvn clean install -Pperformance` | Yes            |
+| `mvn test -Pperformance`  | Yes                    |

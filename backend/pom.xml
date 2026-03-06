@@ -40,6 +40,9 @@
         <sonar.coverage.jacoco.xmlReportPaths>
             ${project.build.directory}/site/jacoco/jacoco.xml,${project.build.directory}/site/jacoco-it/jacoco.xml
         </sonar.coverage.jacoco.xmlReportPaths>
+
+        <!-- Exclude performance-tagged tests unless -Pperformance is active (see .cursor/rules/performance-tests.mdc) -->
+        <performanceTests.excludedGroups>performance</performanceTests.excludedGroups>
     </properties>
 
     <dependencyManagement>
@@ -352,6 +355,7 @@
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>3.5.1</version>
                     <configuration>
+                        <excludedGroups>${performanceTests.excludedGroups}</excludedGroups>
                         <systemPropertyVariables>
                             <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
                         </systemPropertyVariables>
@@ -380,6 +384,7 @@
                     <configuration>
                         <classesDirectory>target/classes</classesDirectory>
                         <testClassesDirectory>target/test-classes-it</testClassesDirectory>
+                        <excludedGroups>${performanceTests.excludedGroups}</excludedGroups>
                         <systemPropertyVariables>
                             <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
                         </systemPropertyVariables>
@@ -468,6 +473,17 @@
             <id>native</id>
             <properties>
                 <quarkus.package.type>native</quarkus.package.type>
+            </properties>
+        </profile>
+        <!-- Include performance-tagged tests (excluded by default). Use: mvn clean install -Pperformance -->
+        <profile>
+            <id>performance</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <properties>
+                <!-- Empty = do not exclude any group; performance tests will run -->
+                <performanceTests.excludedGroups></performanceTests.excludedGroups>
             </properties>
         </profile>
         <profile>
