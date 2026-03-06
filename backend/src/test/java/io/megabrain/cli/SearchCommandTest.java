@@ -7,9 +7,14 @@ package io.megabrain.cli;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import picocli.CommandLine;
+import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
+import uk.org.webcompere.systemstubs.jupiter.SystemStub;
+import uk.org.webcompere.systemstubs.jupiter.SystemStubsExtension;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -28,13 +33,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 /**
- * Unit tests for SearchCommand (US-04-05 T1, T2).
+ * Unit tests for SearchCommand (US-04-05 T1–T6).
  */
+@ExtendWith(SystemStubsExtension.class)
 class SearchCommandTest {
+
+    @SystemStub
+    private EnvironmentVariables environmentVariables;
 
     private static final java.nio.charset.Charset UTF8 = StandardCharsets.UTF_8;
     private static final ObjectMapper JSON = new ObjectMapper();
@@ -483,9 +494,188 @@ class SearchCommandTest {
         assertThat(stdout).doesNotContain("\u001B[");
     }
 
+    // ---------- T6: council-recommended and coverage tests ----------
+
+    @Test
+    @DisplayName("orchestrator failure returns exit 1 and stderr contains Search failed or cause message")
+    void execute_orchestratorFailure_exit1AndStderrContainsSearchFailed() {
+        SearchOrchestrator mockOrchestrator = mock(SearchOrchestrator.class);
+        when(mockOrchestrator.orchestrate(any(), eq(io.megabrain.core.SearchMode.HYBRID), anyInt(), anyInt()))
+                .thenReturn(Uni.createFrom().failure(new RuntimeException("orchestrator error")));
+
+        SearchResultFormatter formatter = new HumanReadableSearchResultFormatter();
+        SearchCommand command = new SearchCommand(mockOrchestrator, formatter, JSON, 10, 5, 10);
+        CommandLine cmd = new CommandLine(command);
+        ByteArrayOutputStream outBa = new ByteArrayOutputStream();
+        ByteArrayOutputStream errBa = new ByteArrayOutputStream();
+        cmd.setOut(new PrintWriter(new java.io.OutputStreamWriter(outBa, UTF8)));
+        cmd.setErr(new PrintWriter(new java.io.OutputStreamWriter(errBa, UTF8)));
+
+        int exitCode = cmd.execute("foo");
+
+        cmd.getErr().flush();
+        assertThat(exitCode).isEqualTo(1);
+        String stderr = new String(errBa.toByteArray(), UTF8);
+        assertThat(stderr).satisfiesAnyOf(
+            s -> assertThat(s).contains("Search failed"),
+            s -> assertThat(s).contains("orchestrator error")
+        );
+    }
+
+    @Test
+    @DisplayName("--json with null ObjectMapper returns exit 1 and message about JSON requiring ObjectMapper")
+    void execute_jsonWithNullObjectMapper_exit1AndMessageAboutObjectMapper() {
+        SearchOrchestrator mockOrchestrator = mock(SearchOrchestrator.class);
+        List<ResultMerger.MergedResult> merged = createMockMergedResults(1);
+        when(mockOrchestrator.orchestrate(any(), eq(io.megabrain.core.SearchMode.HYBRID), anyInt(), anyInt()))
+                .thenReturn(Uni.createFrom().item(new SearchOrchestrator.OrchestratorResult(merged, Map.of())));
+
+        SearchResultFormatter formatter = new HumanReadableSearchResultFormatter();
+        SearchCommand command = new SearchCommand(mockOrchestrator, formatter, null, 10, 5, 10);
+        CommandLine cmd = new CommandLine(command);
+        ByteArrayOutputStream outBa = new ByteArrayOutputStream();
+        ByteArrayOutputStream errBa = new ByteArrayOutputStream();
+        cmd.setOut(new PrintWriter(new java.io.OutputStreamWriter(outBa, UTF8)));
+        cmd.setErr(new PrintWriter(new java.io.OutputStreamWriter(errBa, UTF8)));
+
+        int exitCode = cmd.execute("foo", "--json");
+
+        cmd.getErr().flush();
+        assertThat(exitCode).isEqualTo(1);
+        String stderr = new String(errBa.toByteArray(), UTF8);
+        assertThat(stderr).contains("JSON").contains("ObjectMapper");
+    }
+
+    @Test
+    @DisplayName("JSON serialization failure returns exit 1 and message about JSON serialization failed")
+    void execute_jsonSerializationFailure_exit1AndMessageAboutSerialization() throws Exception {
+        SearchOrchestrator mockOrchestrator = mock(SearchOrchestrator.class);
+        List<ResultMerger.MergedResult> merged = createMockMergedResults(1);
+        when(mockOrchestrator.orchestrate(any(), eq(io.megabrain.core.SearchMode.HYBRID), anyInt(), anyInt()))
+                .thenReturn(Uni.createFrom().item(new SearchOrchestrator.OrchestratorResult(merged, Map.of())));
+
+        ObjectMapper failingMapper = spy(new ObjectMapper());
+        doThrow(new IOException("mock io")).when(failingMapper).writeValue(any(java.io.Writer.class), any());
+
+        SearchResultFormatter formatter = new HumanReadableSearchResultFormatter();
+        SearchCommand command = new SearchCommand(mockOrchestrator, formatter, failingMapper, 10, 5, 10);
+        CommandLine cmd = new CommandLine(command);
+        ByteArrayOutputStream outBa = new ByteArrayOutputStream();
+        ByteArrayOutputStream errBa = new ByteArrayOutputStream();
+        cmd.setOut(new PrintWriter(new java.io.OutputStreamWriter(outBa, UTF8)));
+        cmd.setErr(new PrintWriter(new java.io.OutputStreamWriter(errBa, UTF8)));
+
+        int exitCode = cmd.execute("foo", "--json");
+
+        cmd.getErr().flush();
+        assertThat(exitCode).isEqualTo(1);
+        String stderr = new String(errBa.toByteArray(), UTF8);
+        assertThat(stderr).contains("JSON serialization failed").contains("mock io");
+    }
+
+    @Test
+    @DisplayName("NO_COLOR env without --no-color passes useColor false to formatter")
+    void execute_noColorEnvWithoutNoColorFlag_useColorFalse() {
+        environmentVariables.set("NO_COLOR", "1");
+
+        SearchOrchestrator mockOrchestrator = mock(SearchOrchestrator.class);
+        List<ResultMerger.MergedResult> merged = createMockMergedResults(1);
+        when(mockOrchestrator.orchestrate(any(), eq(io.megabrain.core.SearchMode.HYBRID), anyInt(), anyInt()))
+                .thenReturn(Uni.createFrom().item(new SearchOrchestrator.OrchestratorResult(merged, Map.of())));
+
+        CaptureUseColorFormatter captureFormatter = new CaptureUseColorFormatter();
+        SearchCommand command = new SearchCommand(mockOrchestrator, captureFormatter, JSON, 10, 5, 10);
+        CommandLine cmd = new CommandLine(command);
+        ByteArrayOutputStream outBa = new ByteArrayOutputStream();
+        cmd.setOut(new PrintWriter(new java.io.OutputStreamWriter(outBa, UTF8)));
+        cmd.setErr(new PrintWriter(new ByteArrayOutputStream()));
+
+        cmd.execute("foo");
+
+        cmd.getOut().flush();
+        assertThat(captureFormatter.lastUseColor).isFalse();
+    }
+
+    @Test
+    @DisplayName("--language with blank value is skipped in request")
+    void execute_languageBlankValue_skippedInRequest() {
+        SearchCommand command = new SearchCommand();
+        CommandLine cmd = new CommandLine(command);
+        runAndGetOut(cmd, "q", "--language", "  ");
+
+        assertThat(command.getSearchRequest().getLanguages()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("--language JAVA normalized to java in request")
+    void execute_languageUppercase_normalizedToLowercase() {
+        SearchCommand command = new SearchCommand();
+        CommandLine cmd = new CommandLine(command);
+        runAndGetOut(cmd, "q", "--language", "JAVA");
+
+        assertThat(command.getSearchRequest().getLanguages()).containsExactly("java");
+    }
+
+    @Test
+    @DisplayName("--quiet human-readable: formatter called with quiet true, one line per result")
+    void execute_quietHumanReadable_formatterQuietTrueOneLinePerResult() {
+        SearchOrchestrator mockOrchestrator = mock(SearchOrchestrator.class);
+        List<ResultMerger.MergedResult> merged = createMockMergedResults(2);
+        when(mockOrchestrator.orchestrate(any(), eq(io.megabrain.core.SearchMode.HYBRID), anyInt(), anyInt()))
+                .thenReturn(Uni.createFrom().item(new SearchOrchestrator.OrchestratorResult(merged, Map.of())));
+
+        CaptureUseColorFormatter captureFormatter = new CaptureUseColorFormatter();
+        SearchCommand command = new SearchCommand(mockOrchestrator, captureFormatter, JSON, 10, 5, 10);
+        CommandLine cmd = new CommandLine(command);
+        ByteArrayOutputStream outBa = new ByteArrayOutputStream();
+        cmd.setOut(new PrintWriter(new java.io.OutputStreamWriter(outBa, UTF8)));
+        cmd.setErr(new PrintWriter(new ByteArrayOutputStream()));
+
+        cmd.execute("foo", "--quiet");
+
+        cmd.getOut().flush();
+        assertThat(captureFormatter.lastQuiet).isTrue();
+        String stdout = new String(outBa.toByteArray(), UTF8);
+        assertThat(stdout).contains("Test0.java\tTestEntity0");
+        assertThat(stdout).contains("Test1.java\tTestEntity1");
+        assertThat(stdout).doesNotContain("---");
+    }
+
+    @Test
+    @DisplayName("--json with non-empty facets outputs facets key in JSON")
+    void execute_jsonWithFacets_outputHasFacetsKey() throws Exception {
+        Map<String, List<io.megabrain.core.FacetValue>> facets = Map.of("language", List.of(
+            new io.megabrain.core.FacetValue("java", 5),
+            new io.megabrain.core.FacetValue("python", 2)
+        ));
+        SearchOrchestrator mockOrchestrator = mock(SearchOrchestrator.class);
+        List<ResultMerger.MergedResult> merged = createMockMergedResults(1);
+        when(mockOrchestrator.orchestrate(any(), eq(io.megabrain.core.SearchMode.HYBRID), anyInt(), anyInt()))
+                .thenReturn(Uni.createFrom().item(new SearchOrchestrator.OrchestratorResult(merged, facets)));
+
+        SearchResultFormatter formatter = new HumanReadableSearchResultFormatter();
+        SearchCommand command = new SearchCommand(mockOrchestrator, formatter, JSON, 10, 5, 10);
+        CommandLine cmd = new CommandLine(command);
+        ByteArrayOutputStream outBa = new ByteArrayOutputStream();
+        cmd.setOut(new PrintWriter(new java.io.OutputStreamWriter(outBa, UTF8)));
+        cmd.setErr(new PrintWriter(new ByteArrayOutputStream()));
+
+        int exitCode = cmd.execute("foo", "--json");
+
+        cmd.getOut().flush();
+        assertThat(exitCode).isZero();
+        String stdout = new String(outBa.toByteArray(), UTF8).trim();
+        JsonNode root = JSON.readTree(stdout);
+        assertThat(root.has("facets")).isTrue();
+        assertThat(root.get("facets").has("language")).isTrue();
+        assertThat(root.get("facets").get("language").isArray()).isTrue();
+        assertThat(root.get("facets").get("language").size()).isEqualTo(2);
+    }
+
     /** Formatter that records the last useColor argument for testing. */
     private static final class CaptureUseColorFormatter implements SearchResultFormatter {
         Boolean lastUseColor = null;
+        Boolean lastQuiet = null;
 
         @Override
         public String format(io.megabrain.api.SearchResponse response) {
@@ -495,6 +685,7 @@ class SearchCommandTest {
         @Override
         public String format(io.megabrain.api.SearchResponse response, boolean quiet, boolean useColor) {
             this.lastUseColor = useColor;
+            this.lastQuiet = quiet;
             if (quiet) {
                 return formatQuiet(response);
             }

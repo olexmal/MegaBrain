@@ -77,14 +77,14 @@
 - **Description:** Create unit tests for SearchCommand. Test query parsing, filter options, output formatting, JSON mode, and help text. Use Picocli's testing utilities.
 - **Estimated Hours:** 3 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T1-T5 (needs complete implementation)
 - **Acceptance Criteria:**
-  - [ ] Unit tests for command
-  - [ ] Tests cover option parsing
-  - [ ] Tests cover output formatting
-  - [ ] Tests verify JSON mode
-  - [ ] Test coverage >80%
+  - [x] Unit tests for command
+  - [x] Tests cover option parsing
+  - [x] Tests cover output formatting
+  - [x] Tests verify JSON mode
+  - [x] Test coverage >80%
 - **Technical Notes:** Use Picocli's `CommandLine.execute()` for testing. Mock search API. Verify command output and formatting.
 
 ---

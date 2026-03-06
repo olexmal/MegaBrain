@@ -394,7 +394,7 @@ CLI command structure and options for ingesting repositories from the command li
 **Completed (T6):**
 - **Tests:** Unit tests for option parsing, validation, progress display, exit codes, and help text using Picocli `CommandLine.execute()` and mocked `IngestionService`. Coverage includes: token never in output, repo trim, Picocli exit-code contract (invalid 2, execution 1), branch default in help, non-verbose truncation, null progress message, missing `--repo` exit 2, MegaBrainCommand help. Package `io.megabrain.cli` line and branch coverage >80% (JaCoCo).
 
-### US-04-05: CLI Search Command (In Progress)
+### US-04-05: CLI Search Command (Done)
 
 CLI command to search the MegaBrain index from the command line.
 
@@ -429,4 +429,5 @@ CLI command to search the MegaBrain index from the command line.
 - **JSON output:** When `--json` is set, output is written as JSON (no formatter). Injected `ObjectMapper` (Quarkus-provided) serializes `SearchResponse`: full JSON includes `results`, `total`, `page`, `size`, `query`, `took_ms`, `facets`; with `--quiet` only `response.getResults()` is serialized (results array). Pretty-printing uses `writerWithDefaultPrettyPrinter()` when TTY and not quiet and not `--no-color`; compact when piped or `--no-color`. Written to `spec.commandLine().getOut()` and flushed. No new DTOs; `SearchResponse`/`SearchResult` are Jackson-friendly.
 - **Tests:** `SearchCommandTest`: with `--json` parse stdout as JSON object, assert root has `results`, `total`, `page`, `size`, `query`, `took_ms`, `facets` and one result has `source_file`, `entity_name`, `score`; with `--json --quiet` parse as JSON array, assert length and element fields; empty results: full JSON has `results=[]`, `total=0`, quiet is `[]`. Use `ObjectMapper.readValue(stdout.trim(), ...)`; no exact string assertions.
 
-**Not Yet Implemented:** T6 (extended command tests).
+**Completed (T6):**
+- **Tests:** Unit tests for SearchCommand covering option parsing, validation, output formatting, JSON mode, and help text using Picocli `CommandLine.execute()` and mocked `SearchOrchestrator`. Council-recommended tests: orchestrator failure (exit 1, stderr "Search failed"), JSON with null ObjectMapper (exit 1), JSON serialization failure (mocked IOException), NO_COLOR env (useColor false via SystemStubs), blank/uppercase filter normalization (--language "  " skipped, JAVA → java), --quiet human-readable (formatter quiet true, one line per result), JSON with non-empty facets. Additional: SearchResultFormatterTest, CliSyntaxHighlighterTest. Package `io.megabrain.cli` line and instruction coverage >80% (JaCoCo); SearchCommand 94% instructions, 75% branches.

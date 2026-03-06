@@ -56,7 +56,7 @@
 - [x] **T3:** Implement result formatting (backend)
 - [x] **T4:** Add syntax highlighting (backend)
 - [x] **T5:** Add JSON output mode (backend)
-- [ ] **T6:** Write command tests (test)
+- [x] **T6:** Write command tests (test)
 
 ---
 
