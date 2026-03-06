@@ -59,6 +59,10 @@ megabrain ingest --source github --repo olexmal/MegaBrain --incremental
 megabrain ingest --source local --repo /path/to/repo --branch main
 ```
 
+### Progress output
+
+Progress is shown in real time during ingestion. Typical stages include **cloning**, **parsing**, and **indexing**. When the output is a **TTY** (interactive terminal), progress updates in place on a single line; when not a TTY (e.g. redirect or CI), each event is printed on a new line. Message length is capped for readability.
+
 ### Top-level help
 
 ```bash

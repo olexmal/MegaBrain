@@ -5,6 +5,9 @@
 
 package io.megabrain.cli;
 
+import io.megabrain.ingestion.IngestionService;
+import io.megabrain.ingestion.ProgressEvent;
+import io.smallrye.mutiny.Multi;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -16,23 +19,37 @@ import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
- * Unit tests for IngestCommand (US-04-04 T1, T2).
+ * Unit tests for IngestCommand (US-04-04 T1, T2, T3).
  */
 class IngestCommandTest {
+
+    private static IngestionService mockIngestionServiceCompleting() {
+        IngestionService service = mock(IngestionService.class);
+        when(service.ingestRepository(anyString())).thenReturn(
+            Multi.createFrom().items(ProgressEvent.of("Done", 100.0)));
+        when(service.ingestRepositoryIncrementally(anyString())).thenReturn(
+            Multi.createFrom().items(ProgressEvent.of("Incremental done", 100.0)));
+        return service;
+    }
 
     @Test
     @DisplayName("command name is ingest")
     void commandSpec_name_isIngest() {
-        CommandLine cmd = new CommandLine(new IngestCommand());
+        CommandLine cmd = new CommandLine(new IngestCommand(mockIngestionServiceCompleting()));
         assertThat(cmd.getCommandSpec().name()).isEqualTo("ingest");
     }
 
     @Test
     @DisplayName("--help prints usage containing ingest and option descriptions")
     void execute_help_printsUsageWithIngestAndOptions() {
-        IngestCommand command = new IngestCommand();
+        IngestCommand command = new IngestCommand(mockIngestionServiceCompleting());
         CommandLine cmd = new CommandLine(command);
         ByteArrayOutputStream outBa = new ByteArrayOutputStream();
         ByteArrayOutputStream errBa = new ByteArrayOutputStream();
@@ -60,7 +77,7 @@ class IngestCommandTest {
     @Test
     @DisplayName("default branch when --branch omitted")
     void execute_sourceAndRepoOnly_defaultBranchIsMain() {
-        IngestCommand command = new IngestCommand();
+        IngestCommand command = new IngestCommand(mockIngestionServiceCompleting());
         CommandLine cmd = new CommandLine(command);
         ByteArrayOutputStream outBa = new ByteArrayOutputStream();
         cmd.setOut(new PrintWriter(new java.io.OutputStreamWriter(outBa, StandardCharsets.UTF_8)));
@@ -74,7 +91,7 @@ class IngestCommandTest {
     @Test
     @DisplayName("default incremental false when omitted")
     void execute_incrementalOmitted_defaultIsFalse() {
-        IngestCommand command = new IngestCommand();
+        IngestCommand command = new IngestCommand(mockIngestionServiceCompleting());
         CommandLine cmd = new CommandLine(command);
         ByteArrayOutputStream outBa = new ByteArrayOutputStream();
         cmd.setOut(new PrintWriter(new java.io.OutputStreamWriter(outBa, StandardCharsets.UTF_8)));
@@ -88,7 +105,7 @@ class IngestCommandTest {
     @Test
     @DisplayName("explicit branch and incremental parsed")
     void execute_explicitBranchAndIncremental_parsedCorrectly() {
-        IngestCommand command = new IngestCommand();
+        IngestCommand command = new IngestCommand(mockIngestionServiceCompleting());
         CommandLine cmd = new CommandLine(command);
         ByteArrayOutputStream outBa = new ByteArrayOutputStream();
         cmd.setOut(new PrintWriter(new java.io.OutputStreamWriter(outBa, StandardCharsets.UTF_8)));
@@ -106,7 +123,7 @@ class IngestCommandTest {
     @ValueSource(strings = { "github", "GITHUB", "gitlab", "GITLAB", "bitbucket", "BITBUCKET", "local", "LOCAL" })
     @DisplayName("valid source for each enum value parses and run does not throw")
     void execute_validSource_parsesAndRunDoesNotThrow(String sourceValue) {
-        IngestCommand command = new IngestCommand();
+        IngestCommand command = new IngestCommand(mockIngestionServiceCompleting());
         CommandLine cmd = new CommandLine(command);
         ByteArrayOutputStream outBa = new ByteArrayOutputStream();
         cmd.setOut(new PrintWriter(new java.io.OutputStreamWriter(outBa, StandardCharsets.UTF_8)));
@@ -115,13 +132,12 @@ class IngestCommandTest {
         int exitCode = cmd.execute("--source", sourceValue, "--repo", "some/repo");
 
         assertThat(exitCode).isEqualTo(0);
-        command.run();
     }
 
     @Test
     @DisplayName("invalid source fails with clear message")
     void execute_invalidSource_failsWithClearMessage() {
-        IngestCommand command = new IngestCommand();
+        IngestCommand command = new IngestCommand(mockIngestionServiceCompleting());
         CommandLine cmd = new CommandLine(command);
         ByteArrayOutputStream outBa = new ByteArrayOutputStream();
         ByteArrayOutputStream errBa = new ByteArrayOutputStream();
@@ -147,7 +163,7 @@ class IngestCommandTest {
     @Test
     @DisplayName("token optional and with value parses")
     void execute_tokenOptional_withValue_parses() {
-        IngestCommand command = new IngestCommand();
+        IngestCommand command = new IngestCommand(mockIngestionServiceCompleting());
         CommandLine cmd = new CommandLine(command);
         ByteArrayOutputStream outBa = new ByteArrayOutputStream();
         cmd.setOut(new PrintWriter(new java.io.OutputStreamWriter(outBa, StandardCharsets.UTF_8)));
@@ -157,27 +173,26 @@ class IngestCommandTest {
 
         assertThat(exitCode).isEqualTo(0);
         assertThat(command.token).isEqualTo("secret-token");
-        command.run();
     }
 
     @Test
     @DisplayName("run does not throw after valid parse")
     void execute_validParse_runDoesNotThrow() {
-        IngestCommand command = new IngestCommand();
+        IngestCommand command = new IngestCommand(mockIngestionServiceCompleting());
         CommandLine cmd = new CommandLine(command);
         ByteArrayOutputStream outBa = new ByteArrayOutputStream();
         cmd.setOut(new PrintWriter(new java.io.OutputStreamWriter(outBa, StandardCharsets.UTF_8)));
         cmd.setErr(new PrintWriter(new java.io.OutputStreamWriter(new ByteArrayOutputStream(), StandardCharsets.UTF_8)));
 
-        cmd.execute("--source", "github", "--repo", "owner/repo");
+        int exitCode = cmd.execute("--source", "github", "--repo", "owner/repo");
 
-        command.run();
+        assertThat(exitCode).isEqualTo(0);
     }
 
     @Test
     @DisplayName("missing --repo fails with clear message")
     void execute_missingRepo_failsWithClearMessage() {
-        IngestCommand command = new IngestCommand();
+        IngestCommand command = new IngestCommand(mockIngestionServiceCompleting());
         CommandLine cmd = new CommandLine(command);
         ByteArrayOutputStream errBa = new ByteArrayOutputStream();
         PrintWriter err = new PrintWriter(new java.io.OutputStreamWriter(errBa, StandardCharsets.UTF_8));
@@ -195,7 +210,7 @@ class IngestCommandTest {
     @Test
     @DisplayName("blank --repo fails with clear message")
     void execute_blankRepo_failsWithClearMessage() {
-        IngestCommand command = new IngestCommand();
+        IngestCommand command = new IngestCommand(mockIngestionServiceCompleting());
         CommandLine cmd = new CommandLine(command);
         ByteArrayOutputStream errBa = new ByteArrayOutputStream();
         PrintWriter err = new PrintWriter(new java.io.OutputStreamWriter(errBa, StandardCharsets.UTF_8));
@@ -208,5 +223,100 @@ class IngestCommandTest {
         assertThat(exitCode).isNotEqualTo(0);
         String errOutput = new String(errBa.toByteArray(), StandardCharsets.UTF_8);
         assertThat(errOutput).contains("non-blank");
+    }
+
+    @Test
+    @DisplayName("full ingest prints progress events and completes")
+    void execute_fullIngest_printsProgressAndCompletes() {
+        IngestionService mockService = mock(IngestionService.class);
+        when(mockService.ingestRepository(anyString())).thenReturn(Multi.createFrom().items(
+            ProgressEvent.of("Cloning", 10.0),
+            ProgressEvent.of("Parsing", 50.0),
+            ProgressEvent.of("Done", 100.0)));
+        when(mockService.ingestRepositoryIncrementally(anyString())).thenReturn(Multi.createFrom().empty());
+
+        IngestCommand command = new IngestCommand(mockService);
+        CommandLine cmd = new CommandLine(command);
+        ByteArrayOutputStream outBa = new ByteArrayOutputStream();
+        ByteArrayOutputStream errBa = new ByteArrayOutputStream();
+        PrintWriter out = new PrintWriter(new java.io.OutputStreamWriter(outBa, StandardCharsets.UTF_8));
+        PrintWriter err = new PrintWriter(new java.io.OutputStreamWriter(errBa, StandardCharsets.UTF_8));
+        cmd.setOut(out);
+        cmd.setErr(err);
+
+        int exitCode = cmd.execute("--source", "github", "--repo", "owner/repo");
+
+        out.flush();
+        err.flush();
+        String output = new String(outBa.toByteArray(), StandardCharsets.UTF_8);
+        assertThat(exitCode).isEqualTo(0);
+        assertThat(output).contains("Cloning");
+        assertThat(output).contains("Parsing");
+        assertThat(output).contains("Done");
+        assertThat(output).contains("10.0");
+        assertThat(output).contains("50.0");
+        assertThat(output).contains("100.0");
+        verify(mockService).ingestRepository("owner/repo");
+        verify(mockService, never()).ingestRepositoryIncrementally(anyString());
+    }
+
+    @Test
+    @DisplayName("incremental ingest prints progress and calls incremental only")
+    void execute_incrementalIngest_printsProgressAndCallsIncrementalOnly() {
+        IngestionService mockService = mock(IngestionService.class);
+        when(mockService.ingestRepository(anyString())).thenReturn(Multi.createFrom().empty());
+        when(mockService.ingestRepositoryIncrementally(anyString())).thenReturn(Multi.createFrom().items(
+            ProgressEvent.of("Cloning", 10.0),
+            ProgressEvent.of("Parsing", 50.0),
+            ProgressEvent.of("Done", 100.0)));
+
+        IngestCommand command = new IngestCommand(mockService);
+        CommandLine cmd = new CommandLine(command);
+        ByteArrayOutputStream outBa = new ByteArrayOutputStream();
+        ByteArrayOutputStream errBa = new ByteArrayOutputStream();
+        PrintWriter out = new PrintWriter(new java.io.OutputStreamWriter(outBa, StandardCharsets.UTF_8));
+        PrintWriter err = new PrintWriter(new java.io.OutputStreamWriter(errBa, StandardCharsets.UTF_8));
+        cmd.setOut(out);
+        cmd.setErr(err);
+
+        int exitCode = cmd.execute("--source", "github", "--repo", "owner/repo", "--incremental");
+
+        out.flush();
+        err.flush();
+        String output = new String(outBa.toByteArray(), StandardCharsets.UTF_8);
+        assertThat(exitCode).isEqualTo(0);
+        assertThat(output).contains("Cloning");
+        assertThat(output).contains("Parsing");
+        assertThat(output).contains("Done");
+        assertThat(output).contains("10");
+        assertThat(output).contains("50");
+        assertThat(output).contains("100");
+        verify(mockService, never()).ingestRepository(anyString());
+        verify(mockService).ingestRepositoryIncrementally("owner/repo");
+    }
+
+    @Test
+    @DisplayName("stream failure logs error and exits non-zero")
+    void execute_streamFailure_exitsNonZeroAndShowsError() {
+        IngestionService mockService = mock(IngestionService.class);
+        when(mockService.ingestRepository(anyString())).thenReturn(
+            Multi.createFrom().failure(new RuntimeException("Clone failed")));
+        when(mockService.ingestRepositoryIncrementally(anyString())).thenReturn(Multi.createFrom().empty());
+
+        IngestCommand command = new IngestCommand(mockService);
+        CommandLine cmd = new CommandLine(command);
+        ByteArrayOutputStream outBa = new ByteArrayOutputStream();
+        ByteArrayOutputStream errBa = new ByteArrayOutputStream();
+        PrintWriter out = new PrintWriter(new java.io.OutputStreamWriter(outBa, StandardCharsets.UTF_8));
+        PrintWriter err = new PrintWriter(new java.io.OutputStreamWriter(errBa, StandardCharsets.UTF_8));
+        cmd.setOut(out);
+        cmd.setErr(err);
+
+        int exitCode = cmd.execute("--source", "github", "--repo", "owner/repo");
+
+        err.flush();
+        String errOutput = new String(errBa.toByteArray(), StandardCharsets.UTF_8);
+        assertThat(exitCode).isNotEqualTo(0);
+        assertThat(errOutput).contains("Ingestion failed");
     }
 }

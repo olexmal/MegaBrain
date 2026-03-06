@@ -363,13 +363,13 @@ megabrain.llm.ollama.model-availability-cache-seconds=60
 
 ## EPIC-04: REST API & CLI
 
-### US-04-04: CLI Ingest Command (Partial – T2 of 6)
+### US-04-04: CLI Ingest Command (Partial – T3 of 6)
 
 CLI command structure and options for ingesting repositories from the command line.
 
 **Key Classes:**
 - `MegaBrainCommand` - Top-level CLI entry point (Quarkus Picocli `@TopCommand`) with subcommands
-- `IngestCommand` - `ingest` subcommand with `--source`, `--repo`, `--branch`, `--token`, `--incremental` options
+- `IngestCommand` - `ingest` subcommand with `--source`, `--repo`, `--branch`, `--token`, `--incremental` options; CDI bean with constructor-injected `IngestionService`
 
 **Completed (T1):**
 - Picocli integration in package `io.megabrain.cli`
@@ -381,8 +381,11 @@ CLI command structure and options for ingesting repositories from the command li
 - Validation via `IngestionResource.SourceType.fromString()`; invalid source or blank repo throw `ParameterException` with clear messages; token never logged
 - Unit tests for help output, defaults, valid sources, invalid source, token parsing, run() after valid parse
 
+**Completed (T3):**
+- Progress display: subscribes to `IngestionService.ingestRepository(repo)` / `ingestRepositoryIncrementally(repo)`; single-line updates on TTY, line-by-line when not TTY; message length capped; failure logs short message (no token) and exits non-zero
+- Unit tests for full ingest progress output, incremental progress output, full vs incremental method calls, stream failure
+
 **Not Yet Implemented:**
-- Progress display (T3)
 - Exit code handling (T4)
 - Verbose option (T5)
 - Extended command tests (T6)

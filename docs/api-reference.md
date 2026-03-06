@@ -183,7 +183,7 @@ Content-Type: application/json
 | `provider` | string | Yes | Source control provider: `github`, `gitlab`, `bitbucket` |
 
 **Response (200 OK):**
-Streams progress events via Server-Sent Events (SSE) with stage, message, and percentage fields.
+Streams progress events via Server-Sent Events (SSE) with stage, message, and percentage fields. The CLI `ingest` command consumes the same progress stream and displays it in the terminal.
 
 ---
 

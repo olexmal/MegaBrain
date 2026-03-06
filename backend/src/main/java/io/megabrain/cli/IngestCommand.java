@@ -6,13 +6,24 @@
 package io.megabrain.cli;
 
 import io.megabrain.api.IngestionResource;
+import io.megabrain.ingestion.IngestionService;
+import io.megabrain.ingestion.ProgressEvent;
+import io.smallrye.mutiny.Multi;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
 import picocli.CommandLine;
+
+import java.io.PrintWriter;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * CLI command to ingest a repository into the MegaBrain index.
  * Use {@code megabrain ingest --help} for usage.
  */
+@ApplicationScoped
 @CommandLine.Command(
     name = "ingest",
     description = "Ingest a repository (GitHub, GitLab, Bitbucket, or local path) into the MegaBrain index.",
@@ -21,6 +32,9 @@ import picocli.CommandLine;
 public class IngestCommand implements Runnable {
 
     private static final Logger LOG = Logger.getLogger(IngestCommand.class);
+    private static final int MAX_MESSAGE_LENGTH = 200;
+
+    private final IngestionService ingestionService;
 
     @CommandLine.Spec
     CommandLine.Model.CommandSpec spec;
@@ -59,6 +73,11 @@ public class IngestCommand implements Runnable {
     )
     boolean incremental;
 
+    @Inject
+    public IngestCommand(IngestionService ingestionService) {
+        this.ingestionService = ingestionService;
+    }
+
     @Override
     public void run() {
         IngestionResource.SourceType sourceType = IngestionResource.SourceType.fromString(source);
@@ -74,8 +93,53 @@ public class IngestCommand implements Runnable {
                 "Repository (--repo) is required and must be non-blank."
             );
         }
-        // T2: options validated; no ingestion call yet. Never log token.
-        LOG.debugf("ingest command: source=%s, repo=%s, branch=%s, incremental=%s",
-            sourceType, repo, branch, incremental);
+
+        String repositoryUrl = repo.trim();
+        Multi<ProgressEvent> progressStream = incremental
+            ? ingestionService.ingestRepositoryIncrementally(repositoryUrl)
+            : ingestionService.ingestRepository(repositoryUrl);
+
+        boolean tty = System.console() != null;
+        PrintWriter out = spec.commandLine().getOut();
+        CountDownLatch latch = new CountDownLatch(1);
+        AtomicBoolean failed = new AtomicBoolean(false);
+
+        progressStream.subscribe().with(
+            item -> {
+                String msg = item.message() != null ? item.message() : "";
+                if (msg.length() > MAX_MESSAGE_LENGTH) {
+                    msg = msg.substring(0, MAX_MESSAGE_LENGTH) + "...";
+                }
+                String line = String.format("%s %.1f%%", msg, item.progress());
+                if (tty) {
+                    out.print("\r" + line);
+                    out.flush();
+                } else {
+                    out.println(line);
+                    out.flush();
+                }
+            },
+            err -> {
+                LOG.errorf("Ingestion failed: %s", err.getMessage());
+                failed.set(true);
+                latch.countDown();
+            },
+            latch::countDown
+        );
+
+        try {
+            latch.await(1, TimeUnit.HOURS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            LOG.error("Ingestion interrupted");
+            throw new CommandLine.ExecutionException(spec.commandLine(), "Interrupted");
+        }
+        if (tty) {
+            out.println();
+            out.flush();
+        }
+        if (failed.get()) {
+            throw new CommandLine.ExecutionException(spec.commandLine(), "Ingestion failed.");
+        }
     }
 }
