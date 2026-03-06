@@ -51,13 +51,13 @@
 - **Description:** Implement syntax highlighting for code snippets in terminal output. Use library like Jansi or similar for ANSI color codes. Highlight code based on language. Support color/no-color modes.
 - **Estimated Hours:** 4 hours
 - **Assignee:** TBD
-- **Status:** Not Started
+- **Status:** Completed
 - **Dependencies:** T3 (needs result formatting)
 - **Acceptance Criteria:**
-  - [ ] Syntax highlighting implemented
-  - [ ] Works for multiple languages
-  - [ ] Color output when terminal supports it
-  - [ ] No-color mode supported
+  - [x] Syntax highlighting implemented
+  - [x] Works for multiple languages
+  - [x] Color output when terminal supports it
+  - [x] No-color mode supported
 - **Technical Notes:** Use library like `org.fusesource.jansi:jansi` or `com.github.javaparser:javaparser-core` for syntax highlighting. Detect terminal color support. Support `--no-color` flag.
 
 ### T5: Add JSON output mode

@@ -229,7 +229,8 @@ class SearchCommandTest {
             .contains("--type")
             .contains("--limit")
             .contains("--json")
-            .contains("--quiet");
+            .contains("--quiet")
+            .contains("--no-color");
     }
 
     @Test
@@ -322,6 +323,87 @@ class SearchCommandTest {
         assertThat(exitCode).isZero();
         String stdout = new String(outBa.toByteArray(), UTF8);
         assertThat(stdout).contains("No results.");
+    }
+
+    @Test
+    @DisplayName("--no-color is parsed and useColor false passed to formatter")
+    void execute_noColor_passesUseColorFalseToFormatter() {
+        SearchOrchestrator mockOrchestrator = mock(SearchOrchestrator.class);
+        List<ResultMerger.MergedResult> merged = createMockMergedResults(1);
+        when(mockOrchestrator.orchestrate(any(), eq(io.megabrain.core.SearchMode.HYBRID), anyInt(), anyInt()))
+                .thenReturn(Uni.createFrom().item(new SearchOrchestrator.OrchestratorResult(merged, Map.of())));
+
+        CaptureUseColorFormatter captureFormatter = new CaptureUseColorFormatter();
+        SearchCommand command = new SearchCommand(mockOrchestrator, captureFormatter, 10, 5, 10);
+        CommandLine cmd = new CommandLine(command);
+        ByteArrayOutputStream outBa = new ByteArrayOutputStream();
+        cmd.setOut(new PrintWriter(new java.io.OutputStreamWriter(outBa, UTF8)));
+        cmd.setErr(new PrintWriter(new ByteArrayOutputStream()));
+
+        cmd.execute("foo", "--no-color");
+
+        cmd.getOut().flush();
+        assertThat(captureFormatter.lastUseColor).isFalse();
+    }
+
+    @Test
+    @DisplayName("output with --no-color contains no ANSI escape")
+    void execute_noColor_stdoutHasNoAnsi() {
+        SearchOrchestrator mockOrchestrator = mock(SearchOrchestrator.class);
+        List<ResultMerger.MergedResult> merged = createMockMergedResults(1);
+        when(mockOrchestrator.orchestrate(any(), eq(io.megabrain.core.SearchMode.HYBRID), anyInt(), anyInt()))
+                .thenReturn(Uni.createFrom().item(new SearchOrchestrator.OrchestratorResult(merged, Map.of())));
+
+        SearchResultFormatter formatter = new HumanReadableSearchResultFormatter(new CliSyntaxHighlighter());
+        SearchCommand command = new SearchCommand(mockOrchestrator, formatter, 10, 5, 10);
+        CommandLine cmd = new CommandLine(command);
+        ByteArrayOutputStream outBa = new ByteArrayOutputStream();
+        cmd.setOut(new PrintWriter(new java.io.OutputStreamWriter(outBa, UTF8)));
+        cmd.setErr(new PrintWriter(new ByteArrayOutputStream()));
+
+        cmd.execute("foo", "--no-color");
+
+        cmd.getOut().flush();
+        String stdout = new String(outBa.toByteArray(), UTF8);
+        assertThat(stdout).doesNotContain("\u001B[");
+    }
+
+    /** Formatter that records the last useColor argument for testing. */
+    private static final class CaptureUseColorFormatter implements SearchResultFormatter {
+        Boolean lastUseColor = null;
+
+        @Override
+        public String format(io.megabrain.api.SearchResponse response) {
+            return format(response, false, true);
+        }
+
+        @Override
+        public String format(io.megabrain.api.SearchResponse response, boolean quiet, boolean useColor) {
+            this.lastUseColor = useColor;
+            if (quiet) {
+                return formatQuiet(response);
+            }
+            if (response == null || response.getResults() == null || response.getResults().isEmpty()) {
+                return "No results.";
+            }
+            StringBuilder sb = new StringBuilder();
+            for (io.megabrain.api.SearchResult r : response.getResults()) {
+                sb.append(r.getSourceFile()).append("\n");
+            }
+            return sb.toString();
+        }
+
+        @Override
+        public String formatQuiet(io.megabrain.api.SearchResponse response) {
+            if (response == null || response.getResults() == null || response.getResults().isEmpty()) {
+                return "No results.";
+            }
+            StringBuilder sb = new StringBuilder();
+            for (io.megabrain.api.SearchResult r : response.getResults()) {
+                sb.append(r.getSourceFile()).append("\t").append(r.getEntityName()).append("\n");
+            }
+            return sb.toString();
+        }
     }
 
     private static List<ResultMerger.MergedResult> createMockMergedResults(int count) {

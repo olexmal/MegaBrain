@@ -150,6 +150,13 @@
             <artifactId>quarkus-picocli</artifactId>
         </dependency>
 
+        <!-- Jansi for ANSI color codes (CLI syntax highlighting) -->
+        <dependency>
+            <groupId>org.fusesource.jansi</groupId>
+            <artifactId>jansi</artifactId>
+            <version>2.4.2</version>
+        </dependency>
+
         <!-- Quartz for Scheduling -->
         <dependency>
             <groupId>io.quarkus</groupId>

@@ -8,7 +8,9 @@ package io.megabrain.cli;
 import io.megabrain.api.SearchResponse;
 import io.megabrain.api.SearchResult;
 import jakarta.enterprise.context.ApplicationScoped;
+import org.jboss.logging.Logger;
 
+import jakarta.inject.Inject;
 import java.util.List;
 
 /**
@@ -18,6 +20,10 @@ import java.util.List;
  */
 @ApplicationScoped
 public class HumanReadableSearchResultFormatter implements SearchResultFormatter {
+
+    private static final Logger LOG = Logger.getLogger(HumanReadableSearchResultFormatter.class);
+
+    private final SyntaxHighlighter highlighter;
 
     /** Maximum number of lines to show in a snippet. */
     public static final int MAX_SNIPPET_LINES = 15;
@@ -30,16 +36,36 @@ public class HumanReadableSearchResultFormatter implements SearchResultFormatter
     private static final String PLACEHOLDER_ENTITY = "(no entity)";
     private static final String NO_RESULTS = "No results.";
 
+    @Inject
+    public HumanReadableSearchResultFormatter(SyntaxHighlighter highlighter) {
+        this.highlighter = highlighter;
+    }
+
+    /**
+     * No-arg constructor for tests when highlighter is not available; highlighter will be null (no highlighting).
+     */
+    public HumanReadableSearchResultFormatter() {
+        this.highlighter = null;
+    }
+
     @Override
     public String format(SearchResponse response) {
+        return format(response, false, true);
+    }
+
+    @Override
+    public String format(SearchResponse response, boolean quiet, boolean useColor) {
         if (response == null || response.getResults() == null || response.getResults().isEmpty()) {
             return NO_RESULTS;
+        }
+        if (quiet) {
+            return formatQuiet(response);
         }
         StringBuilder sb = new StringBuilder();
         appendHeader(response, sb);
         List<SearchResult> results = response.getResults();
         for (int i = 0; i < results.size(); i++) {
-            appendResult(results.get(i), sb);
+            appendResult(results.get(i), sb, useColor);
             sb.append(RESULT_SEPARATOR);
             if (i < results.size() - 1) {
                 sb.append('\n');
@@ -70,7 +96,7 @@ public class HumanReadableSearchResultFormatter implements SearchResultFormatter
         }
     }
 
-    private void appendResult(SearchResult r, StringBuilder sb) {
+    private void appendResult(SearchResult r, StringBuilder sb, boolean useColor) {
         String path = nullToEmpty(r.getSourceFile(), PLACEHOLDER_PATH);
         String entity = nullToEmpty(r.getEntityName(), PLACEHOLDER_ENTITY);
         float score = r.getScore();
@@ -81,7 +107,15 @@ public class HumanReadableSearchResultFormatter implements SearchResultFormatter
         sb.append("Score: ").append(score).append('\n');
         sb.append('\n');
         if (!snippet.isEmpty()) {
-            sb.append(snippet).append('\n');
+            String toAppend = snippet;
+            if (highlighter != null && useColor) {
+                try {
+                    toAppend = highlighter.highlight(snippet, r.getLanguage(), useColor);
+                } catch (Exception e) {
+                    LOG.debugf(e, "Syntax highlighter failed for language %s, using plain snippet", r.getLanguage());
+                }
+            }
+            sb.append(toAppend).append('\n');
         }
         sb.append('\n');
     }

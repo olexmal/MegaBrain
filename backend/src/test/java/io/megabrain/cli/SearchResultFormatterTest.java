@@ -178,4 +178,51 @@ class SearchResultFormatterTest {
         assertThat(out).doesNotContain("Score:");
         assertThat(out).doesNotContain("Entity:");
     }
+
+    private static final String ANSI_ESCAPE = "\u001B[";
+
+    @Test
+    @DisplayName("format with useColor true and highlighter produces ANSI in snippet")
+    void format_useColorTrue_snippetContainsAnsi() {
+        HumanReadableSearchResultFormatter formatterWithHighlighter =
+                new HumanReadableSearchResultFormatter(new CliSyntaxHighlighter());
+        SearchResult result = SearchResult.create(
+                "public void run() { }",
+                "MyClass.run()",
+                "method",
+                "src/MyClass.java",
+                "java",
+                "repo1",
+                0.95f,
+                new LineRange(10, 12)
+        );
+        SearchResponse response = new SearchResponse(List.of(result), 1, 0, 10, "run", 10L);
+        String out = formatterWithHighlighter.format(response, false, true);
+
+        assertThat(out).contains("File: src/MyClass.java");
+        assertThat(out).contains(ANSI_ESCAPE);
+    }
+
+    @Test
+    @DisplayName("format with useColor false has no ANSI in output")
+    void format_useColorFalse_noAnsi() {
+        HumanReadableSearchResultFormatter formatterWithHighlighter =
+                new HumanReadableSearchResultFormatter(new CliSyntaxHighlighter());
+        SearchResult result = SearchResult.create(
+                "public void run() { }",
+                "MyClass.run()",
+                "method",
+                "src/MyClass.java",
+                "java",
+                "repo1",
+                0.95f,
+                new LineRange(10, 12)
+        );
+        SearchResponse response = new SearchResponse(List.of(result), 1, 0, 10, "run", 10L);
+        String out = formatterWithHighlighter.format(response, false, false);
+
+        assertThat(out).contains("File: src/MyClass.java");
+        assertThat(out).contains("public void run() { }");
+        assertThat(out).doesNotContain(ANSI_ESCAPE);
+    }
 }

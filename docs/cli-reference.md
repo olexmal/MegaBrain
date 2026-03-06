@@ -85,6 +85,7 @@ Search the MegaBrain index from the command line. Provide a query string as the 
 | `--limit` | No | `10` | Maximum number of results (1–100). |
 | `--json` | No | `false` | Output results as JSON (see T5). |
 | `--quiet` | No | `false` | Minimal output, pipe-friendly (see T5). |
+| `--no-color` | No | `false` | Disable syntax highlighting and ANSI color in output. |
 | `--help` | No | - | Show usage and options. |
 
 **Validation:** Query must be non-blank. Each `--language` and `--type` value must be from the allowed sets above. `--limit` must be between 1 and 100. Invalid values produce exit code 2 and an error message listing allowed values.
@@ -94,9 +95,11 @@ Search the MegaBrain index from the command line. Provide a query string as the 
 - **File:** Source file path
 - **Entity:** Code entity name (e.g. class or method)
 - **Score:** Relevance score
-- A code snippet (content)
+- A code snippet (content), **syntax-highlighted** when color is enabled (see below)
 
 Results are separated by `---`. Optional header shows query, total count, and time taken (ms). Long snippets are truncated: at most 15 lines and 120 characters per line; excess is replaced with “… (truncated)” or “…” at line end. Null or blank path/entity are shown as “(no path)” and “(no entity)”. If there are no results, the output is “No results.” With `--quiet`, output is minimal: one line per result with path and entity separated by tab, suitable for piping.
+
+**Syntax highlighting:** Snippets are language-aware (Java, Python, JavaScript, TypeScript; other languages shown as plain text). Color is enabled when the output is a TTY and neither `--no-color` nor the `NO_COLOR` environment variable is set. Use `--no-color` to force plain output (e.g. when piping or in CI).
 
 **Examples:**
 
@@ -112,6 +115,9 @@ megabrain search "service" --language java --language python --type class --limi
 
 # Filter by repository
 megabrain search "config" --repo olexmal/MegaBrain --limit 20
+
+# Plain output (no syntax highlighting), e.g. for piping or CI
+megabrain search "service" --no-color
 ```
 
 **Exit codes**

@@ -420,4 +420,9 @@ CLI command to search the MegaBrain index from the command line.
 - **SearchResultMapper:** In `io.megabrain.api`; maps `MergedResult` to `SearchResult` DTO; used by `SearchResource` and CLI.
 - **Tests:** `SearchResultFormatterTest` (empty → "No results.", single/multiple layout, long snippet truncated, null/blank no NPE, quiet format); `SearchCommandTest` (mock orchestrator, stdout contains formatted result when not --json, empty results "No results.").
 
-**Not Yet Implemented:** T4 (syntax highlighting), T5 (JSON output), T6 (extended command tests).
+**Completed (T4):**
+- **Syntax highlighting:** `SyntaxHighlighter` interface and `CliSyntaxHighlighter` implementation (keyword/pattern-based) using Jansi for ANSI codes. Supports Java, Python, JavaScript, TypeScript; other languages fall back to plain. `HumanReadableSearchResultFormatter` injects highlighter and uses it in `format(response, quiet, useColor)`; on highlighter failure logs debug and appends plain snippet.
+- **Color control:** `--no-color` option (default false). useColor resolved as: false if `--no-color`, else false if env `NO_COLOR` set, else false if output not TTY (`System.console() == null`), else true. Formatter receives useColor and highlights snippets only when true.
+- **Tests:** `CliSyntaxHighlighterTest` (color on → ANSI, color off → no ANSI, multiple languages, unknown/null/blank language no exception, empty snippet); `SearchResultFormatterTest` (useColor true → snippet contains ANSI, useColor false → no ANSI); `SearchCommandTest` (`--no-color` parsed and useColor false passed to formatter, output with `--no-color` has no ANSI).
+
+**Not Yet Implemented:** T5 (JSON output), T6 (extended command tests).

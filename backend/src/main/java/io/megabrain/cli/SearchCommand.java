@@ -108,6 +108,13 @@ public class SearchCommand implements Runnable {
     )
     boolean quiet;
 
+    @CommandLine.Option(
+        names = "--no-color",
+        description = "Disable syntax highlighting and ANSI color in output.",
+        defaultValue = "false"
+    )
+    boolean noColor;
+
     /** Built after validation; used by T3/T5 for actual search and formatting. */
     private SearchRequest searchRequest;
 
@@ -204,9 +211,10 @@ public class SearchCommand implements Runnable {
                     orcResult.facets()
             );
 
+            boolean useColor = resolveUseColor();
             PrintWriter out = spec.commandLine().getOut();
             if (!json) {
-                out.println(searchResultFormatter.format(response, quiet));
+                out.println(searchResultFormatter.format(response, quiet, useColor));
             }
             out.flush();
         } catch (Exception e) {
@@ -274,5 +282,19 @@ public class SearchCommand implements Runnable {
         }
         req.setLimit(limit);
         return req;
+    }
+
+    /**
+     * Resolves whether to use color (syntax highlighting) in output.
+     * Color is disabled when: --no-color is set, or NO_COLOR env is set, or output is not a TTY.
+     */
+    private boolean resolveUseColor() {
+        if (noColor) {
+            return false;
+        }
+        if (System.getenv("NO_COLOR") != null && !System.getenv("NO_COLOR").isBlank()) {
+            return false;
+        }
+        return System.console() != null;
     }
 }
